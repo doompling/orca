@@ -1,3 +1,4 @@
+import { statSync } from 'node:fs'
 import { resolveOpenCodeDataDirectory } from './opencode-data-directory'
 import {
   bindOpenCodeSession,
@@ -234,6 +235,10 @@ export function listOpenCodeDbSessions(
   cursor: OpenCodeSessionCursor
 ): BinderSessionRow[] {
   try {
+    // OpenCode creates its optional store on first use; keep polling until then.
+    if (!statSync(dbPath, { throwIfNoEntry: false })) {
+      return []
+    }
     return readOpenCodeDatabase({
       dbPath,
       read: (db) => {

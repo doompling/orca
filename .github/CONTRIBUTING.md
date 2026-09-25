@@ -16,15 +16,74 @@ Thanks for contributing to Orca.
 
 ## Local Setup
 
+Use **Node.js 24.21.0** from [`.node-version`](../.node-version) and **pnpm 12.0.0**
+from [`package.json`](../package.json). A configured nodenv installation selects the
+pinned Node version automatically in this checkout.
+Native dependencies need Python and a C/C++ build toolchain. On macOS, install Xcode
+Command Line Tools (`xcode-select --install`); the full build also compiles Swift helpers.
+The separate `pnpm run verify:computer-native` check needs full Xcode on macOS for XCTest;
+Command Line Tools are sufficient to build and run the app.
+
 ```bash
-pnpm install
+pnpm install --frozen-lockfile
 pnpm dev
 ```
+
+`pnpm dev` runs Electron with live renderer updates and prints its CDP debugging URL.
+The complete build also includes the CLI, SSH relay, browser client, mobile web bundle,
+and native helpers. Install the separate mobile workspace dependencies before building:
+
+```bash
+pnpm --dir mobile install --frozen-lockfile
+pnpm build
+pnpm start
+```
+
+`pnpm start` previews the built app. Ordinary `pnpm dev` needs only the root install;
+the separate `cloud/` workspace is optional unless you are working on cloud services.
+
+Development uses an `orca-dev` profile, separate from the packaged app. To isolate a
+development session further, set `ORCA_DEV_USER_DATA_PATH` to an absolute directory.
+Agents must set `ORCA_BACKGROUND_LAUNCH=1` when launching apps or tests, use CDP for
+rendered checks, and keep visible-window or native-focus tests on an isolated display or CI.
+
+Run focused checks as you work:
+
+```bash
+pnpm tc
+pnpm run check:code-quality:changed
+ORCA_BACKGROUND_LAUNCH=1 pnpm test path/to/file.test.ts
+```
+
+The environment-variable syntax above is for POSIX shells; in PowerShell, set
+`$env:ORCA_BACKGROUND_LAUNCH = '1'` before the command. `pnpm test` prepares native modules
+for Node, while `pnpm dev`, `pnpm start`, and the E2E scripts prepare them for Electron.
+Stop the app before switching between tests and app runs in the same checkout.
 
 Ordinary installs include native optional dependencies for the current OS and CPU only.
 Before a cross-architecture build (including `pnpm build:mac`, which produces both x64 and
 arm64 artifacts by default), run `pnpm install:release` to add the other CPU's variants.
 See [the install policy](../docs/reference/pnpm-install-policy.md).
+
+### Where to Work
+
+| Area                                 | Entry points                                            |
+| ------------------------------------ | ------------------------------------------------------- |
+| Electron app and services            | `src/main/index.ts`, `src/main/startup/`                |
+| React interface                      | `src/renderer/src/main.tsx`, `src/renderer/src/App.tsx` |
+| Desktop API bridge                   | `src/preload/index.ts`, `src/preload/api/`              |
+| CLI, SSH relay, and shared contracts | `src/cli/`, `src/relay/`, `src/shared/`                 |
+
+Follow [`docs/STYLEGUIDE.md`](../docs/STYLEGUIDE.md) for interface changes.
+
+### Before Distributing a Fork
+
+Choose the fork's name and identity, then update package metadata in
+[`package.json`](../package.json) and the app ID, product name, signing configuration,
+and publish destination in [`config/electron-builder.config.cjs`](../config/electron-builder.config.cjs).
+Review the upstream URLs in [`src/main/updater/`](../src/main/updater/) and release
+workflows in [`.github/workflows/`](./workflows/); changing the packaging destination alone
+does not change every update feed. Local development does not require release credentials.
 
 ## Branch Naming
 

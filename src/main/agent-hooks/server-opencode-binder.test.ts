@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -70,14 +70,35 @@ describe('opencode binder loop', () => {
         { paneKey: PANE_A, directory: DIR, worktreeId: `repo::${DIR}`, shellPid: 111 }
       ],
       sweep: async () => [
-        { pid: 112, ppid: 111, startedAtMs: Date.now() - 120_000, executable: 'opencode', argv: ['opencode'] }
+        {
+          pid: 112,
+          ppid: 111,
+          startedAtMs: Date.now() - 120_000,
+          executable: 'opencode',
+          argv: ['opencode']
+        }
       ]
     })
   })
 
   afterEach(() => {
     server.stop()
+    vi.restoreAllMocks()
     rmSync(dir, { recursive: true, force: true })
+  })
+
+  it('quietly retries an absent store and binds sessions once it appears', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    expect(await server.runBinderRound()).toBe(0)
+    expect(await server.runBinderRound()).toBe(0)
+    expect(warn).not.toHaveBeenCalled()
+    expect(existsSync(dbPath)).toBe(false)
+
+    writeDb(dbPath, 'session_v2')
+    expect(await server.runBinderRound()).toBe(1)
+    expect(server.readRegistry('ses_live')).toBe(PANE_A)
+    expect(warn).not.toHaveBeenCalled()
   })
 
   it('binds a fresh session to its pane', async () => {
@@ -217,6 +238,7 @@ describe('listOpenCodeDbSessions', () => {
   })
 
   afterEach(() => {
+    vi.restoreAllMocks()
     rmSync(dir, { recursive: true, force: true })
   })
 
@@ -228,8 +250,24 @@ describe('listOpenCodeDbSessions', () => {
     expect(listOpenCodeDbSessions(dbPath, { ms: Date.now(), id: '' })).toEqual([])
   })
 
-  it('returns [] for a missing database instead of throwing', () => {
-    expect(listOpenCodeDbSessions(join(dir, 'absent.db'), { ms: 0, id: '' })).toEqual([])
+  it('silently skips a missing database without creating it', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const absentPath = join(dir, 'not-installed', 'opencode.db')
+
+    expect(listOpenCodeDbSessions(absentPath, { ms: 0, id: '' })).toEqual([])
+    expect(warn).not.toHaveBeenCalled()
+    expect(existsSync(absentPath)).toBe(false)
+  })
+
+  it('still warns when an existing database is corrupt', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    writeFileSync(dbPath, 'not a SQLite database')
+
+    expect(listOpenCodeDbSessions(dbPath, { ms: 0, id: '' })).toEqual([])
+    expect(warn).toHaveBeenCalledExactlyOnceWith(
+      '[opencode-binder] session store read failed; skipping round',
+      expect.any(Error)
+    )
   })
 
   it('the default path points at the local opencode store', () => {
