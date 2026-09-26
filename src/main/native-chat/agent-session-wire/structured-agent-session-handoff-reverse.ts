@@ -20,6 +20,10 @@ export async function handoffStructuredSessionToNative(
   const sessionId = params.envelope.sessionId
   const operationId = params.envelope.clientOperationId
   let record = context.requireRecord(sessionId)
+  if (record.provider === 'opencode') {
+    throw new Error('structured_agent_session_unsupported')
+  }
+  const provider = record.provider
   let owner = context.owner(sessionId)
   let transcriptPath = owner?.transcriptPath
   if (!retry || record.lease.handoffStage === 'preparing' || record.lease.handoffStage === null) {
@@ -149,7 +153,7 @@ export async function handoffStructuredSessionToNative(
   await deps.transport?.revealNativeSession?.({
     workspaceId: record.location.workspaceId,
     sessionId,
-    agent: record.provider,
+    agent: provider,
     ...(owner?.adoptedTerminal ? { adoptedTerminal: true } : {})
   })
 }

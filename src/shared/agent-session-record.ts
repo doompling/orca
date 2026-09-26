@@ -3,7 +3,12 @@ import { isAgentSessionConversationName } from './agent-session-conversation-nam
 import type { LocalWorkspaceLaunchScope } from './local-projects/agent-launch-scope'
 import { isLocalWorkspaceSessionScope } from './local-projects/agent-session-scope'
 import { isAgentSessionLaunchArgs } from './agent-session-launch-args'
+import {
+  isAgentSessionAccountHome,
+  type AgentSessionAccountHome
+} from './agent-session-account-home'
 export { isAgentSessionLaunchArgs } from './agent-session-launch-args'
+export { type AgentSessionAccountHome } from './agent-session-account-home'
 /**
  * Durable agent-session record and its single-writer lease.
  *
@@ -18,6 +23,7 @@ import {
   type AgentSessionConversationCommandRecord
 } from './agent-session-conversation-command'
 import {
+  isAgentSessionHandleProvider,
   isAgentSessionProviderHandleChain,
   type AgentSessionHandleProvider,
   type AgentSessionProviderHandleLink
@@ -38,13 +44,6 @@ export type AgentSessionExecutionLocation = {
   wslDistro: string | null
   workspaceId: string
   workspaceKind: AgentSessionWorkspaceKind
-}
-
-/** Account root pinned at launch by the account selector, so a resume cannot drift to another login. */
-export type AgentSessionAccountHome = {
-  variable: 'CLAUDE_CONFIG_DIR' | 'CODEX_HOME'
-  /** Host-resolved absolute path in the execution host's own path syntax. */
-  path: string
 }
 
 /** Provider launch environment captured by the host when the session is created. */
@@ -154,7 +153,6 @@ export type AgentSessionOptionsReplacement = {
 }
 
 const MAX_ID_LENGTH = 512
-const MAX_PATH_LENGTH = 4096
 const MAX_LAUNCH_ENV_ENTRIES = 256
 const MAX_LAUNCH_ENV_VALUE_LENGTH = 65_536
 const SESSION_ID_PATTERN = /^[A-Za-z0-9_-]{8,128}$/
@@ -220,17 +218,6 @@ export function isAgentSessionProcessIdentity(
       (Number.isSafeInteger(identity.processStartTimeMs) &&
         (identity.processStartTimeMs as number) >= 0)) &&
     isBoundedString(identity.spawnToken, MAX_ID_LENGTH)
-  )
-}
-
-function isAgentSessionAccountHome(value: unknown): value is AgentSessionAccountHome {
-  if (typeof value !== 'object' || value === null) {
-    return false
-  }
-  const home = value as Partial<AgentSessionAccountHome>
-  return (
-    (home.variable === 'CLAUDE_CONFIG_DIR' || home.variable === 'CODEX_HOME') &&
-    isBoundedString(home.path, MAX_PATH_LENGTH)
   )
 }
 
@@ -344,9 +331,15 @@ export function isAgentSessionRecord(value: unknown): value is AgentSessionRecor
     record.schemaVersion === AGENT_SESSION_RECORD_SCHEMA_VERSION &&
     isAgentSessionId(record.sessionId) &&
     isAgentSessionExecutionLocation(record.location) &&
-    (record.provider === 'claude' || record.provider === 'codex') &&
+    isAgentSessionHandleProvider(record.provider) &&
     isAgentSessionProviderHandleChain(record.providerHandleChain) &&
     isAgentSessionAccountHome(record.accountHome) &&
+    (record.provider === 'opencode') === (record.accountHome.variable === 'XDG_DATA_HOME') &&
+    (record.provider !== 'opencode' ||
+      (record.accountHome.variable === 'XDG_DATA_HOME' &&
+        record.location.executionHostId === 'local' &&
+        record.location.wslDistro === null &&
+        record.lease?.runtimeKind === 'native')) &&
     (record.options === undefined || isAgentSessionOptions(record.options)) &&
     (record.rewind === undefined || isAgentSessionRewindRecord(record.rewind)) &&
     (record.conversationCommand === undefined ||

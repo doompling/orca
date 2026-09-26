@@ -35,7 +35,6 @@ import {
   computeAgentSessionPayloadFingerprint
 } from '../../../shared/agent-session-mutation-envelope'
 import type { AgentSessionRecordStore } from '../../runtime/agent-session-record-store'
-import { agentSessionProviderHandleChainHead } from '../../../shared/agent-session-provider-handle'
 import { agentSessionJournalCloseRetries } from '../agent-session-journal/journal-close-retry'
 import { journalDirectoryFor } from '../agent-session-journal/journal-paths'
 import type { AgentSessionJournal } from '../agent-session-journal/journal-store'
@@ -48,6 +47,9 @@ import {
 import type { StructuredAgentSessionAdapter } from './structured-agent-session-adapter'
 import { structuredAgentSessionRefusalMessage } from './structured-agent-session-refusal-message'
 import type { LocalWorkspaceLaunchScope } from '../../../shared/local-projects/agent-launch-scope'
+import { isAgentSessionAccountHome } from '../../../shared/agent-session-account-home'
+import { journalIdentityFor } from './structured-agent-session-journal-identity'
+export { journalIdentityFor } from './structured-agent-session-journal-identity'
 
 /**
  * Everything a client may declare about the session it wants. Deliberately no
@@ -122,6 +124,26 @@ export function attachFingerprintFields(params: AgentSessionAttachParams): Recor
 export function admitAttachOrRefuse(
   params: AgentSessionAttachParams
 ): { ok: true; fingerprint: string } | { ok: false; refusal: AgentSessionWireRefusal } {
+  if (
+    (params.provider === 'opencode' || params.agent === 'opencode') &&
+    (params.provider !== 'opencode' ||
+      params.agent !== 'opencode' ||
+      params.runtimeKind !== 'native' ||
+      params.adopt ||
+      params.location.executionHostId !== 'local' ||
+      params.location.wslDistro !== null ||
+      params.accountHome.variable !== 'XDG_DATA_HOME' ||
+      !isAgentSessionAccountHome(params.accountHome))
+  ) {
+    return {
+      ok: false,
+      refusal: {
+        code: 'structured_agent_session_unsupported',
+        message:
+          'OpenCode supports local native sessions only; importing or handing off a conversation is unavailable.'
+      }
+    }
+  }
   if (params.providerHandle && params.providerHandle.kind !== params.provider) {
     return {
       ok: false,
@@ -138,30 +160,6 @@ export function admitAttachOrRefuse(
   })
   const conflict = agentSessionFingerprintConflict(params.envelope, fingerprint)
   return conflict ? { ok: false, refusal: conflict } : { ok: true, fingerprint }
-}
-
-export function journalIdentityFor(
-  record: AgentSessionRecord,
-  params: AgentSessionAttachParams
-): AgentSessionJournalIdentity {
-  const head = agentSessionProviderHandleChainHead(record.providerHandleChain)
-  const providerHandle: AgentSessionProviderHandle =
-    head?.handle.provider === 'codex'
-      ? { kind: 'codex', threadId: head.handle.threadId }
-      : head?.handle.provider === 'claude'
-        ? {
-            kind: 'claude',
-            sessionId: head.handle.sessionId,
-            leafUuid: head.handle.leafUuid
-          }
-        : (params.providerHandle ?? { kind: 'opaque', agent: params.agent, value: 'pending' })
-  return {
-    sessionId: record.sessionId,
-    workspaceId: params.location.workspaceId,
-    hostId: params.location.executionHostId,
-    agent: params.agent,
-    providerHandle
-  }
 }
 
 export type AttachedJournal = {
@@ -284,6 +282,9 @@ function adoptedProviderHandleLink(
   handle: Exclude<AgentSessionProviderHandle, { kind: 'opaque' }>,
   observedAt: number
 ): AgentSessionProviderHandleLink {
+  if (handle.kind === 'opencode') {
+    throw new Error('structured_agent_session_unsupported')
+  }
   return handle.kind === 'claude'
     ? claudeProviderHandleLink({
         sessionId: handle.sessionId,

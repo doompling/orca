@@ -11,7 +11,10 @@
 import { isAgentSessionHandleProvider } from './agent-session-provider-handle'
 import type { GlobalSettings } from './global-settings-types'
 import type { ProjectExecutionRuntimeResolution } from './project-execution-runtime'
-import { STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY } from './protocol-version'
+import {
+  OPENCODE_STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY,
+  STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY
+} from './protocol-version'
 import type { TuiAgent } from './tui-agent'
 import type { WorkspaceLaunchKind } from './workspace-launch-kind'
 
@@ -97,6 +100,12 @@ export function resolveStructuredNativeChatSupport(
     return { supported: false, blocker: 'runtime-capability-unknown' }
   }
   if (!input.hostCapabilities.includes(STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY)) {
+    return { supported: false, blocker: 'runtime-capability' }
+  }
+  if (
+    input.agent === 'opencode' &&
+    !input.hostCapabilities.includes(OPENCODE_STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY)
+  ) {
     return { supported: false, blocker: 'runtime-capability' }
   }
   return { supported: true }

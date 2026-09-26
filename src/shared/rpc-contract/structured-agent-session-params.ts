@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { isAgentSessionId } from '../agent-session-record'
+import { isAgentSessionAccountHome } from '../agent-session-account-home'
 import { normalizeExecutionHostId } from '../execution-host'
 import {
   AGENT_SESSION_ID_MAX_LENGTH,
@@ -55,6 +56,9 @@ export const MutationEnvelope = z
 export const ProviderHandle = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('codex'), threadId: Identifier('Invalid thread id') }).strict(),
   z
+    .object({ kind: z.literal('opencode'), sessionId: Identifier('Invalid provider session id') })
+    .strict(),
+  z
     .object({
       kind: z.literal('claude'),
       sessionId: Identifier('Invalid provider session id'),
@@ -80,24 +84,48 @@ export const ExecutionLocation = z
   })
   .strict()
 
-export const AccountHome = z
-  .object({
-    variable: z.enum(['CLAUDE_CONFIG_DIR', 'CODEX_HOME']),
-    path: z.string().min(1).max(4096)
-  })
-  .strict()
+export const AccountHome = z.union([
+  z
+    .object({
+      variable: z.enum(['CLAUDE_CONFIG_DIR', 'CODEX_HOME']),
+      path: z.string().min(1).max(4096)
+    })
+    .strict(),
+  z
+    .object({
+      variable: z.literal('XDG_DATA_HOME'),
+      path: z.string(),
+      configHome: z.string().optional(),
+      configFile: z.string().optional(),
+      configDir: z.string().optional()
+    })
+    .strict()
+    .refine(isAgentSessionAccountHome, 'OpenCode account and config paths must be absolute')
+])
 
 export const AttachParams = z
   .object({
     envelope: MutationEnvelope,
     location: ExecutionLocation,
-    provider: z.enum(['codex', 'claude']),
+    provider: z.enum(['codex', 'claude', 'opencode']),
     agent: Identifier('Invalid agent'),
     accountHome: AccountHome,
     runtimeKind: z.enum(['native', 'tui']),
     providerHandle: ProviderHandle
   })
   .strict()
+  .refine(
+    (value) =>
+      (value.provider !== 'opencode' && value.agent !== 'opencode') ||
+      (value.provider === 'opencode' &&
+        value.agent === 'opencode' &&
+        value.runtimeKind === 'native' &&
+        value.location.executionHostId === 'local' &&
+        value.location.wslDistro === null &&
+        value.accountHome.variable === 'XDG_DATA_HOME' &&
+        value.providerHandle.kind === 'opencode'),
+    'OpenCode structured sessions require a local native owner'
+  )
 
 /** An identity, and nothing the host would otherwise read off disk. A transcript path or account
  *  home here would let a client choose which file this host imports and which credential directory
@@ -112,17 +140,21 @@ export const CreateIntentParams = z
   .object({
     envelope: MutationEnvelope,
     worktree: Identifier('Invalid worktree selector'),
-    agent: z.enum(['claude', 'codex']),
+    agent: z.enum(['claude', 'codex', 'opencode']),
     resumeFrom: ResumeSource.optional()
   })
   .strict()
+  .refine(
+    (value) => value.agent !== 'opencode' || value.resumeFrom === undefined,
+    'Importing an OpenCode conversation is not supported'
+  )
 
 export const CreateParams = z.union([AttachParams, CreateIntentParams])
 
 export const CreateSupportParams = z
   .object({
     worktree: Identifier('Invalid worktree selector'),
-    agent: z.enum(['claude', 'codex'])
+    agent: z.enum(['claude', 'codex', 'opencode'])
   })
   .strict()
 

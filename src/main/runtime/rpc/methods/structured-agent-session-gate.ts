@@ -12,6 +12,7 @@ import { getStructuredAgentSessionHost } from '../../../native-chat/agent-sessio
 import type { StructuredAgentSessionHost } from '../../../native-chat/agent-session-wire/structured-agent-session-host'
 import type { StructuredAgentSessionCaller } from '../../../native-chat/agent-session-wire/structured-agent-session-host-types'
 import type { RpcContext } from '../core'
+import { OPENCODE_STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY } from '../../../../shared/protocol-version'
 import {
   supportsStructuredAgentSessionCapability,
   supportsStructuredAgentSessions
@@ -31,11 +32,37 @@ export function requireStructuredCapability(ctx: RpcContext): void {
   }
 }
 
-export function requireStructuredHost(ctx: RpcContext): StructuredAgentSessionHost {
+export function structuredProviderVisibleToClient(
+  ctx: Pick<RpcContext, 'clientKind' | 'clientCapabilities'>,
+  provider: string | undefined
+): boolean {
+  return (
+    provider !== 'opencode' ||
+    ctx.clientKind === undefined ||
+    ctx.clientCapabilities?.includes(OPENCODE_STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY) === true
+  )
+}
+
+export function requireStructuredProviderCapability(
+  ctx: Pick<RpcContext, 'clientKind' | 'clientCapabilities'>,
+  provider: string | undefined
+): void {
+  if (!structuredProviderVisibleToClient(ctx, provider)) {
+    throw new Error('structured_agent_session_unsupported')
+  }
+}
+
+export function requireStructuredHost(
+  ctx: RpcContext,
+  sessionId?: string
+): StructuredAgentSessionHost {
   requireStructuredCapability(ctx)
   const host = getStructuredAgentSessionHost()
   if (!host) {
     throw new Error('structured_agent_session_unsupported')
+  }
+  if (sessionId) {
+    requireStructuredProviderCapability(ctx, host.deps?.store?.getRecord(sessionId)?.provider)
   }
   return host
 }
@@ -62,13 +89,19 @@ export function requireStructuredHost(ctx: RpcContext): StructuredAgentSessionHo
  * that never advertised the surface still cannot see it, and it never creates a host — it can
  * only retire what already exists.
  */
-export function requireStructuredCleanupHost(ctx: RpcContext): StructuredAgentSessionHost {
+export function requireStructuredCleanupHost(
+  ctx: RpcContext,
+  sessionId?: string
+): StructuredAgentSessionHost {
   if (!supportsStructuredAgentSessionCapability(ctx)) {
     throw new Error('structured_agent_session_unsupported')
   }
   const host = getStructuredAgentSessionHost()
   if (!host) {
     throw new Error('structured_agent_session_unsupported')
+  }
+  if (sessionId) {
+    requireStructuredProviderCapability(ctx, host.deps?.store?.getRecord(sessionId)?.provider)
   }
   return host
 }

@@ -1,4 +1,8 @@
 import type { Tab } from '../../../shared/tab-types'
+import {
+  isAgentSessionHandleProvider,
+  type AgentSessionHandleProvider
+} from '../../../shared/agent-session-provider-handle'
 import { LOCAL_EXECUTION_HOST_ID } from '../../../shared/execution-host'
 import { defaultAgentChatLabel } from '../../../shared/agent-session-chat-label'
 import { structuredAgentSessionTabId } from '../../../shared/structured-agent-session-projection'
@@ -17,7 +21,7 @@ export type StructuredAgentSessionProvisionalLaunch = StructuredAgentLaunchHandl
 export function openStructuredAgentSessionProvisionalTab(args: {
   worktreeId: string
   sessionId: string
-  agent: 'claude' | 'codex'
+  agent: AgentSessionHandleProvider
   targetGroupId?: string
   activate?: boolean
 }): Tab {
@@ -67,10 +71,10 @@ export function beginStructuredAgentSessionProvisionalLaunch(args: {
     return null
   }
   const worktreeId = args.target?.worktreeId ?? args.plan.worktreeId
-  if (!worktreeId || (args.plan.agent !== 'claude' && args.plan.agent !== 'codex')) {
-    throw new Error('A provisional structured launch needs its workspace and provider.')
-  }
   try {
+    if (!worktreeId || !isAgentSessionHandleProvider(args.plan.agent)) {
+      throw new Error('A provisional structured launch needs its workspace and provider.')
+    }
     if (args.beforeOpen?.(handle.sessionId) === false) {
       handle.cancel()
       return null

@@ -60,6 +60,9 @@ export async function rewindStructuredAgentSession(
         run: async (ctx) => {
           await attachContext.runtimeState.flushEventSink(sessionId)
           const record = store.getRecord(sessionId)!
+          if (record.provider === 'opencode') {
+            return rewindRefusal('unsupported')
+          }
           const support = ctx.adapter.rewindSupport?.(sessionId)
           if (!support?.supported) {
             return rewindRefusal(support?.reason ?? 'unsupported')

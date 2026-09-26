@@ -9,6 +9,12 @@ export function adapterSupportsCreate(
   location: AgentSessionExecutionLocation,
   agent: string
 ): boolean {
+  if (
+    agent === 'opencode' &&
+    (location.executionHostId !== 'local' || location.wslDistro !== null)
+  ) {
+    return false
+  }
   if (adapter.supportsCreate) {
     return adapter.supportsCreate(location, agent)
   }
@@ -25,6 +31,9 @@ export function adapterSupportsCreateIfDeclared(
   location: AgentSessionExecutionLocation,
   agent: string
 ): boolean {
+  if (agent === 'opencode') {
+    return adapterSupportsCreate(adapter, location, agent)
+  }
   if (!adapter.supportsCreate && !adapter.supportsLocation) {
     return true
   }
@@ -35,6 +44,9 @@ export function adapterSupportsRecord(
   adapter: StructuredAgentSessionAdapter,
   record: AgentSessionRecord
 ): boolean {
+  if (record.provider === 'opencode') {
+    return adapterSupportsCreate(adapter, record.location, record.provider)
+  }
   if (adapter.supportsCreate) {
     return adapter.supportsCreate(record.location, record.provider)
   }

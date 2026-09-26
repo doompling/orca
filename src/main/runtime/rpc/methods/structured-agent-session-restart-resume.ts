@@ -5,13 +5,35 @@
 // the host's single resume path, which re-derives eligibility rather than trusting the ids it is
 // given.
 
-import { defineMethod } from '../core'
+import { defineMethod, type RpcContext } from '../core'
+import type { StructuredAgentSessionHost } from '../../../native-chat/agent-session-wire/structured-agent-session-host'
 import {
   ensureStructuredHostInstalled,
   requireStructuredHost,
+  requireStructuredProviderCapability,
+  structuredProviderVisibleToClient,
   structuredCallerFor
 } from './structured-agent-session-gate'
 import { RestartResumableParams, RestartResumeParams } from './structured-agent-session-schemas'
+
+async function supportedResumeIds(
+  host: StructuredAgentSessionHost,
+  ctx: RpcContext,
+  sessionIds: readonly string[] | undefined
+): Promise<readonly string[] | undefined> {
+  if (sessionIds) {
+    for (const sessionId of sessionIds) {
+      requireStructuredProviderCapability(ctx, host.deps?.store?.getRecord(sessionId)?.provider)
+    }
+    return sessionIds
+  }
+  if (structuredProviderVisibleToClient(ctx, 'opencode')) {
+    return undefined
+  }
+  return (await host.restartResume.list())
+    .filter((session) => structuredProviderVisibleToClient(ctx, session.agent))
+    .map((session) => session.sessionId)
+}
 
 export const STRUCTURED_AGENT_SESSION_RESTART_RESUME_METHODS = [
   defineMethod({
@@ -19,7 +41,12 @@ export const STRUCTURED_AGENT_SESSION_RESTART_RESUME_METHODS = [
     params: RestartResumableParams,
     handler: async (_params, ctx) => {
       await ensureStructuredHostInstalled(ctx)
-      return { sessions: await requireStructuredHost(ctx).restartResume.list() }
+      const sessions = await requireStructuredHost(ctx).restartResume.list()
+      return {
+        sessions: sessions.filter((session) =>
+          structuredProviderVisibleToClient(ctx, session.agent)
+        )
+      }
     }
   }),
   defineMethod({
@@ -30,6 +57,11 @@ export const STRUCTURED_AGENT_SESSION_RESTART_RESUME_METHODS = [
     handler: async (_params, ctx) => {
       await ensureStructuredHostInstalled(ctx)
       const host = requireStructuredHost(ctx)
+      if (!structuredProviderVisibleToClient(ctx, 'opencode')) {
+        for (const session of await host.restartResume.list()) {
+          requireStructuredProviderCapability(ctx, session.agent)
+        }
+      }
       const dismissed = await host.restartResume.dismiss()
       // clearAll is the authoritative mutation: it removes pending and in-flight records, so a
       // second read would only add a new failure point after the user's explicit dismissal.
@@ -45,10 +77,20 @@ export const STRUCTURED_AGENT_SESSION_RESTART_RESUME_METHODS = [
     handler: async (params, ctx) => {
       await ensureStructuredHostInstalled(ctx)
       const host = requireStructuredHost(ctx)
-      return host.restartResume.continueAfterRestart(
-        params.sessionIds,
+      const result = await host.restartResume.continueAfterRestart(
+        await supportedResumeIds(host, ctx, params.sessionIds),
         structuredCallerFor(ctx).callerKey
       )
+      return {
+        ...result,
+        ...(result.sessions
+          ? {
+              sessions: result.sessions.filter((session) =>
+                structuredProviderVisibleToClient(ctx, session.agent)
+              )
+            }
+          : {})
+      }
     }
   }),
   defineMethod({
@@ -62,7 +104,7 @@ export const STRUCTURED_AGENT_SESSION_RESTART_RESUME_METHODS = [
       const host = requireStructuredHost(ctx)
       return {
         results: await host.restartResume.resume(
-          params.sessionIds,
+          await supportedResumeIds(host, ctx, params.sessionIds),
           structuredCallerFor(ctx).callerKey
         )
       }

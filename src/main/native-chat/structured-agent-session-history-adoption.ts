@@ -9,10 +9,11 @@ import type { AgentSessionOperationRow } from '../../shared/agent-session-operat
 import type { AgentSessionProviderHandle } from '../../shared/agent-session-journal-types'
 import type { AgentSessionLease, AgentSessionRecord } from '../../shared/agent-session-record'
 import { agentSessionLeaseAdmitsWriter } from '../../shared/agent-session-lease-adjudication'
+import type { AgentSessionHandleProvider } from '../../shared/agent-session-provider-handle'
 
 export type StructuredAgentSessionAdoptionOwnership = {
   sessionId: string
-  provider: 'claude' | 'codex'
+  provider: AgentSessionHandleProvider
   providerSessionId: string
   lease: AgentSessionLease
 }
@@ -25,7 +26,7 @@ export type StructuredAgentSessionAdoption = {
 
 export type CommittedStructuredAgentSessionAdoptionReplay = {
   record: AgentSessionRecord
-  providerHandle: Exclude<AgentSessionProviderHandle, { kind: 'opaque' }>
+  providerHandle: Extract<AgentSessionProviderHandle, { kind: 'claude' | 'codex' }>
 }
 
 /** Exact committed-operation identity; attach still validates its fingerprint. */
@@ -53,7 +54,8 @@ export function findCommittedStructuredAgentSessionAdoptionReplay(input: {
     !record ||
     record.sessionId !== input.selfSessionId ||
     record.provider !== input.agent ||
-    adopted?.origin !== 'adopted'
+    adopted?.origin !== 'adopted' ||
+    adopted.handle.provider === 'opencode'
   ) {
     return null
   }

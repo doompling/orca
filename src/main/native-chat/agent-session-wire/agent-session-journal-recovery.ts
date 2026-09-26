@@ -47,7 +47,7 @@ export function providerHistoryId(handle: AgentSessionProviderHandle): string {
   if (handle.kind === 'codex') {
     return handle.threadId
   }
-  return handle.kind === 'claude' ? handle.sessionId : handle.value
+  return handle.kind === 'opaque' ? handle.value : handle.sessionId
 }
 
 export async function openAgentSessionJournalWithRecovery(input: {
@@ -107,6 +107,15 @@ async function rehydrate(input: {
 }): Promise<AgentSessionJournalRecovery> {
   const reset: AgentJournalResetReason =
     input.trigger === 'schema_unreadable' ? 'schema_unreadable' : 'epoch_changed'
+  if (input.identity.agent === 'opencode') {
+    return {
+      trigger: input.trigger,
+      reset,
+      epoch: input.journal.epoch,
+      imported: 0,
+      error: 'OpenCode history must be restored by its native provider, not a terminal transcript.'
+    }
+  }
   const result = await importLegacyTranscriptIntoJournal({
     journal: input.journal,
     agent: input.identity.agent satisfies AgentType,
