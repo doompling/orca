@@ -1,6 +1,9 @@
 # Local multi-root Projects and Workspaces
 
 Date: 2026-09-25.
+Current follow-up: [agent chat fixes, OpenCode, and Linear Workspace links](ether-agent-and-linear-follow-up.md)
+were approved on 2026-09-26; that checklist tracks the new work in delivery order.
+
 Status: local first-use acceptance complete. Ready to start using this fork for
 the demonstrated local macOS workflows: files, independent saved contexts,
 Codex/Claude terminals, and built-in Claude chat. All three agent paths passed real

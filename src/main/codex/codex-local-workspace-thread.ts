@@ -71,10 +71,13 @@ export function assertCodexLocalWorkspaceThreadScope(
   if (policy?.sandbox === 'danger-full-access' && reply.data.sandbox.type === 'dangerFullAccess') {
     return
   }
+  // workspaceWrite grants cwd implicitly and reports only additional writable roots.
   if (
     reply.data.sandbox.type !== 'workspaceWrite' ||
-    !scope.roots.every((root) =>
-      reply.data.sandbox.writableRoots?.some((path) => isPathInsideOrEqual(path, root.path))
+    !scope.roots.every(
+      (root) =>
+        isPathInsideOrEqual(reply.data.cwd, root.path) ||
+        reply.data.sandbox.writableRoots?.some((path) => isPathInsideOrEqual(path, root.path))
     )
   ) {
     throw new Error('Codex did not grant access to every Workspace directory; no task was started.')

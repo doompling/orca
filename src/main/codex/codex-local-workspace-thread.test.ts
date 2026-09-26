@@ -13,6 +13,12 @@ const scope = captureLocalWorkspaceLaunchScope({
     { id: 'b', label: 'App B', path: '/code/app-b' }
   ]
 })
+const singleRootScope = captureLocalWorkspaceLaunchScope({
+  workspaceId: 'workspace-single',
+  projectId: 'project-single',
+  defaultRootId: 'a',
+  roots: [{ id: 'a', label: 'App A', path: '/code/app-a' }]
+})
 const permissionPolicy = {
   sandbox: 'workspace-write' as const,
   approvalPolicy: 'on-request' as const
@@ -26,12 +32,12 @@ const configured = {
 const opened = {
   thread: { id: 'thread-original' },
   cwd: scope.cwd,
-  sandbox: { type: 'workspaceWrite', writableRoots: ['/existing', '/code/app-a', '/code/app-b'] }
+  sandbox: { type: 'workspaceWrite', writableRoots: ['/existing', '/code/app-a'] }
 }
 
 describe('Codex multi-root thread scope', () => {
   it.each([null, 'thread-original'])(
-    'passes every frozen root and additive context on start/resume (%s)',
+    'passes every frozen root and accepts implicit cwd access on start/resume (%s)',
     async (resumeThreadId) => {
       const request = vi.fn(async (method: string, _params?: Record<string, unknown>) =>
         method === 'config/read' ? configured : opened
@@ -66,6 +72,50 @@ describe('Codex multi-root thread scope', () => {
       expect(threadParams?.developerInstructions).toContain('App B')
       expect(threadParams?.developerInstructions).toContain('/code/app-b')
       expect(threadParams?.developerInstructions).not.toContain('Wait for the user')
+    }
+  )
+
+  it.each([{ type: 'workspaceWrite', writableRoots: [] }, { type: 'workspaceWrite' }])(
+    'accepts a single-root Workspace with no additional writable roots: %j',
+    async (sandbox) => {
+      const request = vi.fn(async (method: string) =>
+        method === 'config/read' ? { config: {} } : { ...opened, cwd: singleRootScope.cwd, sandbox }
+      )
+      await expect(
+        openCodexThread(
+          { request },
+          {
+            cwd: singleRootScope.cwd,
+            resumeThreadId: null,
+            permissionPolicy,
+            localWorkspaceScope: singleRootScope
+          },
+          2_000
+        )
+      ).resolves.toMatchObject({ threadId: 'thread-original' })
+    }
+  )
+
+  it.each(['readOnly', 'dangerFullAccess'])(
+    'does not treat a matching cwd as a Manual write grant under %s',
+    async (type) => {
+      const request = vi.fn(async (method: string) =>
+        method === 'config/read'
+          ? { config: {} }
+          : { ...opened, cwd: singleRootScope.cwd, sandbox: { type } }
+      )
+      await expect(
+        openCodexThread(
+          { request },
+          {
+            cwd: singleRootScope.cwd,
+            resumeThreadId: null,
+            permissionPolicy,
+            localWorkspaceScope: singleRootScope
+          },
+          2_000
+        )
+      ).rejects.toThrow('did not grant access to every Workspace directory')
     }
   )
 
@@ -107,6 +157,8 @@ describe('Codex multi-root thread scope', () => {
 
   it.each([
     { ...opened, cwd: '/another-workspace' },
+    { ...opened, sandbox: { type: 'workspaceWrite', writableRoots: [] } },
+    { ...opened, sandbox: { type: 'workspaceWrite' } },
     { ...opened, sandbox: { type: 'workspaceWrite', writableRoots: ['/code/app-b'] } },
     { ...opened, sandbox: { type: 'readOnly' } },
     { thread: opened.thread }
