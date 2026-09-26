@@ -8,8 +8,25 @@ import {
   destroyRemovedBrowserWebview
 } from '../store/slices/browser-webview-cleanup'
 import type { TerminalActivationController } from './use-terminal-activation-actions'
+import {
+  dirtyFilesRequiringWindowCloseConfirmation,
+  flushPendingLocalWorkspaceDrafts
+} from '@/features/local-projects/local-workspace-draft-close'
 
-export function useTerminalWindowLifecycle(controller: TerminalActivationController): void {
+type TerminalWindowLifecycleController = Pick<
+  TerminalActivationController,
+  | 'activeBrowserTabId'
+  | 'activeTabType'
+  | 'activeWorktreeBrowserTabIdsKey'
+  | 'proceedToNativeWindowClose'
+  | 'queueEditorCloseRequests'
+  | 'renderedActiveWorktreeId'
+  | 'setActiveBrowserTab'
+  | 'setActiveTabType'
+  | 'windowCloseAfterDirtyRef'
+>
+
+export function useTerminalWindowLifecycle(controller: TerminalWindowLifecycleController): void {
   const {
     activeBrowserTabId,
     activeTabType,
@@ -26,7 +43,7 @@ export function useTerminalWindowLifecycle(controller: TerminalActivationControl
       if (isIntentionalAppRestartInProgress()) {
         return
       }
-      const dirtyFiles = useAppStore.getState().openFiles.filter((file) => file.isDirty)
+      const dirtyFiles = dirtyFilesRequiringWindowCloseConfirmation(useAppStore.getState())
       if (dirtyFiles.length > 0) {
         preventUnloadAndScheduleShutdownCheckpointReset(event, window)
       }
@@ -44,7 +61,9 @@ export function useTerminalWindowLifecycle(controller: TerminalActivationControl
       if (windowCloseAfterDirtyRef.current) {
         return
       }
-      const dirtyFiles = useAppStore.getState().openFiles.filter((file) => file.isDirty)
+      // Rich editors mark dirty before their debounced draft reaches the session store.
+      flushPendingLocalWorkspaceDrafts(useAppStore.getState())
+      const dirtyFiles = dirtyFilesRequiringWindowCloseConfirmation(useAppStore.getState())
       if (dirtyFiles.length > 0) {
         queueEditorCloseRequests(
           dirtyFiles.map((file) => file.id),

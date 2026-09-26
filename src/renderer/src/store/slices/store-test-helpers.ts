@@ -5,6 +5,7 @@ import type { TerminalLayoutSnapshot, TerminalTab } from '../../../../shared/ter
 import type { Worktree } from '../../../../shared/worktree/types'
 import type { OpenFile } from './editor'
 import { createRepoSlice } from './repos'
+import { createLocalProjectsSlice } from '@/features/local-projects/local-projects-state'
 import { createSparsePresetsSlice } from './sparse-presets'
 import { createWorktreeSlice } from './worktrees'
 import { createTerminalSlice } from './terminals'
@@ -63,6 +64,7 @@ export const TEST_REPO = {
 export function createTestStore() {
   return create<AppState>()((...a) => ({
     ...createRepoSlice(...a),
+    ...createLocalProjectsSlice(...a),
     ...createSparsePresetsSlice(...a),
     ...createWorktreeSlice(...a),
     ...createTerminalSlice(...a),

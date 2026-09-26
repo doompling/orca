@@ -90,6 +90,7 @@ export function attachParamsForRecord(
     provider: record.provider,
     agent: record.provider,
     accountHome: record.accountHome,
+    ...(record.localWorkspaceScope ? { localWorkspaceScope: record.localWorkspaceScope } : {}),
     runtimeKind: input.runtimeKind ?? record.lease.runtimeKind
   }
   return {

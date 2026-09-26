@@ -12,8 +12,9 @@ import {
   ContextMenuItem
 } from '@/components/ui/context-menu'
 import { normalizeSearchFileMatchCount } from '../../../../shared/search-match-count'
-import type { SearchFileResult, SearchMatch } from '../../../../shared/code-search-types'
+import type { SearchMatch } from '../../../../shared/code-search-types'
 import { translate } from '@/i18n/i18n'
+import type { LocalWorkspaceSearchFile } from '@/features/local-projects/local-workspace-content-search'
 
 // ─── Toggle Button ────────────────────────────────────────
 export function ToggleButton({
@@ -57,13 +58,15 @@ export function FileResultRow({
   onToggleCollapse,
   collapsed
 }: {
-  fileResult: SearchFileResult
+  fileResult: LocalWorkspaceSearchFile
   onToggleCollapse: () => void
   collapsed: boolean
 }): React.JSX.Element {
   const fileName = basename(fileResult.relativePath)
   const parentDir = dirname(fileResult.relativePath)
-  const dirPath = parentDir === '.' ? '' : parentDir
+  const dirPath = [fileResult.workspaceRootLabel, parentDir === '.' ? '' : parentDir]
+    .filter(Boolean)
+    .join(' · ')
   const FileIcon = getFileTypeIcon(fileResult.relativePath)
   const matchCount = normalizeSearchFileMatchCount(fileResult)
 
@@ -120,7 +123,9 @@ export function FileResultRow({
              keep the result list compact, so the tooltip preserves the full
              relative path for copy/verification without widening the row. */}
           <TooltipContent side="top" sideOffset={6}>
-            {fileResult.relativePath}
+            {fileResult.workspaceRootLabel
+              ? `${fileResult.workspaceRootLabel} · ${fileResult.relativePath}`
+              : fileResult.relativePath}
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>

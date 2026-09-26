@@ -1,4 +1,5 @@
 import type { IpcPtyTransportOptions, PtyConnectResult, PtyTransport } from './pty-transport-types'
+import { assertLocalWorkspaceLaunchScopeOwner } from '../../../../shared/local-projects/agent-launch-scope'
 
 type PtyConnectOptions = Parameters<PtyTransport['connect']>[0]
 
@@ -37,12 +38,17 @@ export async function spawnIpcPty(
     terminalKittyKeyboardProtocol,
     telemetry
   } = transportOptions
+  const effectiveLaunchConfig = connectOptions.launchConfig ?? launchConfig
+  const scope = effectiveLaunchConfig?.localWorkspaceScope
+  if (scope) {
+    assertLocalWorkspaceLaunchScopeOwner(scope, worktreeId, connectionId)
+  }
   const shouldSendLocalCwdFallback =
-    cwdFallback === 'worktree' && !connectionId && !admittedSessionId
+    cwdFallback === 'worktree' && !connectionId && !admittedSessionId && !scope
   return window.api.pty.spawn({
     cols: connectOptions.cols ?? 80,
     rows: connectOptions.rows ?? 24,
-    cwd,
+    cwd: scope?.cwd ?? cwd,
     ...(shouldSendLocalCwdFallback ? { cwdFallback } : {}),
     env: connectOptions.env ?? env,
     ...((connectOptions.envToDelete ?? envToDelete)
@@ -80,5 +86,5 @@ export async function spawnIpcPty(
     ...(terminalColorQueryReplies ? { terminalColorQueryReplies } : {}),
     ...(terminalKittyKeyboardProtocol === true ? { terminalKittyKeyboardProtocol: true } : {}),
     ...(telemetry ? { telemetry } : {})
-  }) as Promise<IpcPtySpawnResponse>
+  })
 }

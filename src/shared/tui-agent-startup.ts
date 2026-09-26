@@ -17,6 +17,7 @@ import { inlineAgentDraftFitsPlatform } from './agent-draft-platform-limit'
 import type { TuiAgent } from './tui-agent'
 import type { SessionOptionValue } from './native-chat-session-options'
 import { resolveAgentLaunchCommand } from './tui-agent-launch-command'
+import type { LocalWorkspaceLaunchScope } from './local-projects/agent-launch-scope'
 
 export { buildAgentResumeStartupPlan } from './tui-agent-resume-startup'
 
@@ -48,6 +49,7 @@ export function buildAgentStartupPlan(args: {
   allowEmptyPromptLaunch?: boolean
   agentArgs?: string | null
   agentEnv?: Record<string, string> | null
+  localWorkspaceScope?: LocalWorkspaceLaunchScope
   sessionOptions?: Record<string, SessionOptionValue>
   sessionOptionsOverrideAgentArgs?: boolean
   /** Why: SSH remotes deploy the CLI shim as plain `orca`, so the Linux-only
@@ -99,7 +101,9 @@ export function buildAgentStartupPlan(args: {
   const quotedPrompt = quoteStartupArg(trimmedPrompt, shell)
 
   if (config.promptInjectionMode === 'argv') {
-    const promptSeparator = config.argvPromptSeparator ? ` ${config.argvPromptSeparator}` : ''
+    const separator =
+      config.argvPromptSeparator ?? (args.localWorkspaceScope && agent === 'claude' ? '--' : '')
+    const promptSeparator = separator ? ` ${separator}` : ''
     return {
       agent,
       launchCommand:
@@ -222,6 +226,7 @@ export function buildAgentDraftLaunchPlan(args: {
   shell?: AgentStartupShell
   agentArgs?: string | null
   agentEnv?: Record<string, string> | null
+  localWorkspaceScope?: LocalWorkspaceLaunchScope
   sessionOptions?: Record<string, SessionOptionValue>
   sessionOptionsOverrideAgentArgs?: boolean
   /** Why: see buildAgentStartupPlan — remote launches use the plain `orca` shim. */

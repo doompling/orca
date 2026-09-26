@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useAppStore } from '@/store'
 import { subscribeRuntimeFileChanges } from '@/runtime/runtime-file-client'
-import { normalizeRuntimePathForComparison } from '../../../shared/cross-platform-path'
 import type { FsChangedPayload } from '../../../shared/filesystem-entry-types'
 import {
   getEditorExternalWatchTargetKey,
@@ -14,6 +13,11 @@ import {
   collectOverflowEditorExternalReloadTargets
 } from './editor-external-watch-event-reconciliation'
 import { verifyLatchedEditorMoveDestinations } from './editor-external-watch-disk-verification'
+import {
+  editorWatchSubscriptionKey,
+  findEditorWatchOwners,
+  uniqueEditorWatchSubscriptions
+} from './editor-external-watch-ownership'
 
 export type { EditorExternalWatchTargetState }
 
@@ -39,19 +43,19 @@ export function useEditorExternalWatch(): void {
 
   // Why: diff targets so unchanged worktrees keep their subscription; full teardown on every store change drops events in the gap.
   useEffect(() => {
-    const nextTargets = latestTargetsRef.current
-    const previousTargets = targetsRef.current
-    const previousKeys = new Set(previousTargets.map(getEditorExternalWatchTargetKey))
-    const nextKeys = new Set(nextTargets.map(getEditorExternalWatchTargetKey))
+    const nextTargets = uniqueEditorWatchSubscriptions(latestTargetsRef.current)
+    const previousTargets = uniqueEditorWatchSubscriptions(targetsRef.current)
+    const previousKeys = new Set(previousTargets.map(editorWatchSubscriptionKey))
+    const nextKeys = new Set(nextTargets.map(editorWatchSubscriptionKey))
     const removed = previousTargets.filter(
-      (target) => !nextKeys.has(getEditorExternalWatchTargetKey(target))
+      (target) => !nextKeys.has(editorWatchSubscriptionKey(target))
     )
     const added = nextTargets.filter(
-      (target) => !previousKeys.has(getEditorExternalWatchTargetKey(target))
+      (target) => !previousKeys.has(editorWatchSubscriptionKey(target))
     )
 
     for (const target of removed) {
-      const key = getEditorExternalWatchTargetKey(target)
+      const key = editorWatchSubscriptionKey(target)
       const remoteUnsubscribe = remoteWatchUnsubsRef.current.get(key)
       if (remoteUnsubscribe) {
         remoteUnsubscribe()
@@ -78,7 +82,7 @@ export function useEditorExternalWatch(): void {
           warnExternalWatchFailure(target, err)
         })
     }
-    targetsRef.current = nextTargets
+    targetsRef.current = latestTargetsRef.current
     // Why: final unmount cleanup owns teardown so target changes remain differential.
   }, [targetsKey])
 
@@ -87,12 +91,7 @@ export function useEditorExternalWatch(): void {
     const remoteWatchUnsubs = remoteWatchUnsubsRef.current
     const { handleFsChanged, dispose } = buildEditorExternalWatchEventHandler(
       (worktreePath, runtimeEnvironmentId) =>
-        targetsRef.current.find(
-          (target) =>
-            normalizeRuntimePathForComparison(target.worktreePath) ===
-              normalizeRuntimePathForComparison(worktreePath) &&
-            target.runtimeEnvironmentId === runtimeEnvironmentId
-        )
+        findEditorWatchOwners(targetsRef.current, worktreePath, runtimeEnvironmentId)
     )
     const unsubscribe = window.api.fs.onFsChanged((payload) => handleFsChanged(payload, null))
     fsChangedHandlerRef.current = handleFsChanged
@@ -101,8 +100,8 @@ export function useEditorExternalWatch(): void {
       unsubscribe()
       dispose()
       fsChangedHandlerRef.current = null
-      for (const target of targetsRef.current) {
-        const key = getEditorExternalWatchTargetKey(target)
+      for (const target of uniqueEditorWatchSubscriptions(targetsRef.current)) {
+        const key = editorWatchSubscriptionKey(target)
         const remoteUnsubscribe = remoteWatchUnsubs.get(key)
         if (remoteUnsubscribe) {
           remoteUnsubscribe()
@@ -127,7 +126,7 @@ function subscribeRuntimeTarget(
     current: ((payload: FsChangedPayload, runtimeEnvironmentId?: string | null) => void) | null
   }
 ): void {
-  const key = getEditorExternalWatchTargetKey(target)
+  const key = editorWatchSubscriptionKey(target)
   let cancelled = false
   const pendingUnsubscribe = (): void => {
     cancelled = true

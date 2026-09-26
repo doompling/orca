@@ -7,6 +7,7 @@ import type { ProjectExecutionRuntimeResolution } from '../../shared/project-exe
 import { isWindowsAbsolutePathLike } from '../../shared/cross-platform-path'
 import { getTuiAgentLaunchCommand, TUI_AGENT_CONFIG } from '../../shared/tui-agent-config'
 import { isTuiAgentEnabled } from '../../shared/tui-agent-selection'
+import { copyLocalWorkspaceLaunchScope } from '../../shared/local-projects/agent-launch-scope'
 
 export function mergeTerminalEnvDeletionKeys(
   first: readonly string[] | undefined,
@@ -40,6 +41,9 @@ export function copySleepingAgentLaunchConfig(
     ...(config.agentCommand ? { agentCommand: config.agentCommand } : {}),
     agentArgs: config.agentArgs,
     agentEnv: { ...config.agentEnv },
+    ...(config.localWorkspaceScope
+      ? { localWorkspaceScope: copyLocalWorkspaceLaunchScope(config.localWorkspaceScope) }
+      : {}),
     ...(config.ompResumeFilePath ? { ompResumeFilePath: config.ompResumeFilePath } : {})
   }
 }

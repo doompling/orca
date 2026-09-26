@@ -1,5 +1,6 @@
 import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../../shared/constants'
 import { parseWorkspaceKey } from '../../../../shared/workspace-scope'
+import { resolveLocalWorkspaceKey } from '../../../../shared/local-projects/workspace-resolution'
 import { focusTerminalTabSurface } from '@/lib/focus-terminal-tab-surface'
 import { getRuntimeEnvironmentIdForWorktree } from '@/lib/worktree-runtime-owner'
 import { resolveWorktreeOperationRouteResult } from '@/lib/worktree-operation-route'
@@ -11,11 +12,18 @@ export function createActiveWorkspaceTerminalActions(
   get: TerminalStoreGet
 ): Pick<TerminalSlice, 'openNewTerminalTabInActiveWorkspace'> {
   return {
-    openNewTerminalTabInActiveWorkspace: async (groupId) => {
+    openNewTerminalTabInActiveWorkspace: async (groupId, options) => {
       const state = get()
       const worktreeId = state.activeWorktreeId
       if (!worktreeId) {
         return
+      }
+      const localWorkspace = resolveLocalWorkspaceKey(state.localProjects, worktreeId)
+      const root = localWorkspace?.roots.find(
+        (entry) => entry.id === (options?.rootId ?? localWorkspace.defaultRootId)
+      )
+      if ((localWorkspace || options?.rootId !== undefined) && !root) {
+        throw new Error('The selected Workspace root is unavailable.')
       }
       const workspaceScope = parseWorkspaceKey(worktreeId)
       const worktreeRoute =
@@ -25,9 +33,11 @@ export function createActiveWorkspaceTerminalActions(
       if (worktreeRoute && worktreeRoute.kind !== 'resolved') {
         return
       }
-      const runtimeEnvironmentId = worktreeRoute
-        ? worktreeRoute.route.runtimeEnvironmentId
-        : getRuntimeEnvironmentIdForWorktree(state, worktreeId)
+      const runtimeEnvironmentId = localWorkspace
+        ? null
+        : worktreeRoute
+          ? worktreeRoute.route.runtimeEnvironmentId
+          : getRuntimeEnvironmentIdForWorktree(state, worktreeId)
       if (runtimeEnvironmentId) {
         const { createWebRuntimeSessionTerminal } = await import('@/runtime/web-runtime-session')
         await createWebRuntimeSessionTerminal({
@@ -41,7 +51,12 @@ export function createActiveWorkspaceTerminalActions(
       if (isWebClientLocation() && worktreeId !== FLOATING_TERMINAL_WORKTREE_ID) {
         return
       }
-      const terminal = get().createTab(worktreeId, groupId)
+      const terminal = get().createTab(
+        worktreeId,
+        groupId,
+        undefined,
+        root ? { startupCwd: root.path } : undefined
+      )
       get().setActiveTab(terminal.id)
       get().setActiveTabType('terminal')
       const latest = get()

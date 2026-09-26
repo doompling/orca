@@ -8,6 +8,8 @@ import { isWindowsAbsolutePathLike } from '../../../shared/cross-platform-path'
 import { repoIsRemote } from '../../../shared/agent-launch-remote'
 import { getRepoSshConnectionId } from '../../../shared/execution-host'
 import { isWslUncPath } from '../../../shared/wsl-paths'
+import { resolveLocalWorkspaceKey } from '../../../shared/local-projects/workspace-resolution'
+import { assertLegacyAgentEntrypointSupportsWorkspace } from '../../../shared/local-projects/agent-entrypoint'
 
 type LaunchStore = ReturnType<typeof useAppStore.getState>
 type LaunchRepo = LaunchStore['repos'][number]
@@ -20,6 +22,26 @@ export type AgentBackgroundLaunchHost = {
   isRemote: boolean
   /** Accepted status connection; undefined preserves unknown-owner behavior. */
   expectedConnectionId: string | null | undefined
+}
+
+export function resolveAgentBackgroundLaunchTarget(store: LaunchStore, worktreeId: string) {
+  assertLegacyAgentEntrypointSupportsWorkspace(
+    store.localProjects && resolveLocalWorkspaceKey(store.localProjects, worktreeId)
+  )
+  // Folder workspaces exist only in getKnownWorktreeById.
+  const worktree = store.getKnownWorktreeById(worktreeId)
+  if (!worktree) {
+    throw new Error('The target workspace is no longer available.')
+  }
+  return {
+    worktree,
+    launchHost: resolveAgentBackgroundLaunchHost({
+      store,
+      worktreeId,
+      worktreePath: worktree.path,
+      repo: store.repos.find((entry) => entry.id === worktree.repoId)
+    })
+  }
 }
 
 function resolveFolderWorkspaceConnectionIdForLaunch(

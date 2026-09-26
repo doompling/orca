@@ -5,6 +5,11 @@ import { existsSync, lstatSync, readlinkSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import path from 'node:path'
 
+if (process.env.ORCA_SKIP_DEV_CLI_INSTALL === '1') {
+  console.log('[orca-dev] Skipping global symlink for this build.')
+  process.exit(0)
+}
+
 const scriptDir = import.meta.dirname
 const source = path.join(scriptDir, 'orca-dev.mjs')
 

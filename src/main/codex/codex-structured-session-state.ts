@@ -16,6 +16,7 @@ import type { CodexJournalTranslator } from './codex-structured-journal-translat
 import type { CodexTurnProcessSnapshot } from './codex-structured-turn-processes'
 import type { StructuredAgentSessionLifecycleEvent } from '../native-chat/agent-session-wire/structured-agent-session-adapter'
 import type { CodexStructuredPermissionPolicy } from './codex-structured-permission-policy'
+import type { LocalWorkspaceLaunchScope } from '../../shared/local-projects/agent-launch-scope'
 
 export type CodexStructuredLaunch = {
   command: string
@@ -25,6 +26,7 @@ export type CodexStructuredLaunch = {
   resumeThreadId: string | null
   resumePath?: string | null
   permissionPolicy?: CodexStructuredPermissionPolicy
+  localWorkspaceScope?: LocalWorkspaceLaunchScope
   env?: Record<string, string>
 }
 

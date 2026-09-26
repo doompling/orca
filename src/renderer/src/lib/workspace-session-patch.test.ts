@@ -82,6 +82,32 @@ function createRepo(id: string, connectionId: string | null): Repo {
 }
 
 describe('buildWorkspaceSessionPatch', () => {
+  it('persists scope-aware selection when switching folder Workspaces', () => {
+    const patch = buildWorkspaceSessionPatch(
+      createSnapshot({
+        activeWorktreeId: 'folder:maintenance',
+        activeWorkspaceKey: 'folder:maintenance',
+        activeWorkspaceExecutionHostId: 'local'
+      }),
+      ['activeWorktreeId', 'activeWorkspaceKey', 'activeWorkspaceExecutionHostId']
+    )
+
+    expect(patch).toEqual({
+      activeWorktreeId: 'folder:maintenance',
+      activeWorkspaceKey: 'folder:maintenance',
+      activeWorkspaceExecutionHostId: 'local'
+    })
+  })
+
+  it('persists explicit scope and host deselection', () => {
+    expect(
+      buildWorkspaceSessionPatch(
+        createSnapshot({ activeWorkspaceKey: null, activeWorkspaceExecutionHostId: null }),
+        ['activeWorkspaceKey', 'activeWorkspaceExecutionHostId']
+      )
+    ).toEqual({ activeWorkspaceKey: null, activeWorkspaceExecutionHostId: null })
+  })
+
   it('returns only the direct key for active tab changes', () => {
     const patch = buildWorkspaceSessionPatch(createSnapshot({ activeTabId: 'tab-2' }), [
       'activeTabId'

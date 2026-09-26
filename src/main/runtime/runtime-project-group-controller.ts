@@ -215,6 +215,9 @@ export class RuntimeProjectGroupController {
     if (!store?.removeFolderWorkspace) {
       throw new Error('runtime_unavailable')
     }
+    if (store.resolveLocalWorkspace?.(folderWorkspaceId)) {
+      throw new Error('Archive this local Workspace instead of deleting its saved context.')
+    }
     const workspace = store.getFolderWorkspaces?.().find((entry) => entry.id === folderWorkspaceId)
     if (workspace) {
       const worktreeId = folderWorkspaceKey(folderWorkspaceId)

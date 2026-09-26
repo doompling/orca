@@ -16,6 +16,8 @@ import { CLOSE_ALL_CONTEXT_MENUS_EVENT } from '../tab-bar/SortableTab'
 import { useEditorHeaderFileRename } from './editor-header-file-rename'
 import { getEditorHeaderCopyState } from './editor-header'
 import { splitPathForDisplay } from './editor-path-display'
+import { getEditorDisplayLabel } from './editor-labels'
+import { useLocalWorkspaceEditorRoot } from '@/features/local-projects/use-local-workspace-editor-root'
 
 const isMac = navigator.userAgent.includes('Mac')
 const isLinux = navigator.userAgent.includes('Linux')
@@ -56,7 +58,11 @@ export function EditorPanelHeaderPath({
   const [pathMenuPoint, setPathMenuPoint] = useState({ x: 0, y: 0 })
   const skipMenuFocusRestoreRef = useRef(false)
   const headerCopyState = getEditorHeaderCopyState(activeFile)
-  const displayPath = splitPathForDisplay(headerCopyState.pathLabel)
+  const localRoot = useLocalWorkspaceEditorRoot(activeFile)
+  const pathLabel = localRoot
+    ? `${localRoot.label} / ${getEditorDisplayLabel(activeFile, 'relativePath')}`
+    : headerCopyState.pathLabel
+  const displayPath = splitPathForDisplay(pathLabel)
   const canCopyHeaderPath = headerCopyState.copyText !== null
   const isVirtualEditorTab = activeFile.mode === 'check-details'
   const markdownPreviewShortcutLabel = useShortcutLabel('editor.markdownPreview')

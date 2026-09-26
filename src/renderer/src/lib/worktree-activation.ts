@@ -32,6 +32,7 @@ import {
   type WorktreeActivationSurfaceSelection
 } from './worktree-activation-surface-selection'
 import { gateAndReseedEmptyWorkspace } from './worktree-activation-gated-empty-reseed'
+import { rememberLocalWorkspaceNavigation } from '@/features/local-projects/local-workspace-navigation'
 
 /**
  * Shared activation sequence used by the worktree palette and add-repo/worktree dialogs.
@@ -127,6 +128,9 @@ export function activateAndRevealFolderWorkspace(
   state.setActiveFolderWorkspace(folderWorkspaceId, opts?.executionHostId)
 
   const workspaceKey = folderWorkspaceKey(folderWorkspaceId)
+  void rememberLocalWorkspaceNavigation(useAppStore.getState(), workspaceKey).catch((error) =>
+    toast.error('Could not remember this Workspace.', { description: String(error) })
+  )
   const providesInitialSurface = activationProvidesInitialSurface(opts)
   state.markWorktreeVisited(workspaceKey)
   if (!state.isNavigatingHistory) {
@@ -176,6 +180,10 @@ export function activateAndRevealWorktree(
   worktreeId: string,
   opts?: WorktreeActivationOptions
 ): ActivateAndRevealResult | false {
+  const scope = parseWorkspaceKey(worktreeId)
+  if (scope?.type === 'folder') {
+    return activateAndRevealFolderWorkspace(scope.folderWorkspaceId, opts)
+  }
   const state = useAppStore.getState()
   const wt = state.getKnownWorktreeById(worktreeId, opts?.executionHostId)
   if (!wt) {

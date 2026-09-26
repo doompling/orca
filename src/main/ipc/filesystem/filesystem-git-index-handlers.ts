@@ -15,53 +15,38 @@ import { resolveRegisteredWorktreePath } from '../registered-worktree-roots-cach
 import { getLocalGitOptionsForRegisteredWorktree } from '../local-worktree-runtime-options'
 import { validateGitRelativeFilePath } from '../filesystem-path-containment'
 import type { FilesystemHandlerContext } from './filesystem-handler-context'
+import { resolveDesktopGitTarget, type LocalRootGitArgs } from '../../local-projects/git-target'
 
 export function registerFilesystemGitIndexHandlers(context: FilesystemHandlerContext): void {
   const { store } = context
   ipcMain.handle(
     'git:stage',
-    async (
-      _event,
-      args: { worktreePath: string; filePath: string; connectionId?: string }
-    ): Promise<void> => {
-      if (args.connectionId) {
+    async (_event, args: LocalRootGitArgs & { filePath: string }): Promise<void> => {
+      if (args.connectionId && !args.localRoot) {
         const provider = getSshGitProvider(args.connectionId)
         if (!provider) {
           throw new Error(SSH_GIT_PROVIDER_UNAVAILABLE_MESSAGE)
         }
         return provider.stageFile(args.worktreePath, args.filePath)
       }
-      const worktreePath = await resolveRegisteredWorktreePath(args.worktreePath, store)
+      const { worktreePath, gitOptions } = await resolveDesktopGitTarget(store, args)
       const filePath = validateGitRelativeFilePath(worktreePath, args.filePath)
-      const gitOptions = getLocalGitOptionsForRegisteredWorktree(
-        store,
-        args.worktreePath,
-        worktreePath
-      )
       await stageFile(worktreePath, filePath, { ...gitOptions, admissionTier: 'interactive' })
     }
   )
 
   ipcMain.handle(
     'git:unstage',
-    async (
-      _event,
-      args: { worktreePath: string; filePath: string; connectionId?: string }
-    ): Promise<void> => {
-      if (args.connectionId) {
+    async (_event, args: LocalRootGitArgs & { filePath: string }): Promise<void> => {
+      if (args.connectionId && !args.localRoot) {
         const provider = getSshGitProvider(args.connectionId)
         if (!provider) {
           throw new Error(SSH_GIT_PROVIDER_UNAVAILABLE_MESSAGE)
         }
         return provider.unstageFile(args.worktreePath, args.filePath)
       }
-      const worktreePath = await resolveRegisteredWorktreePath(args.worktreePath, store)
+      const { worktreePath, gitOptions } = await resolveDesktopGitTarget(store, args)
       const filePath = validateGitRelativeFilePath(worktreePath, args.filePath)
-      const gitOptions = getLocalGitOptionsForRegisteredWorktree(
-        store,
-        args.worktreePath,
-        worktreePath
-      )
       await unstageFile(worktreePath, filePath, { ...gitOptions, admissionTier: 'interactive' })
     }
   )

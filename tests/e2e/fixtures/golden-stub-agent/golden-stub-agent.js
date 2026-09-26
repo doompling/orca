@@ -12,6 +12,13 @@ if (process.argv[2] === 'app-server') {
 const ESC = '\x1b'
 const keyboardProtocolMode = process.argv.includes('--keyboard-protocol')
 const keyboardProtocolAgent = process.argv.includes('--grok') ? 'Grok' : 'Codex'
+const launchCapture = process.argv.includes('--golden-capture-launch')
+  ? [
+      'GOLDEN_STUB_LAUNCH_BEGIN',
+      JSON.stringify({ cwd: process.cwd(), argv: process.argv.slice(2) }),
+      'GOLDEN_STUB_LAUNCH_END'
+    ]
+  : []
 // Both match the bytes after ESC, so the control character stays out of the
 // pattern: a CSI/SS3 introducer still missing its final byte, and a complete
 // CSI/SS3 sequence. Shift+Enter is matched before either is consulted.
@@ -30,6 +37,7 @@ function render() {
     `${keyboardProtocolMode ? `\x1b]0;\u280b ${keyboardProtocolAgent} is thinking\x07\x1b[>1u` : '\x1b]0;Golden Stub Agent\x07'}${[
       '\x1b[H\x1b[2JGolden Stub Agent',
       `[${READY_MARKER}]`,
+      ...launchCapture,
       '',
       ...renderedComposer,
       '',

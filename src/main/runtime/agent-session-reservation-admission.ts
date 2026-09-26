@@ -42,6 +42,12 @@ import {
   type AgentSessionReservation
 } from './agent-session-lease-transitions'
 import type { AgentSessionStoreState } from './agent-session-record-store-file'
+import {
+  copyLocalWorkspaceLaunchScope,
+  localWorkspaceLaunchScopesEqual,
+  type LocalWorkspaceLaunchScope
+} from '../../shared/local-projects/agent-launch-scope'
+import { isLocalWorkspaceSessionScope } from '../../shared/local-projects/agent-session-scope'
 
 export type AgentSessionReserveRequest = {
   sessionId: string
@@ -54,6 +60,7 @@ export type AgentSessionReserveRequest = {
   launchEnv?: AgentSessionLaunchEnv
   /** Initial provider options persisted before the first process is acquired. */
   options?: Readonly<Record<string, string>>
+  localWorkspaceScope?: LocalWorkspaceLaunchScope
   /** Set only when this create adopts an existing provider conversation. Seeds the handle chain so
    *  the adapter resumes; without it a new record has never proved a thread and starts a fresh one. */
   adoptedHandleLink?: AgentSessionProviderHandleLink
@@ -148,6 +155,9 @@ export function applyAgentSessionReservation(
   if (request.options && !isAgentSessionOptions(request.options)) {
     throw new Error('agent_session_options_invalid')
   }
+  if (!isLocalWorkspaceSessionScope(request.localWorkspaceScope, request.location)) {
+    throw new Error('agent_session_operation_invalid')
+  }
   const reservation: AgentSessionReservation = {
     runtimeKind: request.runtimeKind,
     spawnToken:
@@ -176,7 +186,9 @@ export function applyAgentSessionReservation(
     !agentSessionExecutionLocationsEqual(existing.location, request.location) ||
     existing.provider !== request.provider ||
     existing.accountHome.variable !== request.accountHome.variable ||
-    existing.accountHome.path !== request.accountHome.path
+    existing.accountHome.path !== request.accountHome.path ||
+    (request.localWorkspaceScope &&
+      !localWorkspaceLaunchScopesEqual(existing.localWorkspaceScope, request.localWorkspaceScope))
   ) {
     // Why: location, provider, and account are the session identity; changing one is a fork.
     throw new Error('agent_session_conflict')
@@ -247,6 +259,9 @@ function createAgentSessionRecord(
     accountHome: request.accountHome,
     ...(request.options ? { options: { ...request.options } } : {}),
     ...(request.launchArgs ? { launchArgs: [...request.launchArgs] } : {}),
+    ...(request.localWorkspaceScope
+      ? { localWorkspaceScope: copyLocalWorkspaceLaunchScope(request.localWorkspaceScope) }
+      : {}),
     createdAt: request.now,
     updatedAt: request.now,
     lease: {

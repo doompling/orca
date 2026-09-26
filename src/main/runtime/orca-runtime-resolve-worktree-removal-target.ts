@@ -21,6 +21,7 @@ import { resolveLocalProjectRuntimeForWorktreeId } from '../local-project-runtim
 import { resolveBareAgentLaunchCommand } from './runtime-agent-launch-resolution'
 import { buildAgentStartupPlan } from '../../shared/tui-agent-startup'
 import { resolveAgentStartupPlanInputs } from '../../shared/agent-startup-plan-inputs'
+import { assertRuntimeAgentEntrypointSupportsWorkspace } from '../local-projects/runtime-agent-entrypoint'
 
 export class OrcaRuntimeWithResolveWorktreeRemovalTarget extends OrcaRuntimeWithRemoveManagedWorktree {
   protected async resolveWorktreeRemovalTarget(
@@ -151,6 +152,9 @@ export class OrcaRuntimeWithResolveWorktreeRemovalTarget extends OrcaRuntimeWith
     workspace: TerminalWorkspaceLaunchScope,
     opts: TerminalCreateOptions
   ): Promise<TerminalCreateOptions> {
+    if (opts.startupAgent || opts.launchAgent || opts.launchConfig || opts.resumeProviderSession) {
+      assertRuntimeAgentEntrypointSupportsWorkspace(this.store, workspace.id)
+    }
     // Before any early return: every create lane funnels through here, and a host that cannot
     // apply the requested shell must refuse rather than spawn its default one.
     const shellRefusal = terminalShellOverrideRefusal({

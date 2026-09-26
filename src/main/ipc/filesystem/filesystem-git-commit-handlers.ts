@@ -4,8 +4,7 @@ import {
   getSshGitProvider,
   SSH_GIT_PROVIDER_UNAVAILABLE_MESSAGE
 } from '../../providers/ssh-git-dispatch'
-import { resolveRegisteredWorktreePath } from '../registered-worktree-roots-cache'
-import { getLocalGitOptionsForRegisteredWorktree } from '../local-worktree-runtime-options'
+import { resolveDesktopGitTarget, type LocalRootGitArgs } from '../../local-projects/git-target'
 import type { FilesystemHandlerContext } from './filesystem-handler-context'
 
 export function registerFilesystemGitCommitHandlers(context: FilesystemHandlerContext): void {
@@ -14,25 +13,20 @@ export function registerFilesystemGitCommitHandlers(context: FilesystemHandlerCo
     'git:commit',
     async (
       _event,
-      args: { worktreePath: string; message: string; connectionId?: string }
+      args: LocalRootGitArgs & { message: string }
     ): Promise<{ success: boolean; error?: string }> => {
       // Why: validate at the IPC boundary so the renderer gets a clear error instead of an opaque execFile failure.
       if (typeof args.message !== 'string' || args.message.trim().length === 0) {
         throw new Error('Commit message is required')
       }
-      if (args.connectionId) {
+      if (args.connectionId && !args.localRoot) {
         const provider = getSshGitProvider(args.connectionId)
         if (!provider) {
           throw new Error(SSH_GIT_PROVIDER_UNAVAILABLE_MESSAGE)
         }
         return provider.commit(args.worktreePath, args.message)
       }
-      const worktreePath = await resolveRegisteredWorktreePath(args.worktreePath, store)
-      const gitOptions = getLocalGitOptionsForRegisteredWorktree(
-        store,
-        args.worktreePath,
-        worktreePath
-      )
+      const { worktreePath, gitOptions } = await resolveDesktopGitTarget(store, args)
       return commitChanges(worktreePath, args.message, {
         ...gitOptions,
         admissionTier: 'interactive'

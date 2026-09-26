@@ -98,7 +98,7 @@ export function useMonacoEditorMount(params: MonacoEditorMountParams): OnMount {
       updateMarkdownCompletionDocuments()
 
       // Why: see contentRef — reconcile the retained model to the current prop before user interaction (surfaces edits made while unmounted).
-      beginProgrammaticContentSync(filePath)
+      beginProgrammaticContentSync(fileId)
       isApplyingProgrammaticContentRef.current = true
       try {
         const didSyncOnMount = syncContentOnMount(
@@ -111,7 +111,7 @@ export function useMonacoEditorMount(params: MonacoEditorMountParams): OnMount {
         }
       } finally {
         isApplyingProgrammaticContentRef.current = false
-        endProgrammaticContentSync(filePath)
+        endProgrammaticContentSync(fileId)
       }
 
       setupCopy(editorInstance, monaco, filePath, propsRef)
@@ -145,7 +145,7 @@ export function useMonacoEditorMount(params: MonacoEditorMountParams): OnMount {
 
       const { cursorPositionSub, scrollStateSub } = installMonacoViewStateTracking({
         editorInstance,
-        filePath,
+        filePath: fileId,
         viewStateKey,
         scrollThrottleTimerRef,
         setEditorCursorLine

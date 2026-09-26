@@ -8,12 +8,16 @@ import {
 } from '../../../../shared/agent-session-resume'
 import type { TerminalTab } from '../../../../shared/terminal-tab-types'
 import { findTabForAgentEntry } from './agent-status-pane-key-tab-binding'
+import { copyLocalWorkspaceLaunchScope } from '../../../../shared/local-projects/agent-launch-scope'
 
 export function copyLaunchConfig(config: SleepingAgentLaunchConfig): SleepingAgentLaunchConfig {
   return {
     ...(config.agentCommand ? { agentCommand: config.agentCommand } : {}),
     agentArgs: config.agentArgs,
     agentEnv: { ...config.agentEnv },
+    ...(config.localWorkspaceScope
+      ? { localWorkspaceScope: copyLocalWorkspaceLaunchScope(config.localWorkspaceScope) }
+      : {}),
     ...(config.ompResumeFilePath ? { ompResumeFilePath: config.ompResumeFilePath } : {})
   }
 }

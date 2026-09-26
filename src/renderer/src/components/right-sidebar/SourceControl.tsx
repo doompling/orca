@@ -1,5 +1,7 @@
 import React from 'react'
 import { SourceControlPanel } from './source-control/panel/panel'
+import { useActiveLocalWorkspace } from '@/features/local-projects/use-active-local-workspace'
+import { LocalWorkspaceSourceControl } from '@/features/local-projects/LocalWorkspaceSourceControl'
 
 export { HostedReviewHeaderLink } from './source-control/review/hosted-review-header-chrome'
 
@@ -55,6 +57,10 @@ export {
 } from './source-control/ai/text-generation-defaults'
 
 function SourceControlInner(): React.JSX.Element {
+  const workspace = useActiveLocalWorkspace()
+  if (workspace) {
+    return <LocalWorkspaceSourceControl workspace={workspace} />
+  }
   return <SourceControlPanel />
 }
 const SourceControl = React.memo(SourceControlInner)

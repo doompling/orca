@@ -43,7 +43,11 @@ export function createModelLifetimeFixture(register = true) {
   }
   const add = (id: string): { file: OpenFile; model: monaco.editor.ITextModel } => {
     const file = modelLifetimeFile(id)
-    const model = modelLifetimeEditorModel(file.filePath, `${id}\n${'x'.repeat(256 * 1024)}`)
+    const model = modelLifetimeEditorModel(
+      file.filePath,
+      `${id}\n${'x'.repeat(256 * 1024)}`,
+      file.id
+    )
     store.setState({ openFiles: [...store.getState().openFiles, file], activeFileId: id })
     return { file, model }
   }
@@ -74,9 +78,10 @@ export function modelLifetimeTextModel(
 /** Mirrors how `MonacoEditor` names an edit-tab model, so disposal lookups resolve it. */
 export function modelLifetimeEditorModel(
   filePath: string,
-  content = 'fixture'
+  content = 'fixture',
+  fileId?: string
 ): monaco.editor.ITextModel {
-  return modelLifetimeTextModel(toEditorModelUri(filePath), content)
+  return modelLifetimeTextModel(toEditorModelUri(filePath, fileId), content)
 }
 
 type ModelAttachmentPort = {

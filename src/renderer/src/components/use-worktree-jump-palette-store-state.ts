@@ -10,6 +10,8 @@ import {
   selectPaletteStatusInputs
 } from './worktree-jump-palette-status-inputs'
 import { selectWorktreePaletteCacheInputs } from '@/components/cmd-j/worktree-palette-cache-inputs'
+import { localWorkspacePaletteRows } from '@/features/local-projects/local-workspace-navigation'
+import { hasLocalProjectsApi } from '@/features/local-projects/local-projects-availability'
 
 export function useWorktreeJumpPaletteStoreState({
   visible,
@@ -29,9 +31,15 @@ export function useWorktreeJumpPaletteStoreState({
   const recordFeatureInteraction = useAppStore((state) => state.recordFeatureInteraction)
   const revealSidebarRow = useAppStore((state) => state.revealSidebarRow)
   const worktreesByRepo = useAppStore((state) => state.worktreesByRepo)
+  const localProjects = useAppStore((state) => state.localProjects)
+  const localProjectsEnabled = hasLocalProjectsApi()
   const allWorktrees = useMemo(
-    () => dedupePaletteWorktrees(Object.values(worktreesByRepo).flat()),
-    [worktreesByRepo]
+    () =>
+      dedupePaletteWorktrees([
+        ...Object.values(worktreesByRepo).flat(),
+        ...(localProjectsEnabled ? localWorkspacePaletteRows(localProjects) : [])
+      ]),
+    [worktreesByRepo, localProjects, localProjectsEnabled]
   )
   const repos = useAppStore((state) => state.repos)
   const projectGroups = useAppStore((state) => state.projectGroups)

@@ -1,4 +1,8 @@
-import { resolveLocalWorktreePath, type RuntimeGitContext } from './runtime-git-client-context'
+import {
+  resolveLocalWorktreePath,
+  localRootGitArgs,
+  type RuntimeGitContext
+} from './runtime-git-client-context'
 import { callRuntimeRpc, getActiveRuntimeTarget } from './runtime-rpc-client'
 import { toRuntimeWorktreeSelector } from './runtime-worktree-selector'
 
@@ -6,9 +10,11 @@ export async function stageRuntimeGitPath(
   context: RuntimeGitContext,
   filePath: string
 ): Promise<void> {
+  const localRoot = localRootGitArgs(context)
   const target = getActiveRuntimeTarget(context.settings)
   if (target.kind === 'local' || !context.worktreeId) {
     await window.api.git.stage({
+      ...localRoot,
       worktreePath: resolveLocalWorktreePath(context),
       filePath,
       connectionId: context.connectionId
@@ -48,9 +54,11 @@ export async function unstageRuntimeGitPath(
   context: RuntimeGitContext,
   filePath: string
 ): Promise<void> {
+  const localRoot = localRootGitArgs(context)
   const target = getActiveRuntimeTarget(context.settings)
   if (target.kind === 'local' || !context.worktreeId) {
     await window.api.git.unstage({
+      ...localRoot,
       worktreePath: resolveLocalWorktreePath(context),
       filePath,
       connectionId: context.connectionId

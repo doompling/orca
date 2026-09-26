@@ -4,9 +4,11 @@ import type { GitStagingArea, GitUpstreamStatus } from '../../shared/git-status-
 import type { GitPushTarget } from '../../shared/worktree/types'
 import type { GitHistoryOptions, GitHistoryResult } from '../../shared/git-history'
 import type { PreloadApi } from '../api-types'
+import type { LocalWorkspaceGitRoot } from '../../shared/local-projects/git-root'
 
 export const gitApi = {
   status: (args: {
+    localRoot?: LocalWorkspaceGitRoot
     worktreePath: string
     connectionId?: string
     includeIgnored?: boolean
@@ -50,6 +52,7 @@ export const gitApi = {
   abortRebase: (args: { worktreePath: string; connectionId?: string }): Promise<void> =>
     ipcRenderer.invoke('git:abortRebase', args),
   diff: (args: {
+    localRoot?: LocalWorkspaceGitRoot
     worktreePath: string
     filePath: string
     staged: boolean
@@ -117,6 +120,7 @@ export const gitApi = {
     connectionId?: string
   }) => ipcRenderer.invoke('git:commitDiff', args),
   commit: (args: {
+    localRoot?: LocalWorkspaceGitRoot
     worktreePath: string
     message: string
     connectionId?: string
@@ -158,14 +162,19 @@ export const gitApi = {
     worktreePath: string
     connectionId?: string
   }): Promise<void> => ipcRenderer.invoke('git:cancelGeneratePullRequestFields', args),
-  stage: (args: { worktreePath: string; filePath: string; connectionId?: string }): Promise<void> =>
-    ipcRenderer.invoke('git:stage', args),
+  stage: (args: {
+    worktreePath: string
+    filePath: string
+    connectionId?: string
+    localRoot?: LocalWorkspaceGitRoot
+  }): Promise<void> => ipcRenderer.invoke('git:stage', args),
   bulkStage: (args: {
     worktreePath: string
     filePaths: string[]
     connectionId?: string
   }): Promise<void> => ipcRenderer.invoke('git:bulkStage', args),
   unstage: (args: {
+    localRoot?: LocalWorkspaceGitRoot
     worktreePath: string
     filePath: string
     connectionId?: string

@@ -18,6 +18,8 @@ import { useWorkspaceRevealBodyRedirect } from './use-workspace-reveal-body-redi
 import { resolveLeftSidebarStyleVariables } from '@/lib/left-sidebar-appearance'
 import { useSystemPrefersDark } from '@/components/terminal-pane/use-system-prefers-dark'
 import { lazyWithRetry } from '@/lib/lazy-with-retry'
+import { hasLocalProjectsApi } from '@/features/local-projects/local-projects-availability'
+import { LocalProjectsSidebar } from '@/features/local-projects/LocalProjectsSidebar'
 
 // Why lazy: the Agents list pulls the whole activity pipeline (virtualizer, markdown
 // previews, thread derivation); users on the workspace view should not load or render any of it.
@@ -180,6 +182,8 @@ function Sidebar({
                   />
                 </ActivityThreadCollapseContext.Provider>
               </React.Suspense>
+            ) : hasLocalProjectsApi() ? (
+              <LocalProjectsSidebar />
             ) : (
               <WorktreeList
                 scrollOffsetRef={worktreeScrollOffsetRef}

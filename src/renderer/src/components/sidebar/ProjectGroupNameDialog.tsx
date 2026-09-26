@@ -18,6 +18,7 @@ type ProjectGroupNameDialogProps = {
   description: string
   initialName: string
   confirmLabel: string
+  nameLabel?: string
   onOpenChange: (open: boolean) => void
   onSubmit: (name: string) => Promise<void> | void
 }
@@ -28,6 +29,7 @@ export function ProjectGroupNameDialog({
   description,
   initialName,
   confirmLabel,
+  nameLabel,
   onOpenChange,
   onSubmit
 }: ProjectGroupNameDialogProps): React.JSX.Element {
@@ -35,6 +37,7 @@ export function ProjectGroupNameDialog({
   const inputId = useId()
   const [name, setName] = useState(initialName)
   const [submitting, setSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [previousOpenState, setPreviousOpenState] = useState({ open, initialName })
   const mountedRef = useRef(true)
   const trimmedName = name.trim()
@@ -52,6 +55,7 @@ export function ProjectGroupNameDialog({
     if (open) {
       setName(initialName)
       setSubmitting(false)
+      setErrorMessage(null)
     }
   }
 
@@ -62,6 +66,7 @@ export function ProjectGroupNameDialog({
         return
       }
       setSubmitting(true)
+      setErrorMessage(null)
       try {
         await onSubmit(trimmedName)
         if (mountedRef.current) {
@@ -71,6 +76,7 @@ export function ProjectGroupNameDialog({
         console.error('Failed to save project group name:', error)
         if (mountedRef.current) {
           setSubmitting(false)
+          setErrorMessage(error instanceof Error ? error.message : String(error))
         }
       }
     },
@@ -95,7 +101,11 @@ export function ProjectGroupNameDialog({
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="space-y-1">
             <Label htmlFor={inputId} className="text-[11px] text-muted-foreground">
-              {translate('auto.components.sidebar.ProjectGroupNameDialog.83dfbc5313', 'Group Name')}
+              {nameLabel ??
+                translate(
+                  'auto.components.sidebar.ProjectGroupNameDialog.83dfbc5313',
+                  'Group Name'
+                )}
             </Label>
             <Input
               id={inputId}
@@ -105,6 +115,11 @@ export function ProjectGroupNameDialog({
               className="h-8 text-xs"
             />
           </div>
+          {errorMessage && (
+            <p role="alert" className="text-xs text-destructive">
+              {errorMessage}
+            </p>
+          )}
           <DialogFooter>
             <Button
               type="button"

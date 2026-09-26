@@ -107,12 +107,12 @@ export function attachClosedEditorTabCleanup(
         openEditUris = new Set(
           openFiles
             .filter((openFile) => openFile.mode === 'edit')
-            .map((openFile) => toEditorModelUri(openFile.filePath))
+            .map((openFile) => toEditorModelUri(openFile.filePath, openFile.id))
         )
       }
       return (
         openIds.has(file.id) ||
-        (file.mode === 'edit' && openEditUris.has(toEditorModelUri(file.filePath)))
+        (file.mode === 'edit' && openEditUris.has(toEditorModelUri(file.filePath, file.id)))
       )
     }
     const disposeCaptured = (
@@ -197,7 +197,7 @@ export function attachClosedEditorTabCleanup(
         removed = true
         if (file.mode === 'edit' && registry) {
           const model = registry.editor.getModel(
-            registry.Uri.parse(toEditorModelUri(file.filePath))
+            registry.Uri.parse(toEditorModelUri(file.filePath, file.id))
           )
           if (model) {
             candidateModels.add(model)

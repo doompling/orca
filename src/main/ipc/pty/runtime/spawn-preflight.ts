@@ -50,7 +50,7 @@ export async function prepareRuntimePtySpawn(
 ): Promise<PtySpawnResult | null> {
   const args = ctx.args
   if (!ctx.preAdoptedStablePane) {
-    const pathUsable = ctx.deps.assertFolderWorkspacePtyPathUsable(args.worktreeId)
+    const pathUsable = ctx.deps.assertFolderWorkspacePtyPathUsable(args.worktreeId, args)
     if (pathUsable) {
       await pathUsable
     }

@@ -121,11 +121,13 @@ export function getNestedWorktreeExcludeRequest(
 export function useRuntimeFileListForWorktree({
   enabled,
   worktreeId,
+  rootPath,
   query,
   hostFilterWhenCapped = false
 }: {
   enabled: boolean
   worktreeId: string | null
+  rootPath?: string
   query?: string
   /** When a local listing hits its cap, re-list with `query` applied as the Explorer name filter on the host. */
   hostFilterWhenCapped?: boolean
@@ -134,7 +136,7 @@ export function useRuntimeFileListForWorktree({
     // Why: folder workspaces live behind getKnownWorktreeById, not worktreesByRepo.
     worktreeId ? (state.getKnownWorktreeById(worktreeId) ?? null) : null
   )
-  const worktreePath = worktree?.path ?? null
+  const worktreePath = rootPath ?? worktree?.path ?? null
   const repoWorktrees = useWorktreesForRepo(worktree?.repoId ?? null)
   const [listing, setListing] = useState(NO_LISTING)
   const [loadingRequest, setLoadingRequest] = useState({ requestKey: '', loading: false })

@@ -4,8 +4,14 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { OpenFile } from '@/store/slices/editor'
 import { EditorPanelHeaderPath } from './EditorPanelHeaderPath'
+import type { LocalProjectRoot } from '../../../../shared/local-projects/types'
 
 const renameFileOnDiskMock = vi.hoisted(() => vi.fn())
+const localRootMock = vi.hoisted(() => vi.fn<() => LocalProjectRoot | null>(() => null))
+
+vi.mock('@/features/local-projects/use-local-workspace-editor-root', () => ({
+  useLocalWorkspaceEditorRoot: localRootMock
+}))
 
 vi.mock('@/store/selectors', () => ({
   useWorktreeById: () => ({ path: '/repo', repoId: 'repo-1' })
@@ -87,12 +93,26 @@ function openRenameInput(): void {
 describe('EditorPanelHeaderPath inline rename', () => {
   beforeEach(() => {
     renameFileOnDiskMock.mockReset()
+    localRootMock.mockReturnValue(null)
     Object.assign(window, { api: { ui: { writeClipboardText: vi.fn() } } })
     vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
       callback(0)
       return 1
     })
     vi.stubGlobal('cancelAnimationFrame', vi.fn())
+  })
+
+  it('qualifies the visible path while preserving the physical copy and rename targets', () => {
+    localRootMock.mockReturnValue({ id: 'b', label: 'App B', path: '/repo' })
+    renderPath(baseFile())
+    expect(screen.getByRole('button', { name: 'App B / notes.md' }).title).toBe('/repo/notes.md')
+    const pathRow = document.querySelector('.editor-header-path-row')
+    if (!pathRow) {
+      throw new Error('Missing path row')
+    }
+    fireEvent.contextMenu(pathRow)
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Copy Relative Path' }))
+    expect(window.api.ui.writeClipboardText).toHaveBeenCalledWith('notes.md')
   })
 
   it('opens a field holding the whole name', () => {

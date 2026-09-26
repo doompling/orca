@@ -3,6 +3,7 @@ import type {
   SleepingAgentLaunchConfig
 } from '../../../../shared/agent-session-resume'
 import { agentProviderSessionsEqual } from '../../../../shared/agent-session-resume'
+import { localWorkspaceLaunchScopesEqual } from '../../../../shared/local-projects/agent-launch-scope'
 
 export function launchConfigsEqual(
   a: SleepingAgentLaunchConfig | undefined,
@@ -14,6 +15,7 @@ export function launchConfigsEqual(
   if (
     a.agentCommand !== b.agentCommand ||
     a.agentArgs !== b.agentArgs ||
+    !localWorkspaceLaunchScopesEqual(a.localWorkspaceScope, b.localWorkspaceScope) ||
     a.ompResumeFilePath !== b.ompResumeFilePath
   ) {
     return false

@@ -25,6 +25,9 @@ import {
 } from './app-root-surface-settings'
 import type { FloatingWorkspacePanelState } from './use-floating-workspace-panel'
 import type { OnboardingGate } from './use-onboarding-and-feature-tips'
+import { hasLocalProjectsApi } from '@/features/local-projects/local-projects-availability'
+import { LocalProjectDialog } from '@/features/local-projects/LocalProjectDialog'
+import { LocalWorkspaceDialog } from '@/features/local-projects/LocalWorkspaceDialog'
 
 const QuickOpen = lazy(() => import('../components/QuickOpen'))
 const WorktreeJumpPalette = lazy(() => import('../components/WorktreeJumpPalette'))
@@ -195,11 +198,16 @@ export function AppRootSurfaces(props: {
       {/* Why: keep in the entry bundle so a stale/corrupt lazy chunk can't strand users at Create. */}
       {activeModal === 'new-workspace-composer' ? (
         <ModalBoundary boundaryId="modal.new-workspace-composer" resetKey>
-          <NewWorkspaceComposerModal />
+          {hasLocalProjectsApi() ? <LocalWorkspaceDialog /> : <NewWorkspaceComposerModal />}
         </ModalBoundary>
       ) : null}
       <Suspense fallback={null}>
-        {shouldMountAddRepoDialog ? (
+        {hasLocalProjectsApi() && activeModal === 'add-repo' ? (
+          <ModalBoundary boundaryId="modal.local-project" resetKey>
+            <LocalProjectDialog />
+          </ModalBoundary>
+        ) : null}
+        {!hasLocalProjectsApi() && shouldMountAddRepoDialog ? (
           <ModalBoundary boundaryId="modal.add-repo" resetKey={activeModal === 'add-repo'}>
             <AddRepoDialog />
           </ModalBoundary>

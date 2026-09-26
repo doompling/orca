@@ -8,6 +8,8 @@ import type { HostedReviewProvider } from '../../../shared/hosted-review'
 import type { ResolvedSourceControlAiGenerationParams } from '../../../shared/source-control-ai'
 import { splitWorktreeIdForFilesystem } from '../../../shared/worktree/id'
 import { getActiveRuntimeTarget } from './runtime-rpc-client'
+import type { LocalWorkspaceGitRoot } from '../../../shared/local-projects/git-root'
+import { folderWorkspaceKey } from '../../../shared/workspace-scope'
 
 export type RuntimeGenerateCommitMessageResult =
   | { success: true; message: string; agentLabel?: string }
@@ -51,6 +53,7 @@ export type RuntimeDiscoverCommitMessageModelsResult =
   | { success: false; error: string }
 
 export type RuntimeGitContext = {
+  localRoot?: LocalWorkspaceGitRoot
   settings: RuntimeGitSettings | null | undefined
   worktreeId: string | null | undefined
   worktreePath: string
@@ -66,9 +69,28 @@ export type RuntimeGenerateCommitMessageOverrides = {
 export type RuntimeGeneratePullRequestFieldsOverrides = RuntimeGenerateCommitMessageOverrides
 
 export function resolveLocalWorktreePath(context: RuntimeGitContext): string {
+  if (context.localRoot) {
+    return context.worktreePath
+  }
   return context.worktreeId
     ? (splitWorktreeIdForFilesystem(context.worktreeId)?.worktreePath ?? context.worktreePath)
     : context.worktreePath
+}
+
+export function localRootGitArgs(context: RuntimeGitContext): {
+  localRoot?: LocalWorkspaceGitRoot
+} {
+  if (!context.localRoot) {
+    return {}
+  }
+  if (
+    context.connectionId ||
+    getActiveRuntimeTarget(context.settings).kind !== 'local' ||
+    context.worktreeId !== folderWorkspaceKey(context.localRoot.workspaceId)
+  ) {
+    throw new Error('Local Workspace Git requires its original local Workspace owner.')
+  }
+  return { localRoot: context.localRoot }
 }
 
 export function getRuntimeGitScope(

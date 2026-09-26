@@ -16,6 +16,7 @@ import { useShortcutLabel } from '@/hooks/useShortcutLabel'
 import { translate } from '@/i18n/i18n'
 import { AgentSessionHistoryIcon } from './agent-session-history-icon'
 import type { ActivityBarItem } from './activity-bar-buttons'
+import { useActiveLocalWorkspace } from '@/features/local-projects/use-active-local-workspace'
 
 export type RightSidebarActivityItems = {
   visibleItems: ActivityBarItem[]
@@ -31,6 +32,7 @@ export function useRightSidebarActivityItems({
   rightSidebarOpen: boolean
 }): RightSidebarActivityItems {
   const explorerShortcut = useShortcutLabel('sidebar.explorer.toggle')
+  const isLocalWorkspace = Boolean(useActiveLocalWorkspace())
   const sourceControlShortcut = useShortcutLabel('sidebar.sourceControl.toggle')
   const checksShortcut = useShortcutLabel('sidebar.checks.toggle')
   const portsShortcut = useShortcutLabel('sidebar.ports.toggle')
@@ -130,9 +132,10 @@ export function useRightSidebarActivityItems({
       getVisibleRightSidebarActivityItems(activityItems, {
         isFolder,
         isFolderWorkspace,
+        isLocalWorkspace,
         isSshRepo
       }),
-    [activityItems, isFolder, isFolderWorkspace, isSshRepo]
+    [activityItems, isFolder, isFolderWorkspace, isSshRepo, isLocalWorkspace]
   )
 
   const activeFolderWorkspaceKey = isFolderWorkspace ? (activeWorktreeId ?? null) : null

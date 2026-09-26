@@ -3,9 +3,31 @@ import { statusesEqual } from '../updater-fallback'
 import type { UpdateCheckOptions, UpdateStatus } from '../../shared/update-status-types'
 import type { UpdateCheckVariant } from './updater-types'
 import { UpdaterState as BaseUpdaterState } from './updater-state'
+import { getPackagedEtherProduct } from '../ether-build'
+
+export const ETHER_MANUAL_UPDATE_MESSAGE =
+  'Ether updates are installed manually. Upstream Orca updates are disabled for this app.'
 
 export abstract class UpdaterStatus extends BaseUpdaterState {
+  protected refuseEtherUpdate(userInitiated = false): boolean {
+    if (!getPackagedEtherProduct()) {
+      return false
+    }
+    if (userInitiated) {
+      this.sendStatus({
+        state: 'error',
+        message: ETHER_MANUAL_UPDATE_MESSAGE,
+        retryable: false,
+        userInitiated: true
+      })
+    }
+    return true
+  }
+
   protected getAutoUpdater(): ElectronAutoUpdater {
+    if (getPackagedEtherProduct()) {
+      throw new Error(ETHER_MANUAL_UPDATE_MESSAGE)
+    }
     if (!this.autoUpdater) {
       this.autoUpdater = loadElectronAutoUpdater()
     }

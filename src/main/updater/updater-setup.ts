@@ -37,18 +37,30 @@ export type UpdaterSetupOptions = {
 /** Initializes electron-updater and attaches lifecycle/event bridges. */
 export class UpdaterSetup extends UpdaterDownloadInstall {
   checkForUpdates(): void {
+    if (this.refuseEtherUpdate()) {
+      return
+    }
     this.checkForUpdatesInBackground()
   }
 
   checkForUpdatesFromMenu(options?: UpdateCheckOptions): void {
+    if (this.refuseEtherUpdate(true)) {
+      return
+    }
     super.checkForUpdatesFromMenu(options)
   }
 
   downloadUpdate(): void {
+    if (this.refuseEtherUpdate(true)) {
+      return
+    }
     super.downloadUpdate()
   }
 
   quitAndInstall(): void {
+    if (this.refuseEtherUpdate(true)) {
+      return
+    }
     super.quitAndInstall()
   }
 
@@ -99,6 +111,9 @@ export class UpdaterSetup extends UpdaterDownloadInstall {
     channel: ReleaseChannel,
     options?: ReleaseBuildListOptions
   ): Promise<ReleaseBuild[]> {
+    if (this.refuseEtherUpdate(true)) {
+      return []
+    }
     return super.listAvailableReleaseBuilds(channel, options)
   }
 
@@ -112,6 +127,9 @@ export class UpdaterSetup extends UpdaterDownloadInstall {
 
   setupAutoUpdater(mainWindow: BrowserWindow, opts?: UpdaterSetupOptions): void {
     this.mainWindowRef = mainWindow
+    if (this.refuseEtherUpdate()) {
+      return
+    }
     this.onBeforeQuitCleanup = opts?.onBeforeQuit ?? null
     this.persistLastUpdateCheckAt = opts?.setLastUpdateCheckAt ?? null
     this._getLastUpdateCheckAt = opts?.getLastUpdateCheckAt ?? null

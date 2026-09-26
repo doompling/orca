@@ -18,6 +18,7 @@ import type { CodexResumeLaunch, PreparedCodexResumeHome } from '../host-env/cod
 import type { StablePaneOwner } from '../pane/stable-owner'
 import type { AdoptStablePaneArgs, AdoptStablePaneResult } from '../ipc/spawn-types'
 import type { finishPtyShutdown } from '../provider/liveness'
+import type { FolderWorkspacePtyLaunchContext } from '../host-env/spawn-cwd'
 
 export type PtyRuntimeControllerDeps = {
   runtime?: OrcaRuntimeService
@@ -46,7 +47,10 @@ export type PtyRuntimeControllerDeps = {
     env: T,
     launch: CodexResumeLaunch
   ) => T
-  assertFolderWorkspacePtyPathUsable: (worktreeId: string | undefined) => Promise<void> | void
+  assertFolderWorkspacePtyPathUsable: (
+    worktreeId: string | undefined,
+    launch?: FolderWorkspacePtyLaunchContext
+  ) => Promise<void> | void
   resolvePtySpawnStartupCwd: (
     worktreeId: string | undefined,
     cwd: string | undefined,

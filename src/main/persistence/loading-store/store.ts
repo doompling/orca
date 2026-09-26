@@ -32,6 +32,7 @@ import type { SshProfileOperations } from './ssh-profile-operations'
 import type { RetiredWorktreeNamePersistence } from './retired-worktree-name-persistence'
 import type { SshLeaseRecoveryOperations } from './ssh-lease-recovery-operations'
 import type { WriteFlushBarrierOperations } from './write-flush-barriers'
+import type { LocalProjectsPersistence } from '../../local-projects/persistence'
 
 export type StoreOptions = StoreRuntimeOptions
 export type PtyBindingSourceExpectation = {
@@ -107,6 +108,7 @@ export class Store {
 // oxlint-disable-next-line typescript-eslint/consistent-type-definitions -- declaration merging derives Store's prototype API directly from the exact concrete domain classes installed below
 export interface Store
   extends
+    LocalProjectsPersistence,
     WriteSchedulingOperations,
     PrimaryStateWriteOperations,
     ProjectCollectionOperations,

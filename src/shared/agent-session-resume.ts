@@ -1,6 +1,7 @@
 import type { AgentHookSource } from './agent-hook-relay'
 import type { AgentStatusState } from './agent-status-types'
 import type { TuiAgent } from './tui-agent'
+import type { LocalWorkspaceLaunchScope } from './local-projects/agent-launch-scope'
 
 export const RESUMABLE_TUI_AGENTS = [
   'claude',
@@ -42,6 +43,7 @@ export type SleepingAgentLaunchConfig = {
   agentArgs: string
   agentEnv: Record<string, string>
   ompResumeFilePath?: string
+  localWorkspaceScope?: LocalWorkspaceLaunchScope
 }
 
 export type SleepingAgentSessionRecord = {

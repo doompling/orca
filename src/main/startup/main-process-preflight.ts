@@ -89,6 +89,7 @@ import { mainProcessState as state } from './main-process-state'
 import { initializeSyntheticTitleRuntime } from './synthetic-title-runtime'
 import { initializeBrowserProcessUserAgent } from '../browser/browser-process-user-agent'
 import { initializeBrowserIdentityModeStore } from '../browser/browser-identity-mode-store'
+import { getPackagedEtherProduct } from '../ether-build'
 
 export type MainProcessPreflightOptions = {
   focusExistingWindow: () => void
@@ -123,7 +124,7 @@ export function runMainProcessPreflight(options: MainProcessPreflightOptions): b
   if (state.isServeMode) {
     reserveServeStdoutForReadiness()
   }
-  state.devInstanceIdentity = getDevInstanceIdentity(is.dev)
+  state.devInstanceIdentity = getDevInstanceIdentity(is.dev, process.env, getPackagedEtherProduct())
   state.devAgentHookEndpointNamespace = state.devInstanceIdentity.isDev
     ? state.devInstanceIdentity.appUserModelId
     : undefined

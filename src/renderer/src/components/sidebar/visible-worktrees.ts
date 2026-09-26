@@ -51,6 +51,8 @@ import { isWorkspaceFromOtherDevice } from './workspace-creator-visibility'
 import { isDefaultBranchWorkspace } from './default-branch-workspace'
 import { getLineageAncestorIndex, getSortedWorktreeRankIndex } from './visible-worktree-indexes'
 import { getWorktreeHostIdentity } from '../../../../shared/worktree/host-qualified-identity'
+import { localWorkspaceShortcutTargets } from '@/features/local-projects/local-workspace-navigation'
+import { hasLocalProjectsApi } from '@/features/local-projects/local-projects-availability'
 
 /**
  * Whether the "Hide sleeping" sweep must keep this row (#8873).
@@ -316,6 +318,9 @@ export function getVisibleWorktreeIds(): string[] {
 }
 
 export function getVisibleWorktreeShortcutTargets(): VisibleWorktreeShortcutTarget[] {
+  if (hasLocalProjectsApi()) {
+    return localWorkspaceShortcutTargets(useAppStore.getState().localProjects)
+  }
   if (_publishedVisibleShortcutTargets) {
     return _publishedVisibleShortcutTargets
   }

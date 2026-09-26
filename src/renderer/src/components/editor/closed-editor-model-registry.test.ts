@@ -21,7 +21,7 @@ it('does not replay earlier model-disposal authority after first registry regist
   attach()
   store.setState({ openFiles: [file] })
   store.getState().closeFile(file.id)
-  const model = modelLifetimeEditorModel(file.filePath)
+  const model = modelLifetimeEditorModel(file.filePath, undefined, file.id)
   const unregister = bridge.register(monaco)
   try {
     await Promise.resolve()
@@ -162,7 +162,7 @@ it('preserves successor models at a captured URI across registry replacement', a
   store.getState().closeFile(file.id)
   unregister()
   model.dispose()
-  const successor = modelLifetimeEditorModel(file.filePath)
+  const successor = modelLifetimeEditorModel(file.filePath, undefined, file.id)
   const unregisterNext = bridge.register(monaco)
   try {
     await Promise.resolve()

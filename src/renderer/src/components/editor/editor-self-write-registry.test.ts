@@ -58,6 +58,18 @@ describe('editor self-write registry', () => {
     expect(hasRecentSelfWrite('/repo/a.md', 'env-1')).toBe(true)
   })
 
+  it('treats another workspace save as an external change without clearing its echo', () => {
+    recordSelfWrite('/repo/a.md', 'first draft', null, undefined, 'folder:first')
+    expect(hasRecentSelfWrite('/repo/a.md', null, 'folder:first')).toBe(true)
+    expect(hasRecentSelfWrite('/repo/a.md', null, 'folder:second')).toBe(false)
+    clearSelfWrite('/repo/a.md', null, 'folder:second')
+    expect(hasRecentSelfWrite('/repo/a.md', null, 'folder:first')).toBe(true)
+
+    recordSelfWrite('/repo/a.md', 'second draft', null, undefined, 'folder:second')
+    expect(hasRecentSelfWrite('/repo/a.md', null, 'folder:first')).toBe(false)
+    expect(hasRecentSelfWrite('/repo/a.md', null, 'folder:second')).toBe(true)
+  })
+
   it('prunes expired stamps when recording later writes', () => {
     recordSelfWrite('/repo/old.md')
 

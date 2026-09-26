@@ -32,7 +32,7 @@ export function createEditorExternalChangeTabReset({
     for (const file of matchingFiles) {
       if (file.isDirty) {
         // Why: skip Orca's own-save echo, which routes here bypassing the watch hook's echo verification.
-        if (!hasRecentSelfWrite(file.filePath, file.runtimeEnvironmentId)) {
+        if (!hasRecentSelfWrite(file.filePath, file.runtimeEnvironmentId, file.worktreeId)) {
           markFileChangedOnDisk(state, file, {
             connectionId: getConnectionIdForFile(file.worktreeId, file.filePath) ?? undefined,
             origin: 'live'

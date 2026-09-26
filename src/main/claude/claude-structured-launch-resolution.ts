@@ -26,6 +26,8 @@ import {
 } from '../native-chat/claude-structured-managed-account-support'
 import { resolveClaudeCommand } from '../codex-cli/command'
 import type { AgentSessionRecordStore } from '../runtime/agent-session-record-store'
+import { readStructuredLocalWorkspaceScope } from '../local-projects/structured-agent-scope'
+import { localWorkspaceContextDescription } from '../../shared/local-projects/agent-launch-scope'
 
 export const CLAUDE_DEFAULT_SETTING_SOURCES = ['user', 'project', 'local'] as const
 export const CLAUDE_SESSION_STATE_EVENTS_ENV = 'CLAUDE_CODE_EMIT_SESSION_STATE_EVENTS'
@@ -45,6 +47,7 @@ export type ClaudeStructuredSdkOptions = Pick<
   | 'resume'
   | 'resumeSessionAt'
   | 'resumeDropsTurn'
+  | 'additionalDirectories'
 >
 
 /**
@@ -192,6 +195,7 @@ export function createClaudeStructuredLaunchResolver(
       head?.handle.provider === 'claude'
         ? head.handle.sessionId
         : claudeSessionIdForOrcaSession(identity.sessionId)
+    const localWorkspaceScope = await readStructuredLocalWorkspaceScope(record)
     // `record.launchArgs` is deliberately not read: the configured CLI arguments are a terminal
     // concern, and the permission mode they used to smuggle in is an owned provider option now.
     const permission = claudeStructuredPermissionOptions(
@@ -238,6 +242,16 @@ export function createClaudeStructuredLaunchResolver(
         ...CLAUDE_STRUCTURED_BASE_OPTIONS,
         ...permission,
         extraArgs: { ...CLAUDE_STRUCTURED_BASE_OPTIONS.extraArgs, ...permission.extraArgs },
+        ...(localWorkspaceScope
+          ? {
+              additionalDirectories: localWorkspaceScope.roots.map((root) => root.path),
+              systemPrompt: {
+                type: 'preset' as const,
+                preset: 'claude_code' as const,
+                append: localWorkspaceContextDescription(localWorkspaceScope)
+              }
+            }
+          : {}),
         ...(head?.handle.provider === 'claude'
           ? {
               resume: providerSessionId,
@@ -245,7 +259,8 @@ export function createClaudeStructuredLaunchResolver(
             }
           : { sessionId: providerSessionId })
       },
-      cwd: await deps.resolveWorkspacePath(record.location.workspaceId),
+      cwd:
+        localWorkspaceScope?.cwd ?? (await deps.resolveWorkspacePath(record.location.workspaceId)),
       env,
       claudeConfigDir: record.accountHome.path,
       providerSessionId,

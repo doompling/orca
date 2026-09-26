@@ -29,6 +29,11 @@ import {
 import { scheduleSave } from './write-scheduling'
 import { removeWorkspaceLineageForFolderParent } from './metadata-lineage-operations'
 import { bumpLocalWorktreeScanGeneration } from '../../local-worktree-scan-generation'
+import type { LocalProjectsPersistence } from '../../local-projects/persistence'
+import {
+  projectLocalFolderWorkspace,
+  projectLocalFolderWorkspaces
+} from '../../../shared/local-projects/folder-projection'
 
 type ProjectCollectionOperationsRuntime = Pick<
   StoreRuntimeState,
@@ -45,6 +50,7 @@ type ProjectCollectionOperationsContext = {
   repos: RepoLifecycleOperations
   scheduling: WriteSchedulingOperations
   metadata: MetadataLineageOperations
+  localProjects: LocalProjectsPersistence
 }
 
 export class ProjectCollectionOperations {
@@ -54,9 +60,16 @@ export class ProjectCollectionOperations {
     runtime: ProjectCollectionOperationsRuntime,
     repos: RepoLifecycleOperations,
     scheduling: WriteSchedulingOperations,
-    metadata: MetadataLineageOperations
+    metadata: MetadataLineageOperations,
+    localProjects: LocalProjectsPersistence
   ) {
-    this[projectCollectionOperationsContext] = { runtime, repos, scheduling, metadata }
+    this[projectCollectionOperationsContext] = {
+      runtime,
+      repos,
+      scheduling,
+      metadata,
+      localProjects
+    }
   }
 
   getRepos(): Repo[] {
@@ -124,11 +137,19 @@ export class ProjectCollectionOperations {
   }
 
   getFolderWorkspaces(): FolderWorkspace[] {
-    return getFolderWorkspaceOperations(this).getFolderWorkspaces()
+    const local = this[projectCollectionOperationsContext].localProjects.getLocalProjectsSnapshot()
+    return [
+      ...getFolderWorkspaceOperations(this).getFolderWorkspaces(),
+      ...projectLocalFolderWorkspaces(local)
+    ]
   }
 
   getFolderWorkspace(id: string): FolderWorkspace | undefined {
-    return getFolderWorkspaceOperations(this).getFolderWorkspace(id)
+    const local = this[projectCollectionOperationsContext].localProjects.getLocalProjectsSnapshot()
+    const workspace = local.workspaces.find((entry) => entry.id === id)
+    return workspace
+      ? projectLocalFolderWorkspace(local, workspace)
+      : getFolderWorkspaceOperations(this).getFolderWorkspace(id)
   }
 
   createFolderWorkspace(
@@ -141,10 +162,26 @@ export class ProjectCollectionOperations {
     id: string,
     updates: Parameters<FolderWorkspacePersistenceOperations['updateFolderWorkspace']>[1]
   ): FolderWorkspace | null {
+    const owner = this[projectCollectionOperationsContext].localProjects
+    if (owner.resolveLocalWorkspace(id)) {
+      const { pendingFirstAgentMessageRename, firstAgentMessageRenameError, ...metadata } = updates
+      if (
+        (pendingFirstAgentMessageRename !== undefined &&
+          pendingFirstAgentMessageRename !== false) ||
+        (firstAgentMessageRenameError !== undefined && firstAgentMessageRenameError !== null)
+      ) {
+        throw new Error('Local Workspace names are managed explicitly.')
+      }
+      const workspace = owner.updateLocalWorkspace({ workspaceId: id, updates: metadata })
+      return projectLocalFolderWorkspace(owner.getLocalProjectsSnapshot(), workspace)
+    }
     return getFolderWorkspaceOperations(this).updateFolderWorkspace(id, updates)
   }
 
   removeFolderWorkspace(id: string): boolean {
+    if (this[projectCollectionOperationsContext].localProjects.resolveLocalWorkspace(id)) {
+      throw new Error('Archive this local Workspace instead of deleting its saved context.')
+    }
     return getFolderWorkspaceOperations(this).removeFolderWorkspace(id)
   }
 

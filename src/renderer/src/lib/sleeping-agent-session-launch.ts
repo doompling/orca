@@ -15,6 +15,8 @@ import {
 } from '../../../shared/tui-agent-launch-defaults'
 import type { SleepingAgentSessionRecord } from '../../../shared/agent-session-resume'
 import { translate } from '@/i18n/i18n'
+import { assertLocalWorkspaceLaunchScopeOwner } from '../../../shared/local-projects/agent-launch-scope'
+import { resolveLocalWorkspaceKey } from '../../../shared/local-projects/workspace-resolution'
 
 export type ResumeSleepingAgentSessionsOptions = {
   suppressNavigation?: boolean
@@ -68,6 +70,21 @@ export function launchSleepingAgentSession(
 ): boolean {
   const state = useAppStore.getState()
   const launchConfig = record.launchConfig
+  if (
+    state.localProjects &&
+    resolveLocalWorkspaceKey(state.localProjects, record.worktreeId) &&
+    !launchConfig?.localWorkspaceScope
+  ) {
+    toast.error('This saved agent has no complete Workspace roots. Start a new agent session.')
+    return false
+  }
+  if (launchConfig?.localWorkspaceScope) {
+    assertLocalWorkspaceLaunchScopeOwner(
+      launchConfig.localWorkspaceScope,
+      record.worktreeId,
+      record.connectionId
+    )
+  }
   const resumeTarget = getResumeLaunchTarget(record.worktreeId)
   const startupPlan = buildAgentResumeStartupPlan({
     agent: record.agent,
@@ -85,6 +102,9 @@ export function launchSleepingAgentSession(
     ...(launchConfig?.ompResumeFilePath
       ? { ompResumeFilePath: launchConfig.ompResumeFilePath }
       : {}),
+    ...(launchConfig?.localWorkspaceScope
+      ? { localWorkspaceScope: launchConfig.localWorkspaceScope }
+      : {}),
     platform: resumeTarget.platform,
     shell: resumeTarget.shell
   })
@@ -100,6 +120,9 @@ export function launchSleepingAgentSession(
 
   const tab = state.createTab(record.worktreeId, undefined, undefined, {
     launchAgent: record.agent,
+    ...(launchConfig?.localWorkspaceScope
+      ? { startupCwd: launchConfig.localWorkspaceScope.cwd }
+      : {}),
     pendingStartup: {
       command: startupPlan.launchCommand,
       ...(startupPlan.env ? { env: startupPlan.env } : {}),

@@ -16,6 +16,7 @@ import { buildRuntimePtySpawnOptions } from './spawn-options'
 import { executeRuntimePtySpawn } from './spawn-execute'
 import { commitRuntimePtySpawn } from './spawn-commit'
 import { createRuntimePtySpawnState, type RuntimePtySpawnArgs } from './spawn-state'
+import { acquireLocalWorkspacePtyLaunch } from '../../../local-projects/launch-scope-lock'
 import {
   commitRuntimeSpawnHiddenDelivery,
   releaseRuntimeSpawnPreSpawnHiddenMark
@@ -87,6 +88,7 @@ export async function spawnPtyFromRuntimeController(
     if (materialized) {
       return toRuntimeSpawnReply(materialized)
     }
+    ctx.releaseWorktreeSpawn = await acquireLocalWorkspacePtyLaunch(deps.store, deps.runtime, args)
     const earlyAdopt = await prepareRuntimePtySpawn(ctx)
     if (earlyAdopt) {
       return toRuntimeSpawnReply(earlyAdopt)

@@ -4,6 +4,7 @@ import type { GitPushTarget } from '../../shared/worktree/types'
 import type { HostedReviewProvider } from '../../shared/hosted-review'
 import type { ResolvedSourceControlAiGenerationParams } from '../../shared/source-control-ai'
 import type { SourceControlAiSettings } from '../../shared/source-control-ai-types'
+import type { LocalWorkspaceGitRoot } from '../../shared/local-projects/git-root'
 
 export type GitOperationApi = {
   appendGitignore: (args: { worktreePath: string; folderName: string }) => Promise<boolean>
@@ -42,6 +43,7 @@ export type GitOperationApi = {
     connectionId?: string
   }) => Promise<void>
   commit: (args: {
+    localRoot?: LocalWorkspaceGitRoot
     worktreePath: string
     message: string
     connectionId?: string
@@ -96,13 +98,19 @@ export type GitOperationApi = {
     worktreePath: string
     connectionId?: string
   }) => Promise<void>
-  stage: (args: { worktreePath: string; filePath: string; connectionId?: string }) => Promise<void>
+  stage: (args: {
+    worktreePath: string
+    filePath: string
+    connectionId?: string
+    localRoot?: LocalWorkspaceGitRoot
+  }) => Promise<void>
   bulkStage: (args: {
     worktreePath: string
     filePaths: string[]
     connectionId?: string
   }) => Promise<void>
   unstage: (args: {
+    localRoot?: LocalWorkspaceGitRoot
     worktreePath: string
     filePath: string
     connectionId?: string

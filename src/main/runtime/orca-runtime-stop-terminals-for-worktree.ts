@@ -291,7 +291,7 @@ export class OrcaRuntimeWithStopTerminalsForWorktree extends OrcaRuntimeWithReso
     }
   }
 
-  protected async acquireWorktreeTerminalMutation(
+  async acquireWorktreeTerminalMutation(
     worktreeId: string,
     kind: WorktreeTerminalMutationKind,
     deadline?: number

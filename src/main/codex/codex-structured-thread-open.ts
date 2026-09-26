@@ -11,6 +11,11 @@ import {
 } from './codex-app-server-connection'
 import type { CodexStructuredPermissionPolicy } from './codex-structured-permission-policy'
 import { readCodexThreadId, readCodexThreadPath } from './codex-structured-thread-facts'
+import type { LocalWorkspaceLaunchScope } from '../../shared/local-projects/agent-launch-scope'
+import {
+  assertCodexLocalWorkspaceThreadScope,
+  localWorkspaceCodexThreadOverrides
+} from './codex-local-workspace-thread'
 
 export type CodexOpenedThread = {
   threadId: string
@@ -70,14 +75,21 @@ export async function openCodexThread(
     resumeThreadId: string | null
     resumePath?: string | null
     permissionPolicy?: CodexStructuredPermissionPolicy
+    localWorkspaceScope?: LocalWorkspaceLaunchScope
   },
   timeoutMs: number | undefined
 ): Promise<CodexOpenedThread> {
+  const workspaceOverrides = await localWorkspaceCodexThreadOverrides(
+    connection,
+    launch.localWorkspaceScope,
+    timeoutMs
+  )
   const resumeParams = launch.resumeThreadId
     ? {
         threadId: launch.resumeThreadId,
         cwd: launch.cwd,
         ...launch.permissionPolicy,
+        ...workspaceOverrides,
         ...(launch.resumePath ? { path: launch.resumePath } : {})
       }
     : null
@@ -85,9 +97,10 @@ export async function openCodexThread(
     ? await resumeCodexThread(connection, resumeParams, timeoutMs)
     : await connection.request(
         'thread/start',
-        { cwd: launch.cwd, ...launch.permissionPolicy },
+        { cwd: launch.cwd, ...launch.permissionPolicy, ...workspaceOverrides },
         { timeoutMs }
       )
+  assertCodexLocalWorkspaceThreadScope(opened, launch.localWorkspaceScope, launch.permissionPolicy)
   const threadId = readCodexThreadId(opened)
   if (!threadId) {
     throw new Error('codex app-server did not name the thread it opened')

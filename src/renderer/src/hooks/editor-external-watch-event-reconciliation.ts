@@ -7,6 +7,7 @@ import {
 } from '@/components/editor/editor-autosave'
 import { indexEditorExternalWatchBatchPaths } from '@/components/editor/editor-external-watch-path-index'
 import { getRecentSelfWrite } from '@/components/editor/editor-self-write-registry'
+import { getExternalFileChangeRelativePath } from '@/components/right-sidebar/useFileExplorerWatch'
 import {
   hasActiveEditorPathMoves,
   isActiveMoveSourcePath
@@ -42,7 +43,7 @@ export function buildEditorExternalWatchEventHandler(
   findTarget: (
     worktreePath: string,
     runtimeEnvironmentId: string | null
-  ) => EditorExternalWatchTarget | undefined
+  ) => EditorExternalWatchTarget | EditorExternalWatchTarget[] | undefined
 ): {
   handleFsChanged: (payload: FsChangedPayload, runtimeEnvironmentId?: string | null) => void
   dispose: () => void
@@ -54,23 +55,10 @@ export function buildEditorExternalWatchEventHandler(
     absolutePath: string
   ): string => `${worktreeId}::${runtimeEnvironmentId ?? 'client'}::${absolutePath}`
 
-  const handleFsChanged = (
+  const handleTargetChanged = (
     payload: FsChangedPayload,
-    runtimeEnvironmentId: string | null = null
+    target: EditorExternalWatchTarget
   ): void => {
-    const target = findTarget(payload.worktreePath, runtimeEnvironmentId)
-    if (!target) {
-      return
-    }
-    // Why: this app-level hook owns watcher subscriptions; other consumers listen here so they don't fight over watch/unwatch ownership.
-    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
-      window.dispatchEvent(
-        new CustomEvent<WorktreeFileChangeEventDetail>(ORCA_WORKTREE_FILE_CHANGE_EVENT, {
-          detail: { payload, runtimeEnvironmentId: target.runtimeEnvironmentId }
-        })
-      )
-    }
-
     // Why: one batch index keeps local WSL alias normalization out of event×tab loops.
     const openFilesAtStart = useAppStore.getState().openFiles
     const batchPaths = indexEditorExternalWatchBatchPaths(payload, openFilesAtStart, {
@@ -89,14 +77,13 @@ export function buildEditorExternalWatchEventHandler(
       }
     }
 
-    const deletedOpenEditorsRaw = batchPaths.deletedOpenEditors
     // Only pay the per-id lookup to suppress a move's own source-delete while a move is live; otherwise the batch stays O(deletes).
     const deletedOpenEditors = hasActiveEditorPathMoves()
-      ? deletedOpenEditorsRaw.filter(
+      ? batchPaths.deletedOpenEditors.filter(
           ({ file }) =>
             !isActiveMoveSourcePath(target.worktreeId, target.runtimeEnvironmentId, file.filePath)
         )
-      : deletedOpenEditorsRaw
+      : batchPaths.deletedOpenEditors
     const deletedOpenEditorIds = deletedOpenEditors.map(({ file }) => file.id)
     const hasPairedCreate =
       deletedOpenEditorIds.length > 0 &&
@@ -212,7 +199,11 @@ export function buildEditorExternalWatchEventHandler(
           continue
         }
       }
-      const recentSelfWrite = getRecentSelfWrite(change.absolutePath, target.runtimeEnvironmentId)
+      const recentSelfWrite = getRecentSelfWrite(
+        change.absolutePath,
+        target.runtimeEnvironmentId,
+        target.worktreeId
+      )
       if (recentSelfWrite) {
         scheduleSelfWriteAwareEditorExternalReload(
           target,
@@ -223,6 +214,27 @@ export function buildEditorExternalWatchEventHandler(
         continue
       }
       scheduleDebouncedEditorExternalReload(notification)
+    }
+  }
+
+  const handleFsChanged = (
+    payload: FsChangedPayload,
+    runtimeEnvironmentId: string | null = null
+  ): void => {
+    const found = findTarget(payload.worktreePath, runtimeEnvironmentId)
+    const targets = Array.isArray(found) ? found : found ? [found] : []
+    if (targets.length === 0) {
+      return
+    }
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+      window.dispatchEvent(
+        new CustomEvent<WorktreeFileChangeEventDetail>(ORCA_WORKTREE_FILE_CHANGE_EVENT, {
+          detail: { payload, runtimeEnvironmentId }
+        })
+      )
+    }
+    for (const target of targets) {
+      handleTargetChanged(payload, target)
     }
   }
 
@@ -256,13 +268,19 @@ export function collectOverflowEditorExternalReloadTargets(
     ) {
       continue
     }
+    const relativePath = file.filePath
+      ? getExternalFileChangeRelativePath(target.worktreePath, file.filePath, false)
+      : file.relativePath
+    if (!relativePath) {
+      continue
+    }
     if (file.externalMutation) {
       state.setExternalMutation(file.id, null)
     }
     notifications.push({
       worktreeId: target.worktreeId,
       worktreePath: target.worktreePath,
-      relativePath: file.relativePath,
+      relativePath,
       runtimeEnvironmentId: target.runtimeEnvironmentId ?? null,
       ...getLocalWindowsWslAliasOption(target)
     })

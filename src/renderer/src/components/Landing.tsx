@@ -17,6 +17,8 @@ import { translate } from '@/i18n/i18n'
 import { hasGitHubBackedProject, type PreflightIssue } from './landing-preflight-issues'
 import { useLandingPreflightRuntime } from './landing-preflight-runtime'
 import { useLandingOrcaStarState, type LandingStarState } from './landing-github-star-state'
+import { hasLocalProjectsApi } from '@/features/local-projects/local-projects-availability'
+import { LocalProjectsLanding } from '@/features/local-projects/LocalProjectsLanding'
 
 type ShortcutItem = {
   id: string
@@ -223,6 +225,10 @@ function PreflightBanner({
 }
 
 export default function Landing(): React.JSX.Element {
+  return hasLocalProjectsApi() ? <LocalProjectsLanding /> : <LegacyLanding />
+}
+
+function LegacyLanding(): React.JSX.Element {
   const repos = useAppStore((s) => s.repos)
   const openModal = useAppStore((s) => s.openModal)
 

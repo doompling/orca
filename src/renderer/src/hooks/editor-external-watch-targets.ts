@@ -9,6 +9,8 @@ import { isWindowsAbsolutePathLike } from '../../../shared/cross-platform-path'
 import { parseExecutionHostId } from '../../../shared/execution-host'
 import { isGitRepoKind } from '../../../shared/repo-kind'
 import { parseWorkspaceKey } from '../../../shared/workspace-scope'
+import type { LocalProjectsState } from '../../../shared/local-projects/types'
+import { resolveLocalWorkspaceKey } from '../../../shared/local-projects/workspace-resolution'
 
 export type EditorExternalWatchTarget = {
   worktreeId: string
@@ -32,7 +34,7 @@ export type EditorExternalWatchTargetState = Pick<
   | 'sshConnectionStates'
   | 'folderWorkspaces'
   | 'projectGroups'
->
+> & { localProjects?: LocalProjectsState }
 
 type WatchedTargetsSnapshot = {
   targets: EditorExternalWatchTarget[]
@@ -51,6 +53,7 @@ let cachedGitStatusHugeByWorktree: AppState['gitStatusHugeByWorktree'] | null = 
 let cachedSshConnectionStates: AppState['sshConnectionStates'] | null = null
 let cachedFolderWorkspaces: AppState['folderWorkspaces'] | null = null
 let cachedProjectGroups: AppState['projectGroups'] | null = null
+let cachedLocalProjects: LocalProjectsState | undefined
 let cachedWatchedTargetsSnapshot: WatchedTargetsSnapshot = { targets: [], targetsKey: '' }
 
 export function getEditorExternalWatchTargetKey(target: EditorExternalWatchTarget): string {
@@ -123,7 +126,8 @@ export function selectEditorExternalWatchTargets(
     cachedGitStatusHugeByWorktree === state.gitStatusHugeByWorktree &&
     cachedSshConnectionStates === state.sshConnectionStates &&
     cachedFolderWorkspaces === state.folderWorkspaces &&
-    cachedProjectGroups === state.projectGroups
+    cachedProjectGroups === state.projectGroups &&
+    cachedLocalProjects === state.localProjects
   ) {
     return cachedWatchedTargetsSnapshot
   }
@@ -215,25 +219,34 @@ export function selectEditorExternalWatchTargets(
       (left ?? '').localeCompare(right ?? '')
     )
     for (const owner of owners) {
-      const target = {
-        worktreeId: id,
-        worktreePath: worktree?.path ?? folderWorkspace!.folderPath,
-        connectionId: connectionId ?? undefined,
-        runtimeEnvironmentId: owner,
-        ...(canWatchLocalWindowsWslAliases({
-          worktreePath: worktree?.path ?? folderWorkspace!.folderPath,
+      const localWorkspace =
+        state.localProjects && owner === null && !connectionId
+          ? resolveLocalWorkspaceKey(state.localProjects, id)
+          : null
+      const paths = localWorkspace
+        ? localWorkspace.roots.map((root) => root.path)
+        : [worktree?.path ?? folderWorkspace!.folderPath]
+      for (const worktreePath of paths) {
+        const target = {
+          worktreeId: id,
+          worktreePath,
+          connectionId: connectionId ?? undefined,
           runtimeEnvironmentId: owner,
-          connectionId,
-          worktree,
-          repo,
-          folderWorkspace,
-          projectGroup
-        })
-          ? { allowLocalWindowsWslAliases: true as const }
-          : {})
+          ...(canWatchLocalWindowsWslAliases({
+            worktreePath,
+            runtimeEnvironmentId: owner,
+            connectionId,
+            worktree,
+            repo,
+            folderWorkspace,
+            projectGroup
+          })
+            ? { allowLocalWindowsWslAliases: true as const }
+            : {})
+        }
+        nextTargets.push(target)
+        parts.push(getEditorExternalWatchTargetKey(target))
       }
-      nextTargets.push(target)
-      parts.push(getEditorExternalWatchTargetKey(target))
     }
   }
 
@@ -250,6 +263,7 @@ export function selectEditorExternalWatchTargets(
   cachedSshConnectionStates = state.sshConnectionStates
   cachedFolderWorkspaces = state.folderWorkspaces
   cachedProjectGroups = state.projectGroups
+  cachedLocalProjects = state.localProjects
 
   if (targetsKey === cachedWatchedTargetsSnapshot.targetsKey) {
     return cachedWatchedTargetsSnapshot

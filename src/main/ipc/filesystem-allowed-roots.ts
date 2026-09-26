@@ -14,9 +14,10 @@ import {
 import type { FolderWorkspace } from '../../shared/folder-workspace-types'
 import type { ProjectGroup } from '../../shared/project-group-types'
 import type { Repo } from '../../shared/repo-types'
+import { resolveLocalWorkspace } from '../../shared/local-projects/workspace-resolution'
 
 type FolderScopeStore = Pick<Store, 'getRepos'> &
-  Partial<Pick<Store, 'getProjectGroups' | 'getFolderWorkspaces'>>
+  Partial<Pick<Store, 'getProjectGroups' | 'getFolderWorkspaces' | 'getLocalProjectsSnapshot'>>
 
 // Why: SSH repo paths are remote-host paths; treating them as local roots could authorize unrelated local folders or probe SSH-only paths.
 function filterLocalRepos(repos: readonly Repo[]): Repo[] {
@@ -71,6 +72,17 @@ function getLocalFolderScopeRoots(store: Store, repos: readonly Repo[]): string[
   const projectGroups = scopeStore.getProjectGroups?.() ?? []
   const childGroupIndex = buildProjectGroupChildIndex(projectGroups)
   const roots: string[] = []
+  const localProjects = scopeStore.getLocalProjectsSnapshot?.()
+  const localWorkspaceIds = new Set(localProjects?.workspaces.map((workspace) => workspace.id))
+  if (localProjects) {
+    const localRoots = new Set<string>()
+    for (const workspace of localProjects.workspaces) {
+      for (const root of resolveLocalWorkspace(localProjects, workspace.id)?.roots ?? []) {
+        localRoots.add(resolve(root.path))
+      }
+    }
+    roots.push(...localRoots)
+  }
   for (const group of projectGroups) {
     if (
       group.parentPath &&
@@ -86,6 +98,9 @@ function getLocalFolderScopeRoots(store: Store, repos: readonly Repo[]): string[
     }
   }
   for (const workspace of scopeStore.getFolderWorkspaces?.() ?? []) {
+    if (localWorkspaceIds.has(workspace.id)) {
+      continue
+    }
     if (
       !isRemoteOnlyFolderScope(
         workspace.folderPath,

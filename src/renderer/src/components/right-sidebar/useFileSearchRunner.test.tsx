@@ -8,7 +8,8 @@ import { useFileSearchRunner } from './useFileSearchRunner'
 const mocks = vi.hoisted(() => ({
   getConnectionId: vi.fn(),
   getState: vi.fn(),
-  searchRuntimeFiles: vi.fn()
+  searchRuntimeFiles: vi.fn(),
+  statRuntimePath: vi.fn()
 }))
 
 vi.mock('@/lib/connection-context', () => ({
@@ -16,7 +17,8 @@ vi.mock('@/lib/connection-context', () => ({
 }))
 
 vi.mock('@/runtime/runtime-file-client', () => ({
-  searchRuntimeFiles: mocks.searchRuntimeFiles
+  searchRuntimeFiles: mocks.searchRuntimeFiles,
+  statRuntimePath: mocks.statRuntimePath
 }))
 
 vi.mock('@/store', () => ({
@@ -56,6 +58,7 @@ describe('useFileSearchRunner result ownership', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     mocks.getConnectionId.mockReturnValue(null)
+    mocks.statRuntimePath.mockResolvedValue({ size: 0, isDirectory: true, mtime: 1 })
   })
 
   afterEach(() => {
@@ -158,6 +161,51 @@ describe('useFileSearchRunner result ownership', () => {
 
     await finishSearch(hook.result.current.executeSearch)
 
+    expect(updates).toContainEqual({
+      results: RESULTS,
+      resultOwner: { worktreeId, runtimeEnvironmentId: null }
+    })
+  })
+
+  it('searches all local Workspace roots without inheriting ambient runtime or SSH inference', async () => {
+    const worktreeId = 'folder:workspace'
+    const state = {
+      settings: { activeRuntimeEnvironmentId: 'ambient-remote' },
+      fileSearchStateByWorktree: { [worktreeId]: { includePattern: '*.ts' } },
+      localProjects: {
+        version: 1,
+        projects: [
+          {
+            id: 'project',
+            name: 'Project',
+            roots: [
+              { id: 'a', label: 'A', path: '/a' },
+              { id: 'b', label: 'B', path: '/b' }
+            ],
+            defaultRootId: 'b'
+          }
+        ],
+        workspaces: [
+          {
+            id: 'workspace',
+            projectId: 'project',
+            checkoutOverridesByRootId: { a: '/alternate/a' }
+          }
+        ]
+      }
+    }
+    mocks.getConnectionId.mockReturnValue('inferred-ssh')
+    const { hook, updates } = renderSearchRunner(state, worktreeId)
+    await finishSearch(hook.result.current.executeSearch)
+    expect(mocks.searchRuntimeFiles).toHaveBeenCalledTimes(2)
+    expect(mocks.searchRuntimeFiles).toHaveBeenCalledWith(
+      { settings: { activeRuntimeEnvironmentId: null }, worktreeId, worktreePath: '/alternate/a' },
+      expect.objectContaining({ rootPath: '/alternate/a', includePattern: '*.ts' })
+    )
+    expect(mocks.searchRuntimeFiles).toHaveBeenCalledWith(
+      { settings: { activeRuntimeEnvironmentId: null }, worktreeId, worktreePath: '/b' },
+      expect.objectContaining({ rootPath: '/b' })
+    )
     expect(updates).toContainEqual({
       results: RESULTS,
       resultOwner: { worktreeId, runtimeEnvironmentId: null }

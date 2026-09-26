@@ -1,6 +1,8 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { OpenFile } from '@/store/slices/editor'
+import type { LocalProjectsState } from '../../../../shared/local-projects/types'
+import { createTestStore } from '@/store/slices/store-test-helpers'
 
 const toastMock = vi.hoisted(() => vi.fn())
 const readRuntimeFileContentMock = vi.hoisted(() => vi.fn())
@@ -30,15 +32,16 @@ import {
 import { getDiskBaselineSignature } from './diff-content-signature'
 import { useAppStore } from '@/store'
 
-const file = {
+const file: OpenFile = {
   id: 'file-1',
   filePath: '/repo/notes.md',
   relativePath: 'notes.md',
   worktreeId: 'wt-1',
   mode: 'edit',
+  language: 'markdown',
   isDirty: true,
   externalMutation: 'changed'
-} as OpenFile
+}
 
 describe('ExternalFileChangeBanner', () => {
   const clearEditorDraft = vi.fn()
@@ -46,18 +49,27 @@ describe('ExternalFileChangeBanner', () => {
   const setExternalMutation = vi.fn()
   const setEditorDraft = vi.fn()
   const setLastKnownDiskSignature = vi.fn()
+  const clearPendingDiskBaselineVerification = vi.fn()
 
-  function mockStoreState(editorDrafts: Record<string, string>, openFiles: OpenFile[] = [file]) {
+  function mockStoreState(
+    editorDrafts: Record<string, string>,
+    openFiles: OpenFile[] = [file],
+    localProjects?: LocalProjectsState
+  ) {
+    const state = createTestStore().getState()
     vi.mocked(useAppStore.getState).mockReturnValue({
+      ...state,
       clearEditorDraft,
       markFileDirty,
       setExternalMutation,
       setEditorDraft,
       setLastKnownDiskSignature,
+      clearPendingDiskBaselineVerification,
+      localProjects: localProjects ?? state.localProjects,
       editorDrafts,
       openFiles,
-      settings: {}
-    } as never)
+      settings: state.settings
+    })
   }
 
   beforeEach(() => {
@@ -228,4 +240,68 @@ describe('ExternalFileChangeBanner', () => {
 
     expect(setLastKnownDiskSignature).not.toHaveBeenCalled()
   })
+
+  it('keeps local Workspace saves blocked until Keep My Edits verifies the disk version', async () => {
+    const localFile = { ...file, worktreeId: 'folder:workspace', lastKnownDiskSignature: 'old' }
+    mockStoreState({ [file.id]: 'draft' }, [localFile], localProjectState())
+    let resolveRead!: (result: { content: string; isBinary: boolean }) => void
+    readRuntimeFileContentMock.mockReturnValue(
+      new Promise((resolve) => {
+        resolveRead = resolve
+      })
+    )
+
+    const keeping = keepTabEditsOverExternalChange(localFile)
+    expect(setExternalMutation).not.toHaveBeenCalled()
+    resolveRead({ content: 'accepted disk version', isBinary: false })
+    await keeping
+
+    expect(setLastKnownDiskSignature).toHaveBeenCalledWith(
+      file.id,
+      getDiskBaselineSignature('accepted disk version')
+    )
+    expect(setExternalMutation).toHaveBeenCalledWith(file.id, null)
+    expect(setLastKnownDiskSignature.mock.invocationCallOrder[0]).toBeLessThan(
+      setExternalMutation.mock.invocationCallOrder[0]
+    )
+    expect(clearEditorDraft).not.toHaveBeenCalled()
+  })
+
+  it('retains the local conflict and draft if Keep My Edits cannot read disk', async () => {
+    const localFile = { ...file, worktreeId: 'folder:workspace' }
+    mockStoreState({ [file.id]: 'draft' }, [localFile], localProjectState())
+    readRuntimeFileContentMock.mockRejectedValue(new Error('missing folder'))
+    await keepTabEditsOverExternalChange(localFile)
+    expect(setExternalMutation).not.toHaveBeenCalled()
+    expect(clearEditorDraft).not.toHaveBeenCalled()
+    expect(toastMock).toHaveBeenCalledWith(expect.stringContaining('Your draft is unchanged'))
+  })
 })
+
+function localProjectState(): LocalProjectsState {
+  return {
+    version: 1,
+    projects: [
+      {
+        id: 'project',
+        name: 'Application',
+        roots: [{ id: 'root', label: 'App', path: '/repo' }],
+        defaultRootId: 'root',
+        isArchived: false,
+        createdAt: 1,
+        updatedAt: 1
+      }
+    ],
+    workspaces: [
+      {
+        id: 'workspace',
+        projectId: 'project',
+        name: 'Main',
+        checkoutOverridesByRootId: {},
+        isArchived: false,
+        createdAt: 1,
+        updatedAt: 1
+      }
+    ]
+  }
+}

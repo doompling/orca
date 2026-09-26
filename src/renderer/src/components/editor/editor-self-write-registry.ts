@@ -25,6 +25,7 @@ export type RecentSelfWrite = {
 
 type SelfWriteStamp = RecentSelfWrite & {
   expiresAt: number
+  workspaceId?: string
 }
 
 const stamps = new Map<string, SelfWriteStamp>()
@@ -55,7 +56,8 @@ export function recordSelfWrite(
   absolutePath: string,
   content?: string,
   runtimeEnvironmentId?: string | null,
-  ttlMs: number = SELF_WRITE_TTL_MS
+  ttlMs: number = SELF_WRITE_TTL_MS,
+  workspaceId?: string
 ): void {
   const now = Date.now()
   pruneExpiredSelfWrites(now)
@@ -65,18 +67,26 @@ export function recordSelfWrite(
   stamps.delete(key)
   stamps.set(key, {
     content: content ?? null,
-    expiresAt: now + ttlMs
+    expiresAt: now + ttlMs,
+    workspaceId
   })
   enforceSelfWriteStampLimit()
 }
 
-export function clearSelfWrite(absolutePath: string, runtimeEnvironmentId?: string | null): void {
-  stamps.delete(selfWriteKey(absolutePath, runtimeEnvironmentId))
+export function clearSelfWrite(
+  absolutePath: string,
+  runtimeEnvironmentId?: string | null,
+  workspaceId?: string
+): void {
+  if (getRecentSelfWrite(absolutePath, runtimeEnvironmentId, workspaceId)) {
+    stamps.delete(selfWriteKey(absolutePath, runtimeEnvironmentId))
+  }
 }
 
 export function getRecentSelfWrite(
   absolutePath: string,
-  runtimeEnvironmentId?: string | null
+  runtimeEnvironmentId?: string | null,
+  workspaceId?: string
 ): RecentSelfWrite | null {
   const key = selfWriteKey(absolutePath, runtimeEnvironmentId)
   const stamp = stamps.get(key)
@@ -87,14 +97,19 @@ export function getRecentSelfWrite(
     stamps.delete(key)
     return null
   }
+  // A save in another workspace is an external write to this workspace's draft.
+  if (workspaceId && stamp.workspaceId && workspaceId !== stamp.workspaceId) {
+    return null
+  }
   return { content: stamp.content }
 }
 
 export function hasRecentSelfWrite(
   absolutePath: string,
-  runtimeEnvironmentId?: string | null
+  runtimeEnvironmentId?: string | null,
+  workspaceId?: string
 ): boolean {
-  return getRecentSelfWrite(absolutePath, runtimeEnvironmentId) !== null
+  return getRecentSelfWrite(absolutePath, runtimeEnvironmentId, workspaceId) !== null
 }
 
 export function __clearSelfWriteRegistryForTests(): void {

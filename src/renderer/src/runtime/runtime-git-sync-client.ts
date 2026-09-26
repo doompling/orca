@@ -2,7 +2,11 @@ import type { GitForkSyncExpectedUpstream, GitForkSyncResult } from '../../../sh
 import type { GitUpstreamStatus } from '../../../shared/git-status-types'
 import { REBASE_FROM_BASE_RPC_TIMEOUT_MS } from '../../../shared/git-rebase-source'
 import type { GitPushTarget } from '../../../shared/worktree/types'
-import { resolveLocalWorktreePath, type RuntimeGitContext } from './runtime-git-client-context'
+import {
+  resolveLocalWorktreePath,
+  localRootGitArgs,
+  type RuntimeGitContext
+} from './runtime-git-client-context'
 import { callRuntimeRpc, getActiveRuntimeTarget } from './runtime-rpc-client'
 import { toRuntimeWorktreeSelector } from './runtime-worktree-selector'
 
@@ -212,9 +216,11 @@ export async function commitRuntimeGit(
   context: RuntimeGitContext,
   message: string
 ): Promise<{ success: boolean; error?: string }> {
+  const localRoot = localRootGitArgs(context)
   const target = getActiveRuntimeTarget(context.settings)
   if (target.kind === 'local' || !context.worktreeId) {
     return window.api.git.commit({
+      ...localRoot,
       worktreePath: resolveLocalWorktreePath(context),
       message,
       connectionId: context.connectionId

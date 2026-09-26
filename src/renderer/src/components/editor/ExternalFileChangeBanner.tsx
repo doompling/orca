@@ -11,6 +11,7 @@ import type { OpenFile } from '@/store/slices/editor'
 import { ExternalFileChangeCompareDialog } from './ExternalFileChangeCompareDialog'
 import { getDiskBaselineSignature } from './diff-content-signature'
 import { trackExternalChangeConflictAction } from './editor-external-change-telemetry'
+import { localWorkspaceEditorSaveTarget } from '@/features/local-projects/local-workspace-editor-save'
 
 // Why: when an external process (usually an agent) rewrites a file while the
 // tab holds unsaved edits, the reload pipeline preserves the buffer and marks
@@ -78,15 +79,18 @@ export function reloadTabContentFromDisk(
   )
 }
 
-export function keepTabEditsOverExternalChange(file: OpenFile): void {
+export function keepTabEditsOverExternalChange(file: OpenFile): Promise<void> {
   const state = useAppStore.getState()
-  state.setExternalMutation(file.id, null)
+  const guarded = localWorkspaceEditorSaveTarget(state, file) !== null
+  if (!guarded) {
+    state.setExternalMutation(file.id, null)
+  }
   // Why: the dismissal must survive restart — without advancing the baseline
   // to the current disk content, the restored-tab conflict scan re-derives
   // the dismissed conflict from the stale signature on every launch.
   // Best-effort: a failed read leaves the old signature, which can only
   // re-surface the banner — never lose data.
-  void readRuntimeFileContent({
+  return readRuntimeFileContent({
     settings: settingsForRuntimeOwner(state.settings, file.runtimeEnvironmentId),
     filePath: file.filePath,
     relativePath: file.relativePath,
@@ -96,18 +100,32 @@ export function keepTabEditsOverExternalChange(file: OpenFile): void {
   })
     .then((result) => {
       if (result.isBinary) {
+        if (guarded) {
+          throw new Error('Cannot replace a binary file with this draft.')
+        }
         return
       }
       const current = useAppStore.getState()
       const liveFile = current.openFiles.find((openFile) => openFile.id === file.id)
       // Why: only stamp while the dismissal still stands — a save or a newer
       // conflict marked in the interim owns the baseline.
-      if (!liveFile || liveFile.externalMutation === 'changed') {
+      if (!liveFile || (!guarded && liveFile.externalMutation === 'changed')) {
+        return
+      }
+      if (guarded && liveFile.lastKnownDiskSignature !== file.lastKnownDiskSignature) {
         return
       }
       current.setLastKnownDiskSignature(file.id, getDiskBaselineSignature(result.content))
+      if (guarded) {
+        current.clearPendingDiskBaselineVerification(file.id)
+        current.setExternalMutation(file.id, null)
+      }
     })
-    .catch(() => undefined)
+    .catch(() => {
+      if (guarded) {
+        toast('Could not verify the file on disk. Your draft is unchanged; try again.')
+      }
+    })
 }
 
 export function ExternalFileChangeBanner({
@@ -123,6 +141,8 @@ export function ExternalFileChangeBanner({
   reloadContent: (file: OpenFile) => void
 }): React.JSX.Element {
   const [compareOpen, setCompareOpen] = useState(false)
+  const [keepingEdits, setKeepingEdits] = useState(false)
+  const guarded = localWorkspaceEditorSaveTarget(useAppStore.getState(), file) !== null
 
   const handleReload = (): void => {
     trackExternalChangeConflictAction(file, 'reload')
@@ -130,7 +150,8 @@ export function ExternalFileChangeBanner({
   }
   const handleKeepEdits = (): void => {
     trackExternalChangeConflictAction(file, 'keep')
-    keepTabEditsOverExternalChange(file)
+    setKeepingEdits(true)
+    void keepTabEditsOverExternalChange(file).finally(() => setKeepingEdits(false))
   }
   const handleCompare = (): void => {
     trackExternalChangeConflictAction(file, 'compare')
@@ -147,10 +168,15 @@ export function ExternalFileChangeBanner({
           {/* Why: wraps instead of truncating — the overwrite warning at the
               end of the sentence is the part the user must not lose. */}
           <span className="min-w-0 font-medium text-foreground">
-            {translate(
-              'auto.components.editor.ExternalFileChangeBanner.7c41e90d12',
-              'This file changed on disk while you have unsaved edits. Saving will overwrite the newer disk content.'
-            )}
+            {guarded
+              ? translate(
+                  'localProjects.editor.conflict',
+                  'This file changed on disk. Compare or choose which version to keep before saving.'
+                )
+              : translate(
+                  'auto.components.editor.ExternalFileChangeBanner.7c41e90d12',
+                  'This file changed on disk while you have unsaved edits. Saving will overwrite the newer disk content.'
+                )}
           </span>
         </div>
         <div className="flex shrink-0 items-center gap-1">
@@ -163,7 +189,13 @@ export function ExternalFileChangeBanner({
               'Reload from Disk'
             )}
           </Button>
-          <Button type="button" size="xs" variant="ghost" onClick={handleKeepEdits}>
+          <Button
+            type="button"
+            size="xs"
+            variant="ghost"
+            onClick={handleKeepEdits}
+            disabled={keepingEdits}
+          >
             {translate(
               'auto.components.editor.ExternalFileChangeBanner.a95d02c644',
               'Keep My Edits'

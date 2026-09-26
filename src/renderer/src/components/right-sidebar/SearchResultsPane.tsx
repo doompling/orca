@@ -1,10 +1,7 @@
 import React from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import type {
-  SearchFileResult,
-  SearchMatch,
-  SearchResult
-} from '../../../../shared/code-search-types'
+import type { SearchFileResult, SearchMatch } from '../../../../shared/code-search-types'
+import type { LocalWorkspaceSearchResult } from '@/features/local-projects/local-workspace-content-search'
 import type { SearchRow } from './search-rows'
 import { FileResultRow, MatchResultRow } from './SearchResultItems'
 import { translate } from '@/i18n/i18n'
@@ -12,7 +9,7 @@ import { translate } from '@/i18n/i18n'
 const SEARCH_VIRTUAL_OVERSCAN = 12
 
 type SearchResultsPaneProps = {
-  results: SearchResult | null
+  results: LocalWorkspaceSearchResult | null
   hasCommittedResults: boolean
   query: string
   loading: boolean
@@ -66,6 +63,14 @@ export function SearchResultsPane({
 
   return (
     <>
+      {results?.workspaceSearchErrors?.length ? (
+        <div role="status" className="px-2 py-1 text-xs text-destructive border-b border-border">
+          <p>Search incomplete</p>
+          {results.workspaceSearchErrors.map((error, index) => (
+            <p key={`${index}:${error}`}>{error}</p>
+          ))}
+        </div>
+      ) : null}
       {/* Why: the summary is rendered outside the virtualizer so it stays
          pinned at the top while the user scrolls through results. */}
       {results && rows.length > 0 && (

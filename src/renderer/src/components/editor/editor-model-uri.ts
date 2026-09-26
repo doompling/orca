@@ -12,6 +12,11 @@ const FILE_SCHEME = /^file:/i
  * re-parses to itself, so a consumer that can only take a string (the `path` prop of
  * `@monaco-editor/react`, which calls `Uri.parse` internally) lands on the same key.
  */
-export function toEditorModelUri(filePath: string): string {
-  return URI.file(FILE_SCHEME.test(filePath) ? URI.parse(filePath).fsPath : filePath).toString()
+export function toEditorModelUri(filePath: string, fileId?: string): string {
+  const parsed = FILE_SCHEME.test(filePath) ? URI.parse(filePath) : null
+  const uri = URI.file(parsed ? parsed.fsPath : filePath)
+  // Split panes share an owner; separate workspaces sharing disk must not share a draft model.
+  const query =
+    fileId && fileId !== filePath ? `orca-editor=${encodeURIComponent(fileId)}` : parsed?.query
+  return query ? uri.with({ query }).toString() : uri.toString()
 }

@@ -112,6 +112,10 @@ export class AgentSessionRecordStore {
     return this.transactions.recoveredFromBackup
   }
 
+  get hasUnreadableRecords(): boolean {
+    return this.state.unreadableRecords.size > 0
+  }
+
   get hostId(): string {
     return this.state.hostId
   }

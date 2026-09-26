@@ -27,7 +27,15 @@ export function createOpenUnstagedDiff(
           options?.runtimeEnvironmentId
         )
         const diffSource: DiffSource = staged ? 'staged' : 'unstaged'
-        const id = buildDiffEditorFileId(worktreeId, diffSource, relativePath, runtimeEnvironmentId)
+        const baseId = buildDiffEditorFileId(
+          worktreeId,
+          diffSource,
+          relativePath,
+          runtimeEnvironmentId
+        )
+        const id = options?.localRoot
+          ? `${baseId}:root:${encodeURIComponent(options.localRoot.rootId)}`
+          : baseId
         editorItemFileId = id
         const targetGroupId =
           resolveEditorOpenTargetGroupId(s, worktreeId, options?.targetGroupId) ?? undefined
@@ -66,7 +74,8 @@ export function createOpenUnstagedDiff(
           skippedConflicts: undefined,
           conflictReview: undefined,
           isPreview: isPreview || undefined,
-          runtimeEnvironmentId
+          runtimeEnvironmentId,
+          ...(options?.localRoot ? { localRoot: { ...options.localRoot } } : {})
         }
         if (isPreview) {
           const replaceablePreviewId = getReplaceablePreviewFileId(s, worktreeId, targetGroupId)

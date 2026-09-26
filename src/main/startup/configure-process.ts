@@ -6,6 +6,8 @@ import { getVersionManagerBinPaths } from '../codex-cli/command'
 import { getMainE2EConfig } from '../e2e-config'
 import { DISABLED_CHROMIUM_FEATURES } from './disabled-chromium-features'
 import { readHttp1CompatibilityMarker } from './http1-compatibility-marker'
+import { getPackagedEtherProduct } from '../ether-build'
+import { resolveEtherUserDataPath } from './ether-user-data-path'
 
 const DEV_PARENT_SHUTDOWN_GRACE_MS = 3000
 const HTTP1_COMPATIBILITY_ENV_VAR = 'ORCA_DISABLE_HTTP2'
@@ -209,6 +211,14 @@ export function configureDevUserDataPath(isDev: boolean): void {
   }
 
   if (!isDev) {
+    if (getPackagedEtherProduct()) {
+      const etherUserDataPath = resolveEtherUserDataPath(
+        app.getPath('appData'),
+        process.env.ORCA_DEV_USER_DATA_PATH
+      )
+      mkdirSync(etherUserDataPath, { recursive: true, mode: 0o700 })
+      app.setPath('userData', etherUserDataPath)
+    }
     return
   }
   const overrideUserDataPath = process.env.ORCA_DEV_USER_DATA_PATH

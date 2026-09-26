@@ -47,6 +47,7 @@ import {
 } from './agent-session-journal-recovery'
 import type { StructuredAgentSessionAdapter } from './structured-agent-session-adapter'
 import { structuredAgentSessionRefusalMessage } from './structured-agent-session-refusal-message'
+import type { LocalWorkspaceLaunchScope } from '../../../shared/local-projects/agent-launch-scope'
 
 /**
  * Everything a client may declare about the session it wants. Deliberately no
@@ -64,6 +65,8 @@ export type AgentSessionAttachParams = {
   /** Host-resolved defaults for a create-by-intent; remote attach schemas do not accept them. */
   options?: Readonly<Record<string, string>>
   launchArgs?: string[]
+  /** Host-captured roots; never accepted from the remote attach schema. */
+  localWorkspaceScope?: LocalWorkspaceLaunchScope
   /** Omitted only for create-by-intent; the adapter proves the durable handle. */
   providerHandle?: Exclude<AgentSessionProviderHandle, { kind: 'opaque' }>
   /**
@@ -109,6 +112,7 @@ export function attachFingerprintFields(params: AgentSessionAttachParams): Recor
     // identity. The transcript path is excluded: it is where the host found that conversation this
     // time, not part of what the caller asked for.
     adoptedProviderHandle: params.adopt?.providerHandle,
+    ...(params.localWorkspaceScope ? { localWorkspaceScope: params.localWorkspaceScope } : {}),
     expectedRuntimeFence: params.envelope.expectedRuntimeFence
   }
 }
@@ -313,6 +317,7 @@ export function reserveRequestFor(input: {
     provider: params.provider,
     accountHome: params.accountHome,
     ...(params.options ? { options: params.options } : {}),
+    ...(params.localWorkspaceScope ? { localWorkspaceScope: params.localWorkspaceScope } : {}),
     ...(authority.launchArgs ? { launchArgs: authority.launchArgs } : {}),
     ...(authority.launchEnv ? { launchEnv: authority.launchEnv } : {}),
     runtimeKind: params.runtimeKind,

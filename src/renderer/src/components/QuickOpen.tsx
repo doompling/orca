@@ -16,6 +16,8 @@ import { prepareQuickOpenFiles, rankQuickOpenFiles } from '@/components/quick-op
 import { useRuntimeFileListForWorktree } from '@/components/quick-open-file-list'
 import { useModalReturnFocus } from '@/hooks/useModalReturnFocus'
 import { translate } from '@/i18n/i18n'
+import { useActiveLocalWorkspace } from '@/features/local-projects/use-active-local-workspace'
+import { LocalWorkspaceQuickOpen } from '@/features/local-projects/LocalWorkspaceQuickOpen'
 import {
   parseQuickOpenInstallRgGuidance,
   QuickOpenInstallRgGuidance
@@ -32,6 +34,7 @@ function FooterKey({ children }: { children: React.ReactNode }): React.JSX.Eleme
 }
 
 export default function QuickOpen(): React.JSX.Element | null {
+  const localWorkspace = useActiveLocalWorkspace()
   const visible = useAppStore((s) => s.activeModal === 'quick-open')
   const [lingering, setLingering] = useState(visible)
   useEffect(() => {
@@ -47,7 +50,13 @@ export default function QuickOpen(): React.JSX.Element | null {
   if (!visible && !lingering) {
     return null
   }
-  return <QuickOpenContent visible={visible} />
+  return localWorkspace ? (
+    visible ? (
+      <LocalWorkspaceQuickOpen context={localWorkspace} />
+    ) : null
+  ) : (
+    <QuickOpenContent visible={visible} />
+  )
 }
 
 function QuickOpenContent({ visible }: { visible: boolean }): React.JSX.Element {

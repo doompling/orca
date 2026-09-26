@@ -7,9 +7,16 @@ import {
 import type { TerminalWorkspaceProjectionController } from './use-terminal-workspace-projection'
 import { runWithWindowCloseCheckpointScope } from './window-close-request-coordinator'
 import { showShutdownCheckpointFailureToast } from '@/lib/shutdown-checkpoint-failure-toast'
+import { useAppStore } from '../store'
+import { canRestoreLocalWorkspaceDraftAfterClose } from '@/features/local-projects/local-workspace-draft-close'
+import { requestEditorHotExitBackup } from '../../../shared/renderer-restart-preparation'
+import {
+  formatShutdownCheckpointFailureReason,
+  publishShutdownCheckpointFailureReason
+} from '../../../shared/renderer-shutdown-events'
 
 export function useTerminalEditorCloseFoundation(
-  controller: TerminalWorkspaceProjectionController
+  controller: Pick<TerminalWorkspaceProjectionController, 'openFiles'>
 ) {
   const { openFiles } = controller
   const [saveDialogFileId, setSaveDialogFileId] = useState<string | null>(null)
@@ -36,18 +43,33 @@ export function useTerminalEditorCloseFoundation(
   const windowCloseAfterDirtyRef = useRef<{ isQuitting: boolean } | null>(null)
 
   const confirmNativeWindowClose = useCallback(() => {
-    // Why: capture only after every close guard has committed. A canceled child-
-    // process prompt must not consume App's synthetic/native unload guard.
-    const accepted = runWithWindowCloseCheckpointScope(() =>
-      window.dispatchEvent(new Event('beforeunload', { cancelable: true }))
-    )
-    if (!accepted) {
-      // Why: a checkpoint-vetoed quit used to die here with no dialog and no log,
-      // leaving SIGKILL as the only exit (#15352). Dirty-file vetoes publish no reason.
-      showShutdownCheckpointFailureToast()
+    const confirm = (): void => {
+      // Capture only after every close guard has committed.
+      const accepted = runWithWindowCloseCheckpointScope(() =>
+        window.dispatchEvent(new Event('beforeunload', { cancelable: true }))
+      )
+      if (!accepted) {
+        showShutdownCheckpointFailureToast()
+        return
+      }
+      window.api.ui.confirmWindowClose()
+    }
+    const state = useAppStore.getState()
+    const dirtyFiles = state.openFiles.filter((file) => file.isDirty)
+    if (
+      dirtyFiles.length > 0 &&
+      dirtyFiles.every((file) => canRestoreLocalWorkspaceDraftAfterClose(state, file))
+    ) {
+      // Use the existing restart backup to flush pending drafts and quiesce saves.
+      void requestEditorHotExitBackup(window)
+        .then(confirm)
+        .catch((error) => {
+          publishShutdownCheckpointFailureReason(formatShutdownCheckpointFailureReason(error))
+          showShutdownCheckpointFailureToast()
+        })
       return
     }
-    window.api.ui.confirmWindowClose()
+    confirm()
   }, [])
 
   const proceedToNativeWindowClose = useCallback(

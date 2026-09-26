@@ -16,7 +16,7 @@ export type AppRestartPrepOptions = {
   awaitCheckpoint: () => Promise<void>
 }
 
-function requestEditorHotExitBackup(eventTarget: EventTarget): Promise<void> {
+export function requestEditorHotExitBackup(eventTarget: EventTarget): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     let claimed = false
     eventTarget.dispatchEvent(

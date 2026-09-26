@@ -1,6 +1,7 @@
 import { create, type StateCreator } from 'zustand'
 import type { AppState } from './types'
 import { createRepoSlice } from './slices/repos'
+import { createLocalProjectsSlice } from '@/features/local-projects/local-projects-state'
 import { createSparsePresetsSlice } from './slices/sparse-presets'
 import { createWorktreeSlice } from './slices/worktrees'
 import { createTerminalSlice } from './slices/terminals'
@@ -76,6 +77,7 @@ export const useAppStore = create<AppState>()(
       installStoreListenerCensus(a[2])
       return {
         ...createRepoSlice(...a),
+        ...createLocalProjectsSlice(...a),
         ...createSparsePresetsSlice(...a),
         ...createWorktreeSlice(...a),
         ...createTerminalSlice(...a),

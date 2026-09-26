@@ -40,7 +40,7 @@ function inFlightDiffKey(
     file.diffSource === 'commit' && file.commitCompare
       ? `${file.commitCompare.parentOid ?? 'empty-tree'}..${file.commitCompare.commitOid}::${file.branchOldPath ?? ''}`
       : ''
-  return `${connectionId ?? ''}::${file.diffSource ?? ''}::${compareAgainstHead ? 'head' : 'default'}::${file.filePath}::${branch}::${commit}`
+  return `${file.localRoot ? JSON.stringify(file.localRoot) : ''}::${connectionId ?? ''}::${file.diffSource ?? ''}::${compareAgainstHead ? 'head' : 'default'}::${file.filePath}::${branch}::${commit}`
 }
 
 export function useEditorPanelDiffContentLoader({
@@ -68,9 +68,14 @@ export function useEditorPanelDiffContentLoader({
             ? file.branchCompare
             : null
         const commitCompare = file.commitCompare?.commitOid ? file.commitCompare : null
-        const connectionId = getConnectionIdForFile(file.worktreeId, file.filePath) ?? undefined
+        const connectionId = file.localRoot
+          ? undefined
+          : (getConnectionIdForFile(file.worktreeId, file.filePath) ?? undefined)
         const activeSettings = useAppStore.getState().settings
-        const fileSettings = settingsForRuntimeOwner(activeSettings, file.runtimeEnvironmentId)
+        const fileSettings = settingsForRuntimeOwner(
+          activeSettings,
+          file.localRoot ? null : file.runtimeEnvironmentId
+        )
         const gitScope = getRuntimeGitScope(fileSettings, connectionId)
         const effectiveDiffSource: typeof file.diffSource =
           file.mode === 'edit' ? 'unstaged' : file.diffSource
@@ -92,7 +97,7 @@ export function useEditorPanelDiffContentLoader({
         }
         let pending = inFlightDiffReads.get(key)
         if (!pending) {
-          const promise = (
+          const promise: Promise<DiffContent> =
             effectiveDiffSource === 'commit'
               ? commitCompare
                 ? getRuntimeGitCommitDiff(
@@ -131,6 +136,7 @@ export function useEditorPanelDiffContentLoader({
                   )
                 : getRuntimeGitDiff(
                     {
+                      ...(file.localRoot ? { localRoot: file.localRoot } : {}),
                       settings: fileSettings,
                       worktreeId: file.worktreeId,
                       worktreePath,
@@ -142,7 +148,6 @@ export function useEditorPanelDiffContentLoader({
                       compareAgainstHead
                     }
                   )
-          ) as Promise<DiffContent>
           pending = { externalEventGeneration: options?.externalEventGeneration, promise }
           inFlightDiffReads.set(key, pending)
           queueMicrotask(() => {

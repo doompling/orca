@@ -3,7 +3,11 @@ import type {
   GitCommitCompareResult,
   GitDiffResult
 } from '../../../shared/git-diff-compare-types'
-import { resolveLocalWorktreePath, type RuntimeGitContext } from './runtime-git-client-context'
+import {
+  resolveLocalWorktreePath,
+  localRootGitArgs,
+  type RuntimeGitContext
+} from './runtime-git-client-context'
 import { callRuntimeRpc, getActiveRuntimeTarget } from './runtime-rpc-client'
 import { toRuntimeWorktreeSelector } from './runtime-worktree-selector'
 
@@ -11,9 +15,11 @@ export async function getRuntimeGitDiff(
   context: RuntimeGitContext,
   args: { filePath: string; staged: boolean; compareAgainstHead?: boolean }
 ): Promise<GitDiffResult> {
+  const localRoot = localRootGitArgs(context)
   const target = getActiveRuntimeTarget(context.settings)
   if (target.kind === 'local' || !context.worktreeId) {
     return window.api.git.diff({
+      ...localRoot,
       worktreePath: resolveLocalWorktreePath(context),
       filePath: args.filePath,
       staged: args.staged,

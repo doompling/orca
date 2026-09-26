@@ -27,8 +27,11 @@ import { useFileExplorerNameFilter } from './use-file-explorer-name-filter'
 import { useFileExplorerTreePaneState } from './use-file-explorer-tree-pane-state'
 import { translate } from '@/i18n/i18n'
 import type { RightSidebarExplorerView } from '../../../../shared/ui-chrome-types'
+import type { LocalProjectRoot } from '../../../../shared/local-projects/types'
+import { useActiveLocalWorkspace } from '@/features/local-projects/use-active-local-workspace'
+import { LocalWorkspaceRootBar } from '@/features/local-projects/LocalWorkspaceRootBar'
 
-function FileExplorerFiles(): React.JSX.Element {
+function FileExplorerFiles({ root }: { root?: LocalProjectRoot }): React.JSX.Element {
   const explorerView = useAppStore((s) => s.rightSidebarExplorerView)
   const showRightSidebarFiles = useAppStore((s) => s.showRightSidebarFiles)
   const showRightSidebarSearch = useAppStore((s) => s.showRightSidebarSearch)
@@ -46,14 +49,15 @@ function FileExplorerFiles(): React.JSX.Element {
   )
   const toggleShowDotfilesForWorktree = useAppStore((s) => s.toggleShowDotfilesForWorktree)
 
-  const worktreePath = activeWorktree?.path ?? null
+  const worktreePath = root?.path ?? activeWorktree?.path ?? null
   const isFilesViewActive = explorerView === 'files'
   const visibleFilesWorktreePath = getVisibleFileExplorerWorktreePath({
     explorerView,
     rightSidebarOpen,
     worktreePath
   })
-  const repoName = activeRepo?.displayName ?? (worktreePath ? basename(worktreePath) : '')
+  const repoName =
+    root?.label ?? activeRepo?.displayName ?? (worktreePath ? basename(worktreePath) : '')
   const activeRepoSupportsGit = activeRepo ? isGitRepoKind(activeRepo) : false
 
   const expanded = useMemo(
@@ -72,7 +76,7 @@ function FileExplorerFiles(): React.JSX.Element {
     nameFilterFiles,
     nameFilterSource,
     handleClearNameFilter
-  } = useFileExplorerNameFilter({ isFilesViewActive, activeWorktreeId })
+  } = useFileExplorerNameFilter({ isFilesViewActive, activeWorktreeId, rootPath: root?.path })
 
   const handleSelectExplorerView = useCallback(
     (view: RightSidebarExplorerView) => {
@@ -312,7 +316,23 @@ function FileExplorerFiles(): React.JSX.Element {
 const FileExplorerFilesMemo = React.memo(FileExplorerFiles)
 
 function FileExplorer(): React.JSX.Element {
-  return <FileExplorerFilesMemo />
+  const context = useActiveLocalWorkspace()
+  const [selectedRootId, setSelectedRootId] = React.useState<string | null>(null)
+  const root =
+    context?.roots.find((entry) => entry.id === selectedRootId) ??
+    context?.roots.find((entry) => entry.id === context.defaultRootId)
+  return (
+    <>
+      {context && root && (
+        <LocalWorkspaceRootBar
+          context={context}
+          selectedRootId={root.id}
+          onSelect={setSelectedRootId}
+        />
+      )}
+      <FileExplorerFilesMemo root={root} />
+    </>
+  )
 }
 
 export default React.memo(FileExplorer)

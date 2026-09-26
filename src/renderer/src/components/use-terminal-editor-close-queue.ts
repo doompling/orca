@@ -4,7 +4,21 @@ import { appendUniqueOpenFileIds } from './terminal/unsaved-close-queue'
 import { isPinnedActiveEditorTab } from './terminal-workspace-model'
 import type { TerminalEditorCloseFoundation } from './use-terminal-editor-close-foundation'
 
-export function useTerminalEditorCloseQueue(controller: TerminalEditorCloseFoundation) {
+type TerminalEditorCloseQueueInput = Pick<
+  TerminalEditorCloseFoundation,
+  | 'activeWorktreeId'
+  | 'closeFile'
+  | 'inFlightSaveFileIdRef'
+  | 'pendingEditorCloseQueueRef'
+  | 'proceedToNativeWindowClose'
+  | 'setActiveFile'
+  | 'setActiveTabType'
+  | 'setActiveWorktree'
+  | 'setSaveDialogFileId'
+  | 'windowCloseAfterDirtyRef'
+>
+
+export function useTerminalEditorCloseQueue(controller: TerminalEditorCloseQueueInput) {
   const {
     activeWorktreeId,
     closeFile,

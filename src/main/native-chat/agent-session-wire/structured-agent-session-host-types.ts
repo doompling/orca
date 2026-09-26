@@ -48,6 +48,7 @@ export type StructuredAgentSessionHostDeps = {
   recoveryCapsule?: AgentSessionRecoveryCapsule
   journalRoot: string
   claimKeyId: string
+  acquireWorkspaceScope?: (params: AgentSessionAttachParams) => Promise<() => void>
   probeOwner?: (record: AgentSessionRecord) => Promise<AgentSessionOwnerProbe>
   probeOwners?: (
     records: readonly AgentSessionRecord[]

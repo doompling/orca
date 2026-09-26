@@ -23,6 +23,7 @@ import type { RetiredNameRegistry } from './worktree/retired-name-registry'
 import type { WorkspaceLineage, WorktreeLineage } from './worktree/lineage-types'
 import type { WorktreeMeta } from './worktree/meta-types'
 import type { WorkspaceSessionState } from './workspace-session-state-types'
+import type { LocalProjectsState } from './local-projects/types'
 
 export type LegacyPaneKeyAliasEntry = {
   ptyId: string
@@ -49,6 +50,7 @@ export type PersistedMobileClientTabSelections = Record<
 // ─── Persistence shape ──────────────────────────────────────────────
 export type PersistedState = {
   schemaVersion: number
+  localProjects?: LocalProjectsState
   repos: Repo[]
   projects: Project[]
   projectHostSetups: ProjectHostSetup[]

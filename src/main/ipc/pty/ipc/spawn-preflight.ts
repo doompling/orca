@@ -18,6 +18,7 @@ import {
 } from '../host-env/fresh-spawn-routing'
 import { getAppPtyId, getProvider, getRelayPtyId } from '../provider/registry'
 import type { PtyIpcSpawnState } from './spawn-state'
+import { acquireLocalWorkspacePtyLaunch } from '../../../local-projects/launch-scope-lock'
 
 export async function preparePtyIpcSpawnPreflight(ctx: PtyIpcSpawnState): Promise<void> {
   const args = ctx.args
@@ -46,8 +47,13 @@ export async function preparePtyIpcSpawnPreflight(ctx: PtyIpcSpawnState): Promis
   if (ctx.preSpawnHiddenMarkId !== null) {
     ctx.deps.transitionSpawnHiddenRendererPtyDeliveryState(ctx.preSpawnHiddenMarkId, true)
   }
+  ctx.releaseWorktreeSpawn = await acquireLocalWorkspacePtyLaunch(
+    ctx.deps.store,
+    ctx.deps.runtime,
+    args
+  )
   if (!ctx.earlyStablePaneOwner) {
-    const pathUsable = ctx.deps.assertFolderWorkspacePtyPathUsable(args.worktreeId)
+    const pathUsable = ctx.deps.assertFolderWorkspacePtyPathUsable(args.worktreeId, args)
     if (pathUsable) {
       await pathUsable
     }
@@ -68,7 +74,7 @@ export async function preparePtyIpcSpawnPreflight(ctx: PtyIpcSpawnState): Promis
       : null
   ctx.spawnTiming.mark('stable_adoption')
   if (ctx.earlyStablePaneOwner && !ctx.preAdoptedStablePane) {
-    const pathUsable = ctx.deps.assertFolderWorkspacePtyPathUsable(args.worktreeId)
+    const pathUsable = ctx.deps.assertFolderWorkspacePtyPathUsable(args.worktreeId, args)
     if (pathUsable) {
       await pathUsable
     }
@@ -211,6 +217,13 @@ export async function preparePtyIpcSpawnPreflight(ctx: PtyIpcSpawnState): Promis
           terminalWindowsWslDistro: null
         }
   const initialShellOverride = ctx.terminalRuntimeOptions.shellOverride
+  if (
+    !ctx.preAdoptedStablePane &&
+    args.launchConfig?.localWorkspaceScope &&
+    isWslShellName(initialShellOverride)
+  ) {
+    throw new Error('Multi-root Workspace agents require a native terminal shell, not WSL.')
+  }
   // Why: daemon host-env setup needs a stable id BEFORE provider.spawn so buildPtyHostEnv hooks/Pi cleanup can run; daemon still honors opts.sessionId ?? mint().
   // Note: sessionId is STABLE across daemon restarts by design — do NOT simplify to a fresh UUID per spawn; that orphans reconnectable state.
   // Why: only clear ids minted in THIS request on failure — a caller-supplied args.sessionId may name an existing PTY we must not clobber.

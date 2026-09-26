@@ -13,6 +13,8 @@ import type {
 } from '../../../shared/agent-session-resume'
 import type { TabSplitDirection } from '@/store/slices/tabs'
 import type { WebRuntimeTerminalCreateOutcome } from '@/runtime/web-runtime-session'
+import { resolveLocalWorkspaceKey } from '../../../shared/local-projects/workspace-resolution'
+import { assertLegacyAgentEntrypointSupportsWorkspace } from '../../../shared/local-projects/agent-entrypoint'
 
 export type LaunchAiVaultSessionInNewTabResult =
   | { tabId: string; groupId?: string }
@@ -31,6 +33,11 @@ export function launchAiVaultSessionInNewTab(args: {
   splitDirection?: TabSplitDirection
 }): LaunchAiVaultSessionInNewTabResult {
   const store = useAppStore.getState()
+  if (!args.launchConfig?.localWorkspaceScope) {
+    assertLegacyAgentEntrypointSupportsWorkspace(
+      store.localProjects && resolveLocalWorkspaceKey(store.localProjects, args.worktreeId)
+    )
+  }
   let targetGroupId = args.targetGroupId
   const runtimeEnvironmentId = getRuntimeEnvironmentIdForWorktree(store, args.worktreeId)
   if (isWebRuntimeSessionActive(runtimeEnvironmentId)) {

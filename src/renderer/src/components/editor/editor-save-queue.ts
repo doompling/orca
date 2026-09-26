@@ -19,6 +19,10 @@ import {
 } from './editor-self-write-registry'
 import { getDiskBaselineSignature } from './diff-content-signature'
 import { trackExternalChangeConflictAction } from './editor-external-change-telemetry'
+import {
+  localWorkspaceEditorSaveTarget,
+  verifyLocalWorkspaceEditorSave
+} from '@/features/local-projects/local-workspace-editor-save'
 
 export type AppStoreApi = Pick<StoreApi<AppState>, 'getState' | 'subscribe'>
 
@@ -40,6 +44,7 @@ export function createEditorSaveQueue(store: AppStoreApi): EditorSaveQueue {
   const autoSaveTimers = new Map<string, number>()
   const autoSaveScheduledContent = new Map<string, string>()
   const saveQueue = new Map<string, Promise<void>>()
+  const localTargetSaveQueue = new Map<string, Promise<void>>()
   const saveGeneration = new Map<string, number>()
 
   const clearAutoSaveTimer = (fileId: string): void => {
@@ -63,7 +68,10 @@ export function createEditorSaveQueue(store: AppStoreApi): EditorSaveQueue {
     clearAutoSaveTimer(file.id)
     const queuedGeneration = saveGeneration.get(file.id) ?? 0
 
-    const previousSave = saveQueue.get(file.id) ?? Promise.resolve()
+    const localTarget = localWorkspaceEditorSaveTarget(store.getState(), file)
+    const previousSave =
+      (localTarget ? localTargetSaveQueue.get(localTarget) : saveQueue.get(file.id)) ??
+      Promise.resolve()
     const queuedSave = previousSave
       .catch(() => undefined)
       .then(async () => {
@@ -100,6 +108,12 @@ export function createEditorSaveQueue(store: AppStoreApi): EditorSaveQueue {
           : null
         const fileContext = getEditorFileOperationContext(state, liveFile, worktree?.path ?? null)
         const connectionId = fileContext.connectionId
+        if (localTarget) {
+          await verifyLocalWorkspaceEditorSave(state, liveFile)
+        }
+        if ((saveGeneration.get(file.id) ?? 0) !== queuedGeneration) {
+          return
+        }
         // Why: stamp before writing so useEditorExternalWatch ignores our own fs:changed echo (editor-self-write-registry).
         recordSelfWrite(
           liveFile.filePath,
@@ -107,13 +121,14 @@ export function createEditorSaveQueue(store: AppStoreApi): EditorSaveQueue {
           liveFile.runtimeEnvironmentId,
           connectionId || liveFile.runtimeEnvironmentId?.trim()
             ? SELF_WRITE_REMOTE_TTL_MS
-            : undefined
+            : undefined,
+          liveFile.worktreeId
         )
         try {
           await writeRuntimeFile(fileContext, liveFile.filePath, contentToSave)
         } catch (error) {
           // Why: the self-write stamp is only valid after a real write; clear on failure so it can't suppress a real update.
-          clearSelfWrite(liveFile.filePath, liveFile.runtimeEnvironmentId)
+          clearSelfWrite(liveFile.filePath, liveFile.runtimeEnvironmentId, liveFile.worktreeId)
           throw error
         }
 
@@ -150,8 +165,14 @@ export function createEditorSaveQueue(store: AppStoreApi): EditorSaveQueue {
       if (saveQueue.get(file.id) === trackedSave) {
         saveQueue.delete(file.id)
       }
+      if (localTarget && localTargetSaveQueue.get(localTarget) === trackedSave) {
+        localTargetSaveQueue.delete(localTarget)
+      }
     })
     saveQueue.set(file.id, trackedSave)
+    if (localTarget) {
+      localTargetSaveQueue.set(localTarget, trackedSave)
+    }
     return trackedSave
   }
 
@@ -210,7 +231,9 @@ export function createEditorSaveQueue(store: AppStoreApi): EditorSaveQueue {
       const timerId = window.setTimeout(() => {
         autoSaveTimers.delete(file.id)
         autoSaveScheduledContent.delete(file.id)
-        void queueSave(file, draft, 'autosave')
+        void queueSave(file, draft, 'autosave').catch((error) => {
+          console.warn('[editor] autosave deferred or failed', error)
+        })
       }, autoSaveDelayMs)
       autoSaveTimers.set(file.id, timerId)
     }
@@ -223,6 +246,7 @@ export function createEditorSaveQueue(store: AppStoreApi): EditorSaveQueue {
     autoSaveTimers.clear()
     autoSaveScheduledContent.clear()
     saveQueue.clear()
+    localTargetSaveQueue.clear()
     saveGeneration.clear()
   }
 

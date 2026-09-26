@@ -45,143 +45,156 @@ export function attachStructuredAgentSession(
   const sessionId = params.envelope.sessionId
   const run = (recordPhase?: AgentSessionCreatePhaseRecorder) =>
     context.serialize(sessionId, async () => {
-      if (admitRecoveryTicket && !admitRecoveryTicket()) {
-        return refuseAgentSessionMutation({
-          code: 'agent_session_checkpoint_stale',
-          message: 'The provider-exit recovery ticket is no longer current.'
-        })
-      }
-      const unreconciled = await withAgentSessionCreatePhase('reconcile_leases', recordPhase, () =>
-        context.reconcileLeases(sessionId)
-      )
-      if (unreconciled) {
-        return refuseAgentSessionMutation(unreconciled)
-      }
-      await withAgentSessionCreatePhase('resolve_recovery', recordPhase, () =>
-        context.runtimeState.resolveRecovery(sessionId)
-      )
-      // Retries a durable provider-exit journal settlement before a new owner is reserved. Answers
-      // settled when the record has none pending, so every attach can ask unconditionally.
-      const settled = await withAgentSessionCreatePhase('settlement_retry', recordPhase, () =>
-        retryPendingStructuredAgentSessionSettlement({
-          deps: context.deps,
-          sessions: context.sessions,
-          sessionId,
-          params,
-          now: () => context.now()
-        })
-      )
-      if (!settled) {
-        return refuseAgentSessionMutation({
-          code: 'agent_session_ownership_unknown',
-          message: 'The provider-exit terminal journal settlement is still pending; retry attach.'
-        })
-      }
-      const eventSink = context.runtimeState.eventSinkFor(sessionId)
-      const probe = await withAgentSessionCreatePhase('probe_owner', recordPhase, () =>
-        context.runtimeState.probeOwner(sessionId)
-      )
-      const attached = await performAttach({
-        rewind,
-        store: context.deps.store,
-        adapter: context.deps.adapter,
-        journalRoot: context.deps.journalRoot,
-        eventSink: eventSink.sink,
-        onAcquiring: async () => {
-          const barrier = await eventSink.drained()
-          if (!barrier.ok) {
-            throw barrier.error
-          }
-          eventSink.unbind()
-        },
-        authority: {
-          spawnToken: () => context.deps.mintSpawnToken?.() ?? randomUUID(),
-          claimKeyId: context.deps.claimKeyId,
-          handoffOperationId: params.envelope.clientOperationId,
-          probe,
-          ...(await pinnedAgentSessionLaunchArgs(context.deps.resolveLaunchArgs, params)),
-          ...(await pinnedAgentSessionLaunchEnv(context.deps.resolveLaunchEnv, params))
-        },
-        callerKey,
-        params,
-        now: () => context.now(),
-        recordPhase,
-        // Site 9: this closes the PRIOR map entry it drops, never the provisional
-        // journal — it has no reference to that one. `onAttached` owns that.
-        onAttachFailed: async () => {
-          await forgetStructuredAgentSession(context, sessionId)
-          eventSink.close()
-          context.runtimeState.discardEventSink(sessionId)
-        },
-        onAttached: async (attached, acquisitionGeneration, acquiredOwner) => {
-          const fence = context.deps.store.getRecord(sessionId)?.lease.runtimeFence ?? 0
-          const previous = context.sessions.get(sessionId)
-          const previousFence = previous?.fence
-          // Site 8: the provisional journal has no owner until the map takes it,
-          // and the barrier below throws by design.
-          try {
-            if (acquiredOwner) {
-              // Before the drain: the buffered events are the new child's, never a stale row's.
-              await settleStaleSessionStateOnAcquire({
-                journal: attached.journal,
-                sessionId,
-                fence,
-                acquisitionGeneration
-              })
+      const releaseWorkspace = await context.deps.acquireWorkspaceScope?.(params)
+      try {
+        if (admitRecoveryTicket && !admitRecoveryTicket()) {
+          return refuseAgentSessionMutation({
+            code: 'agent_session_checkpoint_stale',
+            message: 'The provider-exit recovery ticket is no longer current.'
+          })
+        }
+        const unreconciled = await withAgentSessionCreatePhase(
+          'reconcile_leases',
+          recordPhase,
+          () => context.reconcileLeases(sessionId)
+        )
+        if (unreconciled) {
+          return refuseAgentSessionMutation(unreconciled)
+        }
+        await withAgentSessionCreatePhase('resolve_recovery', recordPhase, () =>
+          context.runtimeState.resolveRecovery(sessionId)
+        )
+        // Retries a durable provider-exit journal settlement before a new owner is reserved. Answers
+        // settled when the record has none pending, so every attach can ask unconditionally.
+        const settled = await withAgentSessionCreatePhase('settlement_retry', recordPhase, () =>
+          retryPendingStructuredAgentSessionSettlement({
+            deps: context.deps,
+            sessions: context.sessions,
+            sessionId,
+            params,
+            now: () => context.now()
+          })
+        )
+        if (!settled) {
+          return refuseAgentSessionMutation({
+            code: 'agent_session_ownership_unknown',
+            message: 'The provider-exit terminal journal settlement is still pending; retry attach.'
+          })
+        }
+        const eventSink = context.runtimeState.eventSinkFor(sessionId)
+        const probe = await withAgentSessionCreatePhase('probe_owner', recordPhase, () =>
+          context.runtimeState.probeOwner(sessionId)
+        )
+        const attached = await performAttach({
+          rewind,
+          store: context.deps.store,
+          adapter: context.deps.adapter,
+          journalRoot: context.deps.journalRoot,
+          eventSink: eventSink.sink,
+          onAcquiring: async () => {
+            const barrier = await eventSink.drained()
+            if (!barrier.ok) {
+              throw barrier.error
             }
-            await bindAndDrain(eventSink, attached.journal, fence, (activity) =>
-              context.subscribers.publish(sessionId, attached.journal, activity)
-            )
-          } catch (error) {
-            await agentSessionJournalCloseRetries.closeOrRetain(attached.journal)
-            throw error
-          }
-          // Site 10: a `set` over a live entry would orphan its handle — and a
-          // close that REJECTED did not release it. The replacement is therefore
-          // ABORTED rather than completed over a handle nothing can reach again:
-          // `previous` stays indexed, so teardown still owns it and can retry.
-          if (previous && previous.journal !== attached.journal) {
+            eventSink.unbind()
+          },
+          authority: {
+            spawnToken: () => context.deps.mintSpawnToken?.() ?? randomUUID(),
+            claimKeyId: context.deps.claimKeyId,
+            handoffOperationId: params.envelope.clientOperationId,
+            probe,
+            ...(await pinnedAgentSessionLaunchArgs(context.deps.resolveLaunchArgs, params)),
+            ...(await pinnedAgentSessionLaunchEnv(context.deps.resolveLaunchEnv, params))
+          },
+          callerKey,
+          params,
+          now: () => context.now(),
+          recordPhase,
+          // Site 9: this closes the PRIOR map entry it drops, never the provisional
+          // journal — it has no reference to that one. `onAttached` owns that.
+          onAttachFailed: async () => {
+            await forgetStructuredAgentSession(context, sessionId)
+            eventSink.close()
+            context.runtimeState.discardEventSink(sessionId)
+          },
+          onAttached: async (attached, acquisitionGeneration, acquiredOwner) => {
+            const fence = context.deps.store.getRecord(sessionId)?.lease.runtimeFence ?? 0
+            const previous = context.sessions.get(sessionId)
+            const previousFence = previous?.fence
+            // Site 8: the provisional journal has no owner until the map takes it,
+            // and the barrier below throws by design.
             try {
-              await previous.journal.close()
+              if (acquiredOwner) {
+                // Before the drain: the buffered events are the new child's, never a stale row's.
+                await settleStaleSessionStateOnAcquire({
+                  journal: attached.journal,
+                  sessionId,
+                  fence,
+                  acquisitionGeneration
+                })
+              }
+              await bindAndDrain(eventSink, attached.journal, fence, (activity) =>
+                context.subscribers.publish(sessionId, attached.journal, activity)
+              )
             } catch (error) {
               await agentSessionJournalCloseRetries.closeOrRetain(attached.journal)
               throw error
             }
-          }
-          context.sessions.set(sessionId, {
-            journal: attached.journal,
-            params,
-            fence,
-            hasProviderChild: true,
-            acquisitionGeneration: acquisitionGeneration ?? previous?.acquisitionGeneration ?? null
-          })
-          if (!rewind) {
-            await recoverStructuredRewind(
+            // Site 10: a `set` over a live entry would orphan its handle — and a
+            // close that REJECTED did not release it. The replacement is therefore
+            // ABORTED rather than completed over a handle nothing can reach again:
+            // `previous` stays indexed, so teardown still owns it and can retry.
+            if (previous && previous.journal !== attached.journal) {
+              try {
+                await previous.journal.close()
+              } catch (error) {
+                await agentSessionJournalCloseRetries.closeOrRetain(attached.journal)
+                throw error
+              }
+            }
+            context.sessions.set(sessionId, {
+              journal: attached.journal,
+              params,
+              fence,
+              hasProviderChild: true,
+              acquisitionGeneration:
+                acquisitionGeneration ?? previous?.acquisitionGeneration ?? null
+            })
+            if (!rewind) {
+              await recoverStructuredRewind(
+                context.deps.store,
+                sessionId,
+                attached.journal,
+                fence,
+                context.deps.adapter,
+                context.now
+              )
+            }
+            await recoverInterruptedCompaction(
               context.deps.store,
               sessionId,
               attached.journal,
-              fence,
-              context.deps.adapter,
-              context.now
+              fence
             )
+            if (attached.recovery) {
+              context.subscribers.reset(sessionId, attached.journal, attached.recovery.reset, fence)
+            } else if (previousFence !== undefined && previousFence !== fence) {
+              context.subscribers.snapshot(sessionId, attached.journal, fence)
+            } else {
+              context.subscribers.publish(sessionId, attached.journal)
+            }
           }
-          await recoverInterruptedCompaction(context.deps.store, sessionId, attached.journal, fence)
-          if (attached.recovery) {
-            context.subscribers.reset(sessionId, attached.journal, attached.recovery.reset, fence)
-          } else if (previousFence !== undefined && previousFence !== fence) {
-            context.subscribers.snapshot(sessionId, attached.journal, fence)
-          } else {
-            context.subscribers.publish(sessionId, attached.journal)
-          }
+        })
+        // Why: a failed attach that left no session behind must not strand a bound sink; the runtime
+        // caches one per session id and would hand this same closed instance to the next attempt.
+        if (!attached.ok && !context.sessions.has(sessionId)) {
+          eventSink.close()
+          context.runtimeState.discardEventSink(sessionId)
         }
-      })
-      // Why: a failed attach that left no session behind must not strand a bound sink; the runtime
-      // caches one per session id and would hand this same closed instance to the next attempt.
-      if (!attached.ok && !context.sessions.has(sessionId)) {
-        eventSink.close()
-        context.runtimeState.discardEventSink(sessionId)
+        return attached
+      } finally {
+        releaseWorkspace?.()
       }
-      return attached
     })
   const attaching =
     params.envelope.expectedRuntimeFence === null

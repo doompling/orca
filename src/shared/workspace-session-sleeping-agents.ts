@@ -6,6 +6,7 @@ import {
 } from './agent-session-resume'
 import { isValidTerminalTabId } from './terminal-tab-id'
 import { salvagingRecord } from './zod-salvage'
+import { LocalWorkspaceLaunchScopeSchema } from './local-projects/agent-launch-scope'
 
 const terminalTabIdSchema = z
   .string()
@@ -66,6 +67,7 @@ const sleepingAgentLaunchConfigBaseSchema = z.object({
   agentCommand: z.string().optional(),
   agentArgs: z.string(),
   agentEnv: sleepingAgentLaunchEnvSchema,
+  localWorkspaceScope: LocalWorkspaceLaunchScopeSchema.optional(),
   // Why: AI Vault can scan arbitrary OMP roots, so cold restore must retain
   // the exact provider resume locator instead of reconstructing its store.
   ompResumeFilePath: z

@@ -7,7 +7,9 @@
 //   ORCA_SDK_CONTRACT_SCENARIO_PATH — JSON file
 //     { steps: Step[], controlResponses?: { [subtype]: <response> } } where a Step is
 //     { emit: <frame> } | { awaitUserMessage: true } | { stderr: <text> } |
-//     { awaitControlResponse: <request_id> } | { delayMs: <n> } | { exit: <code> }
+//     { awaitControlResponse: <request_id> } | { replayLastUserMessage: true } |
+//     { delayMs: <n> } | { exit: <code> }
+//     sessionIdFromLaunch: true fills emitted frames' session_id from --session-id or --resume.
 //   ORCA_SDK_CONTRACT_REPORT_PATH — where argv/env observations are written
 //   ORCA_SDK_CONTRACT_IGNORE_SIGTERM — trap SIGTERM/SIGINT and outlive stdin close
 //   ORCA_SDK_CONTRACT_IGNORE_CONTROL_REQUESTS — record control requests but never answer
@@ -22,6 +24,7 @@ const reportPath = process.env.ORCA_SDK_CONTRACT_REPORT_PATH
 const report = {
   argv: process.argv.slice(1),
   execPath: process.execPath,
+  cwd: process.cwd(),
   controlRequests: [],
   controlResponses: [],
   userMessages: [],
@@ -37,6 +40,19 @@ const writeReport = () => {
 writeReport()
 
 const scenario = scenarioPath ? JSON.parse(readFileSync(scenarioPath, 'utf8')) : { steps: [] }
+const launchArgs = process.argv.slice(2)
+const launchSessionId = ['--session-id', '--resume']
+  .map((flag) => {
+    const index = launchArgs.indexOf(flag)
+    return (
+      launchArgs.find((arg) => arg.startsWith(`${flag}=`))?.slice(flag.length + 1) ??
+      (index === -1 ? undefined : launchArgs[index + 1])
+    )
+  })
+  .find(Boolean)
+if (scenario.sessionIdFromLaunch && !launchSessionId) {
+  throw new Error('The scripted session requires the actual --session-id or --resume argument')
+}
 
 if (process.env.ORCA_SDK_CONTRACT_IGNORE_SIGTERM) {
   process.on('SIGTERM', () => {})
@@ -125,11 +141,21 @@ setTimeout(() => process.exit(3), 20_000).unref()
 
 for (const step of scenario.steps) {
   if (step.emit) {
-    emit(step.emit)
+    emit(
+      scenario.sessionIdFromLaunch && Object.hasOwn(step.emit, 'session_id')
+        ? { ...step.emit, session_id: launchSessionId }
+        : step.emit
+    )
   } else if (step.stderr !== undefined) {
     process.stderr.write(step.stderr)
   } else if (step.awaitUserMessage) {
     await waitFor('user')
+  } else if (step.replayLastUserMessage) {
+    const message = report.userMessages.at(-1)
+    if (!message) {
+      throw new Error('Cannot replay a user message the scripted CLI has not received')
+    }
+    emit({ ...message, isReplay: true })
   } else if (step.awaitControlResponse !== undefined) {
     await waitFor('control_response', step.awaitControlResponse)
   } else if (step.delayMs) {

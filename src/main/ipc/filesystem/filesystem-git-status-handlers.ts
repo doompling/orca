@@ -28,14 +28,12 @@ import {
 } from '../../providers/ssh-git-dispatch'
 import { resolveRegisteredWorktreePath } from '../registered-worktree-roots-cache'
 import { validateGitRelativeFilePath } from '../filesystem-path-containment'
-import {
-  getLocalGitOptionsForRegisteredWorktree,
-  getLocalGitOptionsForRepo,
-  getLocalRepoForRegisteredWorktree
-} from '../local-worktree-runtime-options'
+import { getLocalGitOptionsForRegisteredWorktree } from '../local-worktree-runtime-options'
 import { getWorktreeSharedLinkPaths } from '../../git/worktree-shared-directories'
 import { applyGitStatusUpstreamRefWatchRequest } from '../git-status-upstream-ref-watch-request'
 import type { FilesystemHandlerContext } from './filesystem-handler-context'
+import { resolveDesktopGitTarget } from '../../local-projects/git-target'
+import type { LocalWorkspaceGitRoot } from '../../../shared/local-projects/git-root'
 
 export function registerFilesystemGitStatusHandlers(context: FilesystemHandlerContext): void {
   const { store, gitStatusCancellations } = context
@@ -53,6 +51,7 @@ export function registerFilesystemGitStatusHandlers(context: FilesystemHandlerCo
         reuseLineStats?: boolean
         branchLineTotalMergeBase?: string
         requestToken?: string
+        localRoot?: LocalWorkspaceGitRoot
       }
     ): Promise<GitStatusResult> => {
       const controller = gitStatusCancellations.begin(event, args.requestToken)
@@ -70,7 +69,7 @@ export function registerFilesystemGitStatusHandlers(context: FilesystemHandlerCo
         ...(controller ? { signal: controller.signal } : {})
       }
       try {
-        if (args.connectionId) {
+        if (args.connectionId && !args.localRoot) {
           const provider = getSshGitProvider(args.connectionId)
           if (!provider) {
             throw new Error(SSH_GIT_PROVIDER_UNAVAILABLE_MESSAGE)
@@ -78,11 +77,7 @@ export function registerFilesystemGitStatusHandlers(context: FilesystemHandlerCo
           // Why: await keeps the cancellation token registered until the remote request settles (an early finally would free it).
           return await provider.getStatus(args.worktreePath, options)
         }
-        const worktreePath = await resolveRegisteredWorktreePath(args.worktreePath, store)
-        // Why: one registered-worktree lookup feeds both — status polls this
-        // handler, and the scan walks every repo's worktree meta.
-        const repo = getLocalRepoForRegisteredWorktree(store, args.worktreePath, worktreePath)
-        const gitOptions = getLocalGitOptionsForRepo(store, repo)
+        const { worktreePath, repo, gitOptions } = await resolveDesktopGitTarget(store, args)
         const sharedLinkPaths = repo ? getWorktreeSharedLinkPaths(repo) : []
         return await getStatus(worktreePath, {
           ...options,
@@ -282,9 +277,10 @@ export function registerFilesystemGitStatusHandlers(context: FilesystemHandlerCo
         staged: boolean
         compareAgainstHead?: boolean
         connectionId?: string
+        localRoot?: LocalWorkspaceGitRoot
       }
     ): Promise<GitDiffResult> => {
-      if (args.connectionId) {
+      if (args.connectionId && !args.localRoot) {
         const provider = getSshGitProvider(args.connectionId)
         if (!provider) {
           throw new Error(SSH_GIT_PROVIDER_UNAVAILABLE_MESSAGE)
@@ -296,13 +292,8 @@ export function registerFilesystemGitStatusHandlers(context: FilesystemHandlerCo
           args.compareAgainstHead
         )
       }
-      const worktreePath = await resolveRegisteredWorktreePath(args.worktreePath, store)
+      const { worktreePath, gitOptions } = await resolveDesktopGitTarget(store, args)
       const filePath = validateGitRelativeFilePath(worktreePath, args.filePath)
-      const gitOptions = getLocalGitOptionsForRegisteredWorktree(
-        store,
-        args.worktreePath,
-        worktreePath
-      )
       return getDiff(worktreePath, filePath, args.staged, args.compareAgainstHead, {
         ...gitOptions,
         admissionTier: 'interactive'

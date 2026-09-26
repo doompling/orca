@@ -15,6 +15,7 @@ import type { CodexStructuredLaunch } from './codex-structured-session-adapter'
 import type { CodexStructuredPermissionPolicy } from './codex-structured-permission-policy'
 import { resolvePinnedCodexRolloutProof } from './codex-tui-rollout-proof'
 import { isWindowsProcessStartTimeAvailable } from '../windows/windows-process-table'
+import { readStructuredLocalWorkspaceScope } from '../local-projects/structured-agent-scope'
 
 export type CodexStructuredLaunchResolverDeps = {
   store: AgentSessionRecordStore
@@ -75,10 +76,12 @@ export function createCodexStructuredLaunchResolver(
     const permissionPolicy = deps.resolvePermissionPolicy?.()
     const head = agentSessionProviderHandleChainHead(record.providerHandleChain)
     const resumeThreadId = head?.handle.provider === 'codex' ? head.handle.threadId : null
+    const localWorkspaceScope = await readStructuredLocalWorkspaceScope(record)
     return {
       command,
       args: ['app-server'],
-      cwd: await deps.resolveWorkspacePath(location.workspaceId),
+      cwd: localWorkspaceScope?.cwd ?? (await deps.resolveWorkspacePath(location.workspaceId)),
+      ...(localWorkspaceScope ? { localWorkspaceScope } : {}),
       codexHome: accountHome.path,
       ...(environment ? { env: { ...environment } as Record<string, string> } : {}),
       // An empty chain is a session that has never proved a thread, so it

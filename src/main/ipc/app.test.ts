@@ -1,5 +1,7 @@
 import { EventEmitter } from 'node:events'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { EtherProduct } from '../ether-build'
+import etherProduct from '../../shared/ether-product.json'
 
 const {
   handlers,
@@ -12,7 +14,9 @@ const {
   showOpenDialogMock,
   grantFloatingWorkspaceDirectoryMock,
   registerRendererShutdownCheckpointHandlerMock,
-  registerMacKeyboardLayoutChangeNotificationsMock
+  registerMacKeyboardLayoutChangeNotificationsMock,
+  runtimeFlags,
+  getPackagedEtherProductMock
 } = vi.hoisted(() => ({
   handlers: new Map<string, (_event: unknown, args?: unknown) => unknown>(),
   appExitMock: vi.fn(),
@@ -24,7 +28,9 @@ const {
   showOpenDialogMock: vi.fn(),
   grantFloatingWorkspaceDirectoryMock: vi.fn(),
   registerRendererShutdownCheckpointHandlerMock: vi.fn(),
-  registerMacKeyboardLayoutChangeNotificationsMock: vi.fn()
+  registerMacKeyboardLayoutChangeNotificationsMock: vi.fn(),
+  runtimeFlags: { dev: true },
+  getPackagedEtherProductMock: vi.fn<() => EtherProduct | null>(() => null)
 }))
 
 vi.mock('node:child_process', () => ({
@@ -90,8 +96,10 @@ vi.mock('electron', () => ({
 }))
 
 vi.mock('@electron-toolkit/utils', () => ({
-  is: { dev: true }
+  is: runtimeFlags
 }))
+
+vi.mock('../ether-build', () => ({ getPackagedEtherProduct: getPackagedEtherProductMock }))
 
 vi.mock('../tray/system-tray', () => ({
   destroySystemTray: destroySystemTrayMock
@@ -146,6 +154,8 @@ describe('registerAppHandlers', () => {
 
   beforeEach(() => {
     vi.useFakeTimers()
+    runtimeFlags.dev = true
+    getPackagedEtherProductMock.mockReset().mockReturnValue(null)
     handlers.clear()
     appExitMock.mockReset()
     appQuitMock.mockReset()
@@ -178,6 +188,35 @@ describe('registerAppHandlers', () => {
 
     expect(registerRendererShutdownCheckpointHandlerMock).toHaveBeenCalledWith(store)
     expect(registerMacKeyboardLayoutChangeNotificationsMock).toHaveBeenCalledOnce()
+  })
+
+  it('publishes the packaged Ether identity through the existing app bridge', () => {
+    runtimeFlags.dev = false
+    getPackagedEtherProductMock.mockReturnValue(etherProduct)
+    registerAppHandlers({} as never)
+
+    expect(handlers.get('app:getIdentity')?.(null)).toEqual({
+      name: 'Ether',
+      isDev: false,
+      devLabel: null,
+      devBranch: null,
+      devWorktreeName: null,
+      devRepoRoot: null,
+      dockBadgeLabel: null
+    })
+  })
+
+  it('preserves upstream packaged and development identities', () => {
+    runtimeFlags.dev = false
+    registerAppHandlers({} as never)
+    expect(handlers.get('app:getIdentity')?.(null)).toMatchObject({ name: 'Orca', isDev: false })
+
+    runtimeFlags.dev = true
+    getPackagedEtherProductMock.mockReturnValue(etherProduct)
+    expect(handlers.get('app:getIdentity')?.(null)).toMatchObject({
+      name: expect.stringContaining('Orca'),
+      isDev: true
+    })
   })
 
   it('marks relaunch as expected shutdown before exiting', async () => {

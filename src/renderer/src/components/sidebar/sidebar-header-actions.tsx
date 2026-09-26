@@ -7,6 +7,7 @@ import { formatOptionalPrimaryShortcutLabel } from '@/hooks/useShortcutLabel'
 import { translate } from '@/i18n/i18n'
 import { openWorkspaceCreationComposerWithTourHandoff } from '../contextual-tours/workspace-creation-tour-handoff'
 import SidebarWorkspaceOptionsMenu from './SidebarWorkspaceOptionsMenu'
+import { hasLocalProjectsApi } from '@/features/local-projects/local-projects-availability'
 
 function AddProjectButton({
   preserveWorkspaceBoardOpen
@@ -14,7 +15,9 @@ function AddProjectButton({
   preserveWorkspaceBoardOpen: boolean
 }): React.JSX.Element {
   const openModal = useAppStore((s) => s.openModal)
-  const label = translate('auto.components.sidebar.SidebarHeader.addProject', 'Add project')
+  const label = hasLocalProjectsApi()
+    ? 'New Project'
+    : translate('auto.components.sidebar.SidebarHeader.addProject', 'Add project')
 
   return (
     <Tooltip>
@@ -86,19 +89,22 @@ export function SidebarHeaderActions({
   onWorkspaceBoardMenuOpenChange: (open: boolean) => void
   agentsViewActive?: boolean
 }): React.JSX.Element {
+  const localProjects = hasLocalProjectsApi()
   return (
     <div className="flex shrink-0 items-center gap-1" data-sidebar-header-actions="">
       {/* Why both hidden in the agents view: it lists activity, not projects. */}
       {agentsViewActive ? null : (
         <>
-          <SidebarWorkspaceOptionsMenu
-            preserveWorkspaceBoardOpen
-            onMenuOpenChange={onWorkspaceBoardMenuOpenChange}
-          />
+          {!localProjects && (
+            <SidebarWorkspaceOptionsMenu
+              preserveWorkspaceBoardOpen
+              onMenuOpenChange={onWorkspaceBoardMenuOpenChange}
+            />
+          )}
           <AddProjectButton preserveWorkspaceBoardOpen />
         </>
       )}
-      <NewWorkspaceButton preserveWorkspaceBoardOpen />
+      {!localProjects && <NewWorkspaceButton preserveWorkspaceBoardOpen />}
     </div>
   )
 }

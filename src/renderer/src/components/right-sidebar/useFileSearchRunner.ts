@@ -12,6 +12,8 @@ import { searchRuntimeFiles } from '@/runtime/runtime-file-client'
 import { useAppStore } from '@/store'
 import type { SearchResult } from '../../../../shared/code-search-types'
 import { getRightSidebarWorktreeRuntimeSettings } from './file-explorer-runtime-owner'
+import { resolveLocalWorkspaceKey } from '../../../../shared/local-projects/workspace-resolution'
+import { searchLocalWorkspaceContents } from '@/features/local-projects/local-workspace-content-search'
 
 const SEARCH_DEBOUNCE_MS = 300
 const SEARCH_MAX_RESULTS = 2000
@@ -73,7 +75,12 @@ export function useFileSearchRunner({
           excludePattern: currentSearchState?.excludePattern || undefined
         })
       ) {
-        const runtimeSettings = getRightSidebarWorktreeRuntimeSettings(activeWorktreeId)
+        const state = useAppStore.getState()
+        const localWorkspace =
+          state.localProjects && resolveLocalWorkspaceKey(state.localProjects, activeWorktreeId)
+        const runtimeSettings = localWorkspace
+          ? { activeRuntimeEnvironmentId: null }
+          : getRightSidebarWorktreeRuntimeSettings(activeWorktreeId)
         updateActiveSearchState({
           results: createEmptyRuntimeFileSearchResult(),
           resultOwner: createFileSearchResultOwner(activeWorktreeId, runtimeSettings),
@@ -91,10 +98,14 @@ export function useFileSearchRunner({
       searchTimerRef.current = setTimeout(async () => {
         searchTimerRef.current = null
         // Why: results can outlive the selected worktree; clicks must reuse the route that produced them.
-        const runtimeSettings = getRightSidebarWorktreeRuntimeSettings(activeWorktreeId)
+        const state = useAppStore.getState()
+        const localWorkspace =
+          state.localProjects && resolveLocalWorkspaceKey(state.localProjects, activeWorktreeId)
+        const runtimeSettings = localWorkspace
+          ? { activeRuntimeEnvironmentId: null }
+          : getRightSidebarWorktreeRuntimeSettings(activeWorktreeId)
         const resultOwner = createFileSearchResultOwner(activeWorktreeId, runtimeSettings)
         try {
-          const state = useAppStore.getState()
           const connectionId = getConnectionId(activeWorktreeId) ?? undefined
           const activeSearchState = state.fileSearchStateByWorktree[activeWorktreeId]
           if (
@@ -113,24 +124,33 @@ export function useFileSearchRunner({
             }
             return
           }
-          const results = await searchRuntimeFiles(
-            {
-              settings: runtimeSettings,
-              worktreeId: activeWorktreeId,
-              worktreePath,
-              connectionId
-            },
-            {
-              query: query.trim(),
-              rootPath: worktreePath,
-              caseSensitive: activeSearchState?.caseSensitive ?? false,
-              wholeWord: activeSearchState?.wholeWord ?? false,
-              useRegex: activeSearchState?.useRegex ?? false,
-              includePattern: activeSearchState?.includePattern || undefined,
-              excludePattern: activeSearchState?.excludePattern || undefined,
-              maxResults: SEARCH_MAX_RESULTS
-            }
-          )
+          const options = {
+            query: query.trim(),
+            caseSensitive: activeSearchState?.caseSensitive ?? false,
+            wholeWord: activeSearchState?.wholeWord ?? false,
+            useRegex: activeSearchState?.useRegex ?? false,
+            includePattern: activeSearchState?.includePattern || undefined,
+            excludePattern: activeSearchState?.excludePattern || undefined,
+            maxResults: SEARCH_MAX_RESULTS
+          }
+          const results = localWorkspace
+            ? await searchLocalWorkspaceContents(
+                localWorkspace,
+                options,
+                () => latestSearchIdRef.current === searchId
+              )
+            : await searchRuntimeFiles(
+                {
+                  settings: runtimeSettings,
+                  worktreeId: activeWorktreeId,
+                  worktreePath,
+                  connectionId
+                },
+                {
+                  ...options,
+                  rootPath: worktreePath
+                }
+              )
           if (latestSearchIdRef.current === searchId) {
             updateActiveSearchState({ results, resultOwner })
           }

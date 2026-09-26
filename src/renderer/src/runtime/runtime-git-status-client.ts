@@ -4,7 +4,11 @@ import type {
   GitStagingArea,
   GitStatusResult
 } from '../../../shared/git-status-types'
-import { resolveLocalWorktreePath, type RuntimeGitContext } from './runtime-git-client-context'
+import {
+  resolveLocalWorktreePath,
+  localRootGitArgs,
+  type RuntimeGitContext
+} from './runtime-git-client-context'
 import { callRuntimeRpc, getActiveRuntimeTarget } from './runtime-rpc-client'
 import { toRuntimeWorktreeSelector } from './runtime-worktree-selector'
 
@@ -20,6 +24,7 @@ export async function getRuntimeGitStatus(
     signal?: AbortSignal
   }
 ): Promise<GitStatusResult> {
+  const localRoot = localRootGitArgs(context)
   const target = getActiveRuntimeTarget(context.settings)
   const includeIgnoredArgs = options?.includeIgnored ? { includeIgnored: true } : {}
   const admissionTierArgs = options?.admissionTier ? { admissionTier: options.admissionTier } : {}
@@ -35,6 +40,7 @@ export async function getRuntimeGitStatus(
   if (target.kind === 'local' || !context.worktreeId) {
     return callLocalGitStatus(
       {
+        ...localRoot,
         worktreePath: resolveLocalWorktreePath(context),
         connectionId: context.connectionId,
         ...admissionTierArgs,

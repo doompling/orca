@@ -9,11 +9,13 @@ import type { FolderWorkspace } from '../../shared/folder-workspace-types'
 import type { ProjectGroup } from '../../shared/project-group-types'
 import type { Repo } from '../../shared/repo-types'
 import type { IFilesystemProvider } from '../providers/types'
+import type { ResolvedLocalWorkspace } from '../../shared/local-projects/types'
 
 type FolderWorkspacePathStatusStore = {
   getRepos: () => Repo[]
   getProjectGroups?: () => ProjectGroup[]
   getFolderWorkspaces?: () => FolderWorkspace[]
+  resolveLocalWorkspace?: (workspaceId: string) => ResolvedLocalWorkspace | null
 }
 
 export type FolderWorkspacePathConnectionResolution =
@@ -199,6 +201,17 @@ export async function getFolderWorkspacePathStatus(
   request: FolderWorkspacePathStatusRequest,
   deps: FolderWorkspacePathStatusDeps
 ): Promise<FolderWorkspacePathStatus> {
+  const localWorkspace =
+    request.scope === 'folder-workspace'
+      ? store.resolveLocalWorkspace?.(request.folderWorkspaceId)
+      : null
+  if (localWorkspace) {
+    const root = localWorkspace.roots.find((entry) => entry.id === localWorkspace.defaultRootId)
+    if (!root) {
+      throw new Error('Local Workspace default root is unavailable.')
+    }
+    return statFolderPath(root.path, { kind: 'local' }, deps)
+  }
   const scope = resolveFolderWorkspaceStatusPath({ store, request })
   return getFolderWorkspacePathStatusForPath(
     {

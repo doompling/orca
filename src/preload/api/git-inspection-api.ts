@@ -11,6 +11,7 @@ import type {
 } from '../../shared/git-status-types'
 import type { GitPushTarget } from '../../shared/worktree/types'
 import type { GitHistoryOptions, GitHistoryResult } from '../../shared/git-history'
+import type { LocalWorkspaceGitRoot } from '../../shared/local-projects/git-root'
 import type {
   CommitMessageAgentCapability,
   CommitMessageModelCapability
@@ -18,6 +19,7 @@ import type {
 
 export type GitInspectionApi = {
   status: (args: {
+    localRoot?: LocalWorkspaceGitRoot
     worktreePath: string
     connectionId?: string
     admissionTier?: 'interactive' | 'status' | 'background'
@@ -58,6 +60,7 @@ export type GitInspectionApi = {
     connectionId?: string
   }) => Promise<GitConflictOperation>
   diff: (args: {
+    localRoot?: LocalWorkspaceGitRoot
     worktreePath: string
     filePath: string
     staged: boolean

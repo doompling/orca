@@ -1,6 +1,7 @@
 import { applyWorktreeHeadIdentities } from '../worktree-head-identity-apply'
 import type { WorktreeChangeRefreshQueue } from '../worktree-change-refresh-queue'
 import { useAppStore } from '../../store'
+import { hasLocalProjectsApi } from '@/features/local-projects/local-projects-availability'
 
 export function registerProjectCatalogIpcBridge(
   unsubs: (() => void)[],
@@ -11,6 +12,9 @@ export function registerProjectCatalogIpcBridge(
   unsubs.push(
     window.api.repos.onChanged(() => {
       const state = useAppStore.getState()
+      if (hasLocalProjectsApi()) {
+        void state.fetchLocalProjects().catch(() => undefined)
+      }
       if (isRuntimeEnvironmentActive()) {
         // Why: the all-host sidebar shows local repos even under a runtime; refresh the local slice, keep runtime slices.
         void (async () => {

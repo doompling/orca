@@ -1,5 +1,9 @@
 import type { StoreRuntimeState } from './store-runtime-state'
 import type { Store } from './store'
+import {
+  LocalProjectsPersistence,
+  installLocalProjectsPersistenceContext
+} from '../../local-projects/persistence'
 import { LoadedStateAdaptationOperations } from './loaded-state-adaptation'
 import { BackupRecoveryRotationOperations } from './backup-recovery-rotation'
 import { LoadedCohortMigrationOperations } from './loaded-cohort-migrations'
@@ -66,6 +70,7 @@ import {
 } from './ssh-lease-recovery-operations'
 
 export type StoreDomains = {
+  localProjects: LocalProjectsPersistence
   adaptation: LoadedStateAdaptationOperations
   backups: BackupRecoveryRotationOperations
   cohorts: LoadedCohortMigrationOperations
@@ -91,6 +96,7 @@ export type StoreDomains = {
 }
 
 export const STORE_DOMAIN_OPERATION_CLASSES = [
+  LocalProjectsPersistence,
   WriteSchedulingOperations,
   PrimaryStateWriteOperations,
   ProjectCollectionOperations,
@@ -110,6 +116,7 @@ export const STORE_DOMAIN_OPERATION_CLASSES = [
 ] as const
 
 export function installStoreDomainContexts(target: Store, domains: StoreDomains): void {
+  installLocalProjectsPersistenceContext(target, domains.localProjects)
   installWriteSchedulingOperationsContext(target, domains.scheduling)
   installPrimaryStateWriteOperationsContext(target, domains.writes)
   installProjectCollectionOperationsContext(target, domains.projects)
@@ -129,6 +136,7 @@ export function installStoreDomainContexts(target: Store, domains: StoreDomains)
 }
 
 export function createStoreDomains(runtime: StoreRuntimeState): StoreDomains {
+  const localProjects = new LocalProjectsPersistence(runtime)
   const adaptation = new LoadedStateAdaptationOperations(runtime)
   const backups = new BackupRecoveryRotationOperations(runtime)
   const cohorts = new LoadedCohortMigrationOperations(runtime)
@@ -148,7 +156,13 @@ export function createStoreDomains(runtime: StoreRuntimeState): StoreDomains {
     scheduling
   )
   const metadata = new MetadataLineageOperations(runtime, scheduling, sessions)
-  const projects = new ProjectCollectionOperations(runtime, repos, scheduling, metadata)
+  const projects = new ProjectCollectionOperations(
+    runtime,
+    repos,
+    scheduling,
+    metadata,
+    localProjects
+  )
   const automations = new AutomationPersistence(runtime, flushBarriers, preferences)
   const mobileTabSelections = new MobileTabSelectionPersistence(runtime, scheduling)
   const sparsePresets = new SparsePresetPersistence(runtime, scheduling)
@@ -162,6 +176,7 @@ export function createStoreDomains(runtime: StoreRuntimeState): StoreDomains {
     scheduling
   )
   return {
+    localProjects,
     adaptation,
     backups,
     cohorts,

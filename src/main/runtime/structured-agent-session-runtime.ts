@@ -71,6 +71,7 @@ export type StructuredAgentSessionRuntimeDeps = {
   /** Key id this host's claims are minted under. */
   claimKeyId: string
   resolveWorkspacePath: (workspaceId: string) => Promise<string>
+  acquireWorkspaceScope?: StructuredAgentSessionHostDeps['acquireWorkspaceScope']
   resolveCodexCommand?: (options?: { pathEnv?: string | null; homePath?: string }) => string
   resolveClaudeCommand?: () => string
   /** Provider transports are overridden only to drive the runtime against scripted children. */
@@ -308,6 +309,7 @@ async function install(deps: StructuredAgentSessionRuntimeDeps): Promise<Install
       recoveryCapsule: new AgentSessionRecoveryCapsule(deps.stateDirectory),
       journalRoot: deps.stateDirectory,
       claimKeyId: deps.claimKeyId,
+      ...(deps.acquireWorkspaceScope ? { acquireWorkspaceScope: deps.acquireWorkspaceScope } : {}),
       probeOwner: createStructuredAgentSessionOwnerProbe(deps.hostId),
       probeOwners: createStructuredAgentSessionOwnerProbes(deps.hostId),
       ...(deps.resolveLaunchArgs

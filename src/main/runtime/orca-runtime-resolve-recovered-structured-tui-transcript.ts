@@ -24,6 +24,7 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { parseWslUncPath } from '../../shared/wsl-paths'
 import { parseWorkspaceKey } from '../../shared/workspace-scope'
+import { captureStructuredLocalWorkspaceScope } from '../local-projects/structured-agent-scope'
 
 export class OrcaRuntimeWithResolveRecoveredStructuredTuiTranscript extends OrcaRuntimeWithStopStructuredSessionProcess {
   protected async resolveRecoveredStructuredTuiTranscript(input: {
@@ -186,6 +187,7 @@ export class OrcaRuntimeWithResolveRecoveredStructuredTuiTranscript extends Orca
       input.agent
     )
     const location = await this.resolveStructuredAgentSessionLocation(input.worktree)
+    const localWorkspaceScope = captureStructuredLocalWorkspaceScope(this.requireStore(), location)
     const workspacePath = (await this.resolveRuntimeFileTarget(input.worktree)).worktree.path
     const host = getStructuredAgentSessionHost()
     const committedReplay = resolveCommittedStructuredAgentSessionAdoptionIntent({
@@ -231,6 +233,7 @@ export class OrcaRuntimeWithResolveRecoveredStructuredTuiTranscript extends Orca
         path: adoption ? adoption.accountHomePath : selectedAccountHomePath
       },
       ...(options ? { options } : {}),
+      ...(localWorkspaceScope ? { localWorkspaceScope } : {}),
       ...(input.resumeFrom && adoption
         ? {
             // `adopt` is what makes the reservation seed the handle chain. Presence of

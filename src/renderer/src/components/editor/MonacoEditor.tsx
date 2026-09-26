@@ -96,7 +96,7 @@ export default function MonacoEditor({
   )
   const editorFontFamily = resolveEditorFontFamily(settings)
   const editorWordWrap = settings?.editorWordWrap
-  const modelUri = useMemo(() => toEditorModelUri(filePath), [filePath])
+  const modelUri = useMemo(() => toEditorModelUri(filePath, fileId), [filePath, fileId])
   const estimatedAutoHeight = useMemo(() => {
     if (!autoHeight) {
       return null
@@ -128,7 +128,7 @@ export default function MonacoEditor({
     content,
     contentRef,
     contentSyncModeRef,
-    filePath,
+    filePath: fileId,
     onContentChange
   })
   const annotations = useMonacoMarkdownAnnotations({

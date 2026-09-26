@@ -31,6 +31,7 @@ import { translate } from '@/i18n/i18n'
 import { TAB_CONTAINER_WIDTH_CLASSES, TAB_LABEL_WIDTH_CLASSES } from './tab-width-rules'
 import { EditorFileTabCloseButton } from './EditorFileTabCloseButton'
 import { useTabStripPointerActivation } from './tab-strip-pointer-activation'
+import { useLocalWorkspaceEditorRoot } from '@/features/local-projects/use-local-workspace-editor-root'
 
 export default function EditorFileTab({
   file,
@@ -72,6 +73,7 @@ export default function EditorFileTab({
   includeTopTabBorder?: boolean
 }): React.JSX.Element {
   const worktree = useWorktreeById(file.worktreeId)
+  const localRoot = useLocalWorkspaceEditorRoot(file)
   const repo = useRepoById(worktree?.repoId ?? null)
   const FileIcon = getFileTypeIcon(file.filePath)
   // Why: no transform/transition/isDragging styling — the drag design is
@@ -200,7 +202,8 @@ export default function EditorFileTab({
       ? null
       : (statusByRelativePath.get(normalizeRelativePath(file.relativePath)) ?? null)
   const tabStatusColor = tabStatus ? STATUS_COLORS[tabStatus] : undefined
-  const tabLabel = getEditorDisplayLabel(file)
+  const fileLabel = getEditorDisplayLabel(file)
+  const tabLabel = localRoot ? `${localRoot.label} / ${fileLabel}` : fileLabel
 
   useEffect(() => {
     const closeMenu = (): void => setMenuOpen(false)

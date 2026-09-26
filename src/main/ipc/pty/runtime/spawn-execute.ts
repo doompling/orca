@@ -23,7 +23,7 @@ export async function executeRuntimePtySpawn(ctx: RuntimePtySpawnState): Promise
   const args = ctx.args
   const runtime = ctx.deps.runtime
   const acquireWorktreeSpawn = runtime?.acquireWorktreeTerminalSpawn
-  ctx.releaseWorktreeSpawn = acquireWorktreeSpawn
+  ctx.releaseWorktreeSpawn ??= acquireWorktreeSpawn
     ? await acquireWorktreeSpawn.call(runtime, args.worktreeId)
     : undefined
   try {

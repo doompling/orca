@@ -1,4 +1,5 @@
 import type { RecentlyClosedTabPosition } from '../../recently-closed-tabs'
+import type { LocalWorkspaceGitRoot } from '../../../../../../shared/local-projects/git-root'
 import type { EditorFileOperationProvenance } from '@/lib/editor-file-operation-owner'
 import type { OpenCheckRunDetailsState } from '@/components/editor/check-run-details-tab'
 import type {
@@ -87,6 +88,7 @@ export type CombinedDiffSkippedConflict = {
 // `skippedConflicts` lives on the tab so the combined-diff exclusion notice stays stable; live status changing between polls would make it flicker.
 // `branchEntriesSnapshot` keeps a combined-branch tab's file list known after switching away from an inactive worktree whose compare data is stale.
 export type OpenFile = {
+  localRoot?: LocalWorkspaceGitRoot
   id: string // use filePath as unique key
   filePath: string // absolute path
   relativePath: string // relative to worktree root
@@ -167,6 +169,7 @@ export type ClosedEditorTabSnapshot = Omit<
 export const MAX_RECENT_CLOSED_EDITOR_TABS = 10
 
 export type EditorOpenTargetOptions = {
+  localRoot?: LocalWorkspaceGitRoot
   targetGroupId?: string
   preview?: boolean
   runtimeEnvironmentId?: string | null

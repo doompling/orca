@@ -19,8 +19,25 @@ import {
 import type { ColdRestoreAgentResumeStartup } from './fresh-spawn-types'
 
 import type { ConnectPanePtySession } from './connect-pane-pty-session'
+import { assertLocalWorkspaceLaunchScopeOwner } from '../../../../../shared/local-projects/agent-launch-scope'
+import { resolveLocalWorkspaceKey } from '../../../../../shared/local-projects/workspace-resolution'
 
-export function bindBuildColdRestoreAgentResumeStartup(session: ConnectPanePtySession): void {
+export type ColdRestoreResumeSession = Pick<
+  ConnectPanePtySession,
+  | 'buildColdRestoreAgentResumeStartup'
+  | 'pendingStartupCommand'
+  | 'cacheKey'
+  | 'getSleepingRecordForPane'
+  | 'executionHostId'
+  | 'projectRuntime'
+  | 'connectionId'
+  | 'worktree'
+  | 'shellOverride'
+> & { deps: Pick<ConnectPanePtySession['deps'], 'worktreeId'> }
+
+export function bindBuildColdRestoreAgentResumeStartup(
+  session: ConnectPanePtySession | ColdRestoreResumeSession
+): void {
   session.buildColdRestoreAgentResumeStartup = (): ColdRestoreAgentResumeStartup | null => {
     if (session.pendingStartupCommand) {
       return null
@@ -70,6 +87,20 @@ export function bindBuildColdRestoreAgentResumeStartup(session: ConnectPanePtySe
     const launchConfig =
       (useLiveEntry && entry ? state.getAgentLaunchConfigForStatusEntry(entry) : undefined) ??
       matchingSleepingLaunchConfig
+    if (
+      state.localProjects &&
+      resolveLocalWorkspaceKey(state.localProjects, session.deps.worktreeId) &&
+      !launchConfig?.localWorkspaceScope
+    ) {
+      return null
+    }
+    if (launchConfig?.localWorkspaceScope) {
+      assertLocalWorkspaceLaunchScopeOwner(
+        launchConfig.localWorkspaceScope,
+        session.deps.worktreeId,
+        session.connectionId
+      )
+    }
     // Why: the resume line is typed into this pane's live shell, so its quoting must
     // follow the tab's effective Windows shell, not the win32 PowerShell default.
     const resumeTarget = resolveAgentResumeLaunchTarget({
@@ -95,6 +126,9 @@ export function bindBuildColdRestoreAgentResumeStartup(session: ConnectPanePtySe
       ...(launchConfig?.agentCommand ? { agentCommand: launchConfig.agentCommand } : {}),
       ...(launchConfig?.ompResumeFilePath
         ? { ompResumeFilePath: launchConfig.ompResumeFilePath }
+        : {}),
+      ...(launchConfig?.localWorkspaceScope
+        ? { localWorkspaceScope: launchConfig.localWorkspaceScope }
         : {}),
       platform: resumeTarget.platform,
       shell: resumeTarget.shell

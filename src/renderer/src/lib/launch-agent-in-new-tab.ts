@@ -1,5 +1,4 @@
 import { useAppStore } from '@/store'
-import type { AgentStartupPlan } from '@/lib/tui-agent-startup'
 import { planLaunchAgentStartupPrompt } from '@/lib/launch-agent-startup-prompt-plan'
 import { persistAgentLaunchTabOrder } from '@/lib/launch-agent-tab-order'
 import { tuiAgentToAgentKind } from '@/lib/telemetry'
@@ -19,70 +18,26 @@ import {
 } from '../../../shared/tui-agent-launch-defaults'
 import { TUI_AGENT_CONFIG } from '../../../shared/tui-agent-config'
 import { seedCommandCodeSubmittedPromptStatus } from '@/lib/command-code-prompt-status-seed'
-import type { TuiAgent } from '../../../shared/tui-agent'
-import type { LaunchSource } from '../../../shared/telemetry-events'
 import { resolveAgentLaunchExecutionContext } from '@/lib/launch-agent-execution-context'
 import { resolveInitialNativeChatSessionOptions } from '@/components/native-chat/native-chat-launch-session-options'
 import { seedNativeChatAppliedSessionOptions } from '@/components/native-chat/native-chat-session-option-cache'
 import { launchAgentInStructuredNewTab } from '@/lib/launch-agent-in-new-tab-structured'
-import type { StructuredAgentLaunchSettlement } from '@/lib/structured-agent-launch-settlement'
 import { workspaceKindForWorktreeId } from '@/lib/agent-launch-route-input'
+import { planAgentSessionLaunch } from '@/lib/agent-session-launch-plan'
+import type {
+  LaunchAgentInNewTabArgs,
+  LaunchAgentInNewTabResult
+} from './launch-agent-in-new-tab-types'
 import {
-  planAgentSessionLaunch,
-  type AgentSessionLaunchPlan
-} from '@/lib/agent-session-launch-plan'
+  allowLocalWorkspaceAgentRoute,
+  prepareLocalWorkspaceAgentLaunch
+} from './local-workspace-agent-launch'
 
-export type LaunchAgentInNewTabArgs = {
-  agent: TuiAgent
-  worktreeId: string
-  /** Tab group the user launched from; keeps split-group launches in that pane instead of the active group. */
-  groupId?: string
-  /** Optional initial prompt; delivery depends on `promptDelivery` and the agent's prompt mode. */
-  prompt?: string
-  /** Optional CLI arguments appended to the selected agent command. */
-  agentArgs?: string | null
-  initialCwd?: string | null
-  /** How to deliver the prompt: `draft` leaves it editable, `submit-after-ready` sends it once the TUI is ready. */
-  promptDelivery?: 'auto-submit' | 'draft' | 'submit-after-ready'
-  /** Telemetry surface that initiated this launch. Defaults to the tab-bar quick-launch entry point. */
-  launchSource?: LaunchSource
-  /** User-authored Quick Command label for local tabs created from the tab bar. */
-  quickCommandLabel?: string | null
-  /** Shell platform for the startup command; defaults to renderer OS. SSH/WSL worktrees run Linux even from Windows. */
-  launchPlatform?: NodeJS.Platform
-  /** Called after the prompt is actually delivered to the agent input path. */
-  onPromptDelivered?: () => void
-  /**
-   * Whether the new terminal tab takes the global selection. The floating workspace passes `false`
-   * and selects within its own group instead, so launching there does not move the main window's
-   * active tab. Terminal surface only — the structured and host-published routes own their own
-   * activation.
-   */
-  activate?: boolean
-  /** Keeps a preflighted route authoritative across workspace creation. */
-  agentSessionLaunchPlan?: AgentSessionLaunchPlan
-  /** Lets a workspace reveal itself before the selected surface opens. */
-  beforeSurfaceOpen?: (
-    surface:
-      | { kind: 'local-terminal' }
-      | { kind: 'local-agent-session'; sessionId: string }
-      | { kind: 'host-published' }
-  ) => boolean | void
-}
-
-export type AgentLaunchSurface =
-  | { kind: 'local-terminal'; tabId: string }
-  | { kind: 'local-agent-session'; tabId: string; sessionId: string }
-  | { kind: 'host-published' }
-
-export type LaunchAgentInNewTabResult = {
-  surface: AgentLaunchSurface
-  startupPlan: AgentStartupPlan
-  pasteDraftAfterLaunch: boolean
-  promptDeliveryResult?: Promise<{ delivered: boolean; failureNotified: boolean }>
-  /** Structured route only: what the launch did once it settled. The call stays synchronous. */
-  structuredSettlement?: Promise<StructuredAgentLaunchSettlement>
-} | null
+export type {
+  LaunchAgentInNewTabArgs,
+  LaunchAgentInNewTabResult,
+  AgentLaunchSurface
+} from './launch-agent-in-new-tab-types'
 
 export function shouldQueueTerminalFocusAfterMenuClose(
   result: NonNullable<LaunchAgentInNewTabResult>
@@ -130,6 +85,18 @@ function launchAgentInNewTabInternal(args: LaunchAgentInNewTabArgs): LaunchAgent
       : resolveTuiAgentLaunchArgs(agent, store.settings?.agentDefaultArgs)
   const agentEnv = resolveTuiAgentLaunchEnv(agent, store.settings?.agentDefaultEnv)
   const trimmedPrompt = prompt?.trim() ?? ''
+  const localLaunch = prepareLocalWorkspaceAgentLaunch({
+    localProjects: store.localProjects,
+    worktreeId,
+    agent,
+    agentArgs: effectiveAgentArgs,
+    commandOverride: cmdOverrides[agent],
+    initialCwd,
+    prompt: trimmedPrompt,
+    platform: resolvedLaunchPlatform,
+    shell: queuedShell,
+    isRemote
+  })
   const hasPrompt = trimmedPrompt.length > 0
   const isFollowupPath = TUI_AGENT_CONFIG[agent].promptInjectionMode === 'stdin-after-start'
   const workspaceKind = workspaceKindForWorktreeId(worktreeId)
@@ -150,13 +117,14 @@ function launchAgentInNewTabInternal(args: LaunchAgentInNewTabArgs): LaunchAgent
     platform: resolvedLaunchPlatform,
     shell: queuedShell,
     isRemote,
-    agentArgs: effectiveAgentArgs,
+    agentArgs: localLaunch.kind === 'local' ? localLaunch.agentArgs : effectiveAgentArgs,
     agentEnv,
+    ...(localLaunch.kind === 'local' ? { localWorkspaceScope: localLaunch.scope } : {}),
     sessionOptions: resolveInitialNativeChatSessionOptions(store.settings, initialViewModeOptions)
   }
   const { startupPlan, pasteDraftAfterLaunch, submitPastedPrompt } = planLaunchAgentStartupPrompt({
     base: startupPlanBase,
-    prompt: trimmedPrompt,
+    prompt: localLaunch.kind === 'local' ? localLaunch.prompt : trimmedPrompt,
     promptDelivery,
     isFollowupPath
   })
@@ -168,6 +136,9 @@ function launchAgentInNewTabInternal(args: LaunchAgentInNewTabArgs): LaunchAgent
 
   const runtimeEnvironmentId = getRuntimeEnvironmentIdForWorktree(store, worktreeId)
   if (isWebRuntimeSessionActive(runtimeEnvironmentId)) {
+    if (!allowLocalWorkspaceAgentRoute(localLaunch, 'host-published')) {
+      return null
+    }
     if (beforeSurfaceOpen?.({ kind: 'host-published' }) === false) {
       return null
     }
@@ -209,6 +180,9 @@ function launchAgentInNewTabInternal(args: LaunchAgentInNewTabArgs): LaunchAgent
       initialSessionOptions: startupPlan.sessionOptions,
       onPromptDelivered
     })
+  if (!allowLocalWorkspaceAgentRoute(localLaunch, plan.route)) {
+    return null
+  }
   if (plan?.route === 'structured-native-chat') {
     const structured = launchAgentInStructuredNewTab({
       plan,
@@ -246,13 +220,15 @@ function launchAgentInNewTabInternal(args: LaunchAgentInNewTabArgs): LaunchAgent
   const tab = store.createTab(worktreeId, groupId, undefined, {
     launchAgent: agent,
     quickCommandLabel,
+    ...(localLaunch.kind === 'local' ? { startupCwd: localLaunch.scope.cwd } : {}),
     ...(activate === false ? { activate: false } : {}),
     ...initialViewModeProps
   })
   seedNativeChatAppliedSessionOptions(tab.id, agent, startupPlan.sessionOptions)
-  if (initialCwd?.trim()) {
+  const launchCwd = localLaunch.kind === 'local' ? localLaunch.scope.cwd : initialCwd
+  if (launchCwd?.trim()) {
     // Why: queue before mount so local, WSL, and SSH continuations preserve their subdirectory.
-    store.queueTabInitialCwd(tab.id, initialCwd)
+    store.queueTabInitialCwd(tab.id, launchCwd)
   }
   store.queueTabStartupCommand(tab.id, {
     command: startupPlan.launchCommand,

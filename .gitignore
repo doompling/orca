@@ -89,6 +89,9 @@ design-docs/
 # Machine-local agent hook endpoint files may contain auth tokens.
 /agent-hooks/
 
+# Dedicated local-fork development profile; never commit saved work or credentials.
+/.orca-local-profile/
+
 # Local-only design/planning docs (not checked in), including most of docs/reference/.
 # Durable docs that should be tracked must live in one of the allow-listed
 # locations below (assets, readme, STYLEGUIDE, mobile terminal shortcut bar,
@@ -111,6 +114,7 @@ docs/**
 !docs/bug-reproductions/
 !docs/bug-reproductions/**
 !docs/STYLEGUIDE.md
+!docs/ether-maintenance.md
 !docs/audits/
 !docs/audits/crashpad-read-limit/
 !docs/audits/crashpad-read-limit/source-hashes.json

@@ -2,21 +2,58 @@ import { describe, expect, it, vi } from 'vitest'
 import { RuntimeProjectGroupController } from './runtime-project-group-controller'
 import type { FolderWorkspace } from '../../shared/folder-workspace-types'
 
-const workspace = {
+const workspace: FolderWorkspace = {
   id: 'ws-1',
   projectGroupId: 'group-1',
-  folderPath: '/tmp/ws'
-} as FolderWorkspace
+  folderPath: '/tmp/ws',
+  name: 'Workspace',
+  linkedTask: null,
+  comment: '',
+  isArchived: false,
+  isUnread: false,
+  isPinned: false,
+  sortOrder: 0,
+  lastActivityAt: 0,
+  createdAt: 1,
+  updatedAt: 1
+}
+
+function unused(): never {
+  throw new Error('Unexpected Store operation')
+}
 
 function createController(
-  resolveFolderConnectionId: (workspace: FolderWorkspace) => string | null
+  resolveFolderConnectionId: (workspace: FolderWorkspace) => string | null,
+  localWorkspace = false
 ) {
   const removeFolderWorkspace = vi.fn(() => true)
   const teardownFolderWorkspacePtys = vi.fn(async () => undefined)
   const cleanupRemovedFolderWorkspaceState = vi.fn()
   const notifyReposChanged = vi.fn()
   const controller = new RuntimeProjectGroupController({
-    getStore: () => ({ getFolderWorkspaces: () => [workspace], removeFolderWorkspace }) as never,
+    getStore: () => ({
+      getRepos: unused,
+      getRepo: unused,
+      addRepo: unused,
+      updateRepo: unused,
+      getAllWorktreeMeta: unused,
+      getWorktreeMeta: unused,
+      setWorktreeMeta: unused,
+      removeWorktreeMeta: unused,
+      getGitHubCache: unused,
+      getSettings: unused,
+      getFolderWorkspaces: () => [workspace],
+      removeFolderWorkspace,
+      resolveLocalWorkspace: () =>
+        localWorkspace
+          ? {
+              workspaceId: workspace.id,
+              projectId: 'project',
+              defaultRootId: 'root',
+              roots: [{ id: 'root', label: 'Root', path: workspace.folderPath }]
+            }
+          : null
+    }),
     resolveRepo: async () => {
       throw new Error('unused')
     },
@@ -35,6 +72,16 @@ function createController(
 }
 
 describe('RuntimeProjectGroupController.deleteFolderWorkspace', () => {
+  it('refuses legacy deletion of a local Workspace before process or session teardown', async () => {
+    const resolveConnection = vi.fn(() => null)
+    const deps = createController(resolveConnection, true)
+    await expect(deps.controller.deleteFolderWorkspace('ws-1')).rejects.toThrow('Archive')
+    expect(resolveConnection).not.toHaveBeenCalled()
+    expect(deps.teardownFolderWorkspacePtys).not.toHaveBeenCalled()
+    expect(deps.cleanupRemovedFolderWorkspaceState).not.toHaveBeenCalled()
+    expect(deps.removeFolderWorkspace).not.toHaveBeenCalled()
+    expect(deps.notifyReposChanged).not.toHaveBeenCalled()
+  })
   it('tears down PTYs and runtime state before removing the catalog row', async () => {
     const deps = createController(() => 'ssh-1')
 

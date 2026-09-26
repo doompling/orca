@@ -37,4 +37,17 @@ describe('toEditorModelUri', () => {
   it('keeps distinct POSIX paths distinct', () => {
     expect(toEditorModelUri('/repo/a b.ts')).not.toBe(toEditorModelUri('/repo/a%20b.ts'))
   })
+
+  it.each(paths)(
+    'isolates same-path editor owners while preserving file identity for %s',
+    (path) => {
+      const first = toEditorModelUri(path, 'editor:folder:first')
+      const second = toEditorModelUri(path, 'editor:folder:second')
+      expect(first).not.toBe(second)
+      expect(URI.parse(first).scheme).toBe('file')
+      expect(URI.parse(first).fsPath).toBe(URI.parse(toEditorModelUri(path)).fsPath)
+      expect(toEditorModelUri(first)).toBe(first)
+      expect(toEditorModelUri(path, 'editor:folder:first')).toBe(first)
+    }
+  )
 })

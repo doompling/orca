@@ -137,7 +137,7 @@ it.each([
 
 // Guards the construction/comparison symmetry: the disposal lookup and the still-open ownership
 // check must normalize a path the same way, or closing one tab drops a model another tab is editing.
-it('keeps a Windows-path model that a second open tab still owns', async () => {
+it('closing another Windows-path owner leaves the active owner model intact', async () => {
   const filePath = 'C:\\repo\\shared.ts'
   const editing: OpenFile = {
     id: 'tab-a',
@@ -148,8 +148,13 @@ it('keeps a Windows-path model that a second open tab still owns', async () => {
     language: 'plaintext',
     isDirty: false
   }
-  const modelUri = monaco.Uri.parse(toEditorModelUri(filePath))
+  const modelUri = monaco.Uri.parse(toEditorModelUri(filePath, editing.id))
   const model = monaco.editor.createModel('live', 'plaintext', modelUri)
+  const closedModel = monaco.editor.createModel(
+    'other draft',
+    'plaintext',
+    monaco.Uri.parse(toEditorModelUri(filePath, 'tab-b'))
+  )
   const store = createStore(() => ({ openFiles: [editing, { ...editing, id: 'tab-b' }] }))
   const bridge = createEditorModelRegistry()
   disposeOwners.push(bridge.register(monaco), attachClosedEditorTabCleanup(store, bridge))
@@ -158,5 +163,6 @@ it('keeps a Windows-path model that a second open tab still owns', async () => {
   await Promise.resolve()
 
   expect(model.isDisposed()).toBe(false)
+  expect(closedModel.isDisposed()).toBe(true)
   expect(monaco.editor.getModel(modelUri)).toBe(model)
 })

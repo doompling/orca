@@ -76,6 +76,9 @@ export class OrcaRuntimeWithTransitionGraphReloadToTerminalState extends OrcaRun
   }
 
   protected resolveFolderWorkspaceConnectionId(workspace: FolderWorkspace): string | null {
+    if (this.store?.resolveLocalWorkspace?.(workspace.id)) {
+      return null
+    }
     const repos = this.store?.getRepos() ?? []
     const projectGroups = this.store?.getProjectGroups?.() ?? []
     const connection = inferFolderWorkspacePathConnection({

@@ -20,6 +20,7 @@ import type {
 } from '../host-env/types'
 import type { CodexResumeLaunch, PreparedCodexResumeHome } from '../host-env/codex-resume'
 import type { StablePaneOwner } from '../pane/stable-owner'
+import type { FolderWorkspacePtyLaunchContext } from '../host-env/spawn-cwd'
 
 export type PtySpawnIpcArgs = {
   cols: number
@@ -89,7 +90,10 @@ export type PtySpawnIpcDeps = {
   }
   getLocalPtyStartupPromise: (connectionId?: string | null) => Promise<void> | undefined
   adoptStablePane: (args: AdoptStablePaneArgs) => Promise<AdoptStablePaneResult | null>
-  assertFolderWorkspacePtyPathUsable: (worktreeId: string | undefined) => Promise<void> | void
+  assertFolderWorkspacePtyPathUsable: (
+    worktreeId: string | undefined,
+    launch?: FolderWorkspacePtyLaunchContext
+  ) => Promise<void> | void
   resolvePtySpawnStartupCwd: (
     worktreeId: string | undefined,
     cwd: string | undefined,

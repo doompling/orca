@@ -20,6 +20,7 @@ import { installPtyRuntimeController } from './runtime/controller'
 import { installPtySnapshotIpcHandlers } from './ipc/snapshot'
 import {
   assertFolderWorkspacePtyPathUsable as assertFolderWorkspacePtyPathUsableImpl,
+  type FolderWorkspacePtyLaunchContext,
   localStartupCwdDirectoryExists,
   resolvePtySpawnStartupCwd as resolvePtySpawnStartupCwdImpl
 } from './host-env/spawn-cwd'
@@ -190,8 +191,9 @@ export function registerPtyHandlers(
   }
 
   const assertFolderWorkspacePtyPathUsable = (
-    worktreeId: string | undefined
-  ): Promise<void> | void => assertFolderWorkspacePtyPathUsableImpl(store, worktreeId)
+    worktreeId: string | undefined,
+    launch?: FolderWorkspacePtyLaunchContext
+  ): Promise<void> | void => assertFolderWorkspacePtyPathUsableImpl(store, worktreeId, launch)
   const resolvePtySpawnStartupCwd = (
     worktreeId: string | undefined,
     cwd: string | undefined,

@@ -37,7 +37,7 @@ export function disposeClosedEditorModels(
     }
     if (closedFile.mode === 'edit') {
       const model = monacoRegistry.editor.getModel(
-        monacoRegistry.Uri.parse(toEditorModelUri(closedFile.filePath))
+        monacoRegistry.Uri.parse(toEditorModelUri(closedFile.filePath, closedFile.id))
       )
       if (model?.isAttachedToEditor()) {
         onAttachedModel?.(model, closedFile)
@@ -93,14 +93,14 @@ export function disposeClosedEditorTabCaches(
     }
     switch (closedFile.mode) {
       case 'edit':
-        scrollTopCache.delete(closedFile.filePath)
-        scrollTopCache.delete(`${closedFile.filePath}:rich`)
-        scrollTopCache.delete(`${closedFile.filePath}:preview`)
-        scrollTopCache.delete(`${closedFile.filePath}:mermaid-diagram`)
-        editorSelectionCache.delete(closedFile.filePath)
-        scrollTopOwners.push(closedFile.filePath)
-        editorSelectionOwners.push(closedFile.filePath)
-        closedPdfFilePaths.push(closedFile.filePath)
+        scrollTopCache.delete(closedFile.id)
+        scrollTopCache.delete(`${closedFile.id}:rich`)
+        scrollTopCache.delete(`${closedFile.id}:preview`)
+        scrollTopCache.delete(`${closedFile.id}:mermaid-diagram`)
+        editorSelectionCache.delete(closedFile.id)
+        scrollTopOwners.push(closedFile.id)
+        editorSelectionOwners.push(closedFile.id)
+        closedPdfFilePaths.push(closedFile.id)
         break
       case 'markdown-preview':
         scrollTopCache.delete(`${closedFile.id}:preview`)
