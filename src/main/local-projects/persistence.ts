@@ -1,4 +1,12 @@
 import { randomUUID } from 'node:crypto'
+import {
+  attachLocalWorkspaceLinearIssue,
+  detachLocalWorkspaceLinearIssue
+} from './linear-issue-persistence'
+import type {
+  LocalWorkspaceLinearIssue,
+  DetachLocalWorkspaceLinearIssueArgs
+} from '../../shared/local-projects/linear-issues'
 import { basename } from 'node:path'
 import type { StoreRuntimeState } from '../persistence/loading-store/store-runtime-state'
 import type {
@@ -138,6 +146,19 @@ export class LocalProjectsPersistence {
     guard: LocalWorkspaceScopeMutationGuard
   ): Promise<LocalProjectsState> {
     return updateLocalProjectRoots(this, input, guard, (next) => commitLocalProjects(this, next))
+  }
+
+  attachLocalWorkspaceLinearIssue(
+    workspaceId: string,
+    issue: LocalWorkspaceLinearIssue
+  ): LocalWorkspace {
+    return attachLocalWorkspaceLinearIssue(this, workspaceId, issue, (next) =>
+      commitLocalProjects(this, next)
+    )
+  }
+
+  detachLocalWorkspaceLinearIssue(args: DetachLocalWorkspaceLinearIssueArgs): LocalWorkspace {
+    return detachLocalWorkspaceLinearIssue(this, args, (next) => commitLocalProjects(this, next))
   }
 
   updateLocalWorkspaceCheckouts(

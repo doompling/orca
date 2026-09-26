@@ -12,5 +12,7 @@ export const localProjectsApi = {
   updateWorkspace: (args) => ipcRenderer.invoke('localProjects:updateWorkspace', args),
   updateProjectRoots: (args) => ipcRenderer.invoke('localProjects:updateProjectRoots', args),
   updateWorkspaceCheckouts: (args) =>
-    ipcRenderer.invoke('localProjects:updateWorkspaceCheckouts', args)
+    ipcRenderer.invoke('localProjects:updateWorkspaceCheckouts', args),
+  attachLinearIssue: (args) => ipcRenderer.invoke('localProjects:attachLinearIssue', args),
+  detachLinearIssue: (args) => ipcRenderer.invoke('localProjects:detachLinearIssue', args)
 } satisfies LocalProjectsApi

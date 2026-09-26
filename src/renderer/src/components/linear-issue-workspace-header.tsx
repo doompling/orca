@@ -24,7 +24,9 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { translate } from '@/i18n/i18n'
 import type { LinearIssue } from '../../../shared/linear/issue-types'
+import type { TaskSourceContext } from '../../../shared/task-source-context'
 import { copyLinearIssueText } from './linear-issue-clipboard'
+import { LocalIssueWorkspaceActions } from '@/features/local-projects/LocalIssueWorkspaceActions'
 
 export function LinearIssueWorkspaceHeader({
   issue,
@@ -34,7 +36,9 @@ export function LinearIssueWorkspaceHeader({
   backLabel,
   onClose,
   onOpenOrUseIssue,
-  onUseIssue
+  onUseIssue,
+  attachedWorkspaceLabel,
+  sourceContext
 }: {
   issue: LinearIssue
   issueLoading: boolean
@@ -44,6 +48,8 @@ export function LinearIssueWorkspaceHeader({
   onClose: () => void
   onOpenOrUseIssue: () => void
   onUseIssue: () => void
+  attachedWorkspaceLabel?: string | null
+  sourceContext?: TaskSourceContext | null
 }): React.JSX.Element {
   return (
     <header className="flex h-[61px] flex-none items-center justify-between gap-4 border-b border-border/60 px-5">
@@ -115,60 +121,70 @@ export function LinearIssueWorkspaceHeader({
             {translate('auto.components.LinearIssueWorkspace.openOnLinear', 'Open on Linear')}
           </TooltipContent>
         </Tooltip>
-        {attachedWorkspace ? (
-          <DropdownMenu modal={false}>
-            <ButtonGroup>
-              <Button
-                type="button"
-                size="sm"
-                onClick={onOpenOrUseIssue}
-                className="gap-1.5 whitespace-nowrap"
-                aria-label={translate(
-                  'auto.components.LinearIssueWorkspace.openAttachedWorkspace',
-                  'Open workspace attached to issue'
-                )}
-              >
-                <FolderOpen className="size-3.5" />
-                {translate('auto.components.LinearIssueWorkspace.openWorkspace', 'Open workspace')}
-              </Button>
-              <DropdownMenuTrigger asChild>
+        <LocalIssueWorkspaceActions
+          issue={issue}
+          sourceContext={sourceContext}
+          legacyWorkspaceLabel={attachedWorkspaceLabel}
+          onOpenLegacyWorkspace={onOpenOrUseIssue}
+        >
+          {attachedWorkspace ? (
+            <DropdownMenu modal={false}>
+              <ButtonGroup>
                 <Button
                   type="button"
-                  size="icon-sm"
+                  size="sm"
+                  onClick={onOpenOrUseIssue}
+                  className="gap-1.5 whitespace-nowrap"
                   aria-label={translate(
-                    'auto.components.LinearIssueWorkspace.moreWorkspaceActions',
-                    'More issue workspace actions'
+                    'auto.components.LinearIssueWorkspace.openAttachedWorkspace',
+                    'Open workspace attached to issue'
                   )}
                 >
-                  <ChevronDown className="size-3.5" />
+                  <FolderOpen className="size-3.5" />
+                  {translate(
+                    'auto.components.LinearIssueWorkspace.openWorkspace',
+                    'Open workspace'
+                  )}
                 </Button>
-              </DropdownMenuTrigger>
-            </ButtonGroup>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={onUseIssue}>
-                <Plus className="size-4" />
-                {translate(
-                  'auto.components.LinearIssueWorkspace.startNewWorkspace',
-                  'Start new workspace'
-                )}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : (
-          <Button
-            type="button"
-            size="sm"
-            onClick={onOpenOrUseIssue}
-            className="gap-1.5 whitespace-nowrap"
-            aria-label={translate(
-              'auto.components.LinearIssueWorkspace.30a7f56c0a',
-              'Start workspace from issue'
-            )}
-          >
-            {translate('auto.components.LinearIssueWorkspace.e1e0a9bca9', 'Start workspace')}
-            <ArrowRight className="size-3.5" />
-          </Button>
-        )}
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    size="icon-sm"
+                    aria-label={translate(
+                      'auto.components.LinearIssueWorkspace.moreWorkspaceActions',
+                      'More issue workspace actions'
+                    )}
+                  >
+                    <ChevronDown className="size-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+              </ButtonGroup>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onSelect={onUseIssue}>
+                  <Plus className="size-4" />
+                  {translate(
+                    'auto.components.LinearIssueWorkspace.startNewWorkspace',
+                    'Start new workspace'
+                  )}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button
+              type="button"
+              size="sm"
+              onClick={onOpenOrUseIssue}
+              className="gap-1.5 whitespace-nowrap"
+              aria-label={translate(
+                'auto.components.LinearIssueWorkspace.30a7f56c0a',
+                'Start workspace from issue'
+              )}
+            >
+              {translate('auto.components.LinearIssueWorkspace.e1e0a9bca9', 'Start workspace')}
+              <ArrowRight className="size-3.5" />
+            </Button>
+          )}
+        </LocalIssueWorkspaceActions>
         {variant === 'sheet' ? (
           <Tooltip>
             <TooltipTrigger asChild>

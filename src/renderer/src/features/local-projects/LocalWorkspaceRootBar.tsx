@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { useAppStore } from '@/store'
 import type { ResolvedLocalWorkspace } from '../../../../shared/local-projects/types'
 import { resolveLocalWorkspace } from '../../../../shared/local-projects/workspace-resolution'
+import { LocalWorkspaceLinearIssues } from './LocalWorkspaceLinearIssues'
 
 export function LocalWorkspaceRootBar({
   context,
@@ -83,6 +84,7 @@ export function LocalWorkspaceRootBar({
           {error}
         </p>
       )}
+      <LocalWorkspaceLinearIssues workspaceId={context.workspaceId} />
     </div>
   )
 }

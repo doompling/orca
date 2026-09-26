@@ -2,6 +2,7 @@ import type { TaskPageLinearListEffectsModel } from './use-task-page-linear-list
 import { useEffect } from 'react'
 import {
   readLinkedLinearIssuesWithLimit,
+  readLinkedLinearIssueRef,
   filterLinearIssuesForInOrcaWorkspace
 } from '@/components/task-page-linear-in-orca-issues'
 import type { LinearIssue } from '../../../shared/linear/issue-types'
@@ -67,12 +68,15 @@ export function useTaskPageLinearInOrcaEffects(model: TaskPageLinearListEffectsM
     setLinearLoading(true)
     // Why: fetchLinearIssue serves anything under the 60s TTL and ignores `force`, so an
     // explicit refresh has to go through refreshLinearIssue or the button does nothing.
-    void readLinkedLinearIssuesWithLimit(linkedRefs, (ref) => {
-      const read = forceRefresh ? refreshLinearIssue : fetchLinearIssue
-      return read(ref.identifier, ref.workspaceId ?? selectedLinearWorkspaceId, {
-        sourceContext: ref.sourceContext ?? linearTaskSourceContext
+    void readLinkedLinearIssuesWithLimit(linkedRefs, (ref) =>
+      readLinkedLinearIssueRef(ref, {
+        fetch: fetchLinearIssue,
+        refresh: refreshLinearIssue,
+        forceRefresh,
+        workspaceId: selectedLinearWorkspaceId,
+        sourceContext: linearTaskSourceContext
       })
-    })
+    )
       .then((results) => {
         if (
           cancelled ||

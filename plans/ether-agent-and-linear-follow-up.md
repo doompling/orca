@@ -59,33 +59,60 @@ saved-session reopening use the existing structured-chat host. Attachments,
 slash commands, effort/Fast toggles, imported terminal conversations, and remote
 OpenCode chat are not part of this slice. Provider configuration is never edited.
 
-### 3. Linear issues connected to Workspaces — queued
+### 3. Linear issues connected to Workspaces — complete
 
 - [x] Inventory existing Linear issue, task-list, and workspace linking behavior.
-- [ ] Define one clear local relationship: a Workspace can link multiple Linear
+- [x] Define one clear local relationship: a Workspace can link multiple Linear
       issues; linking does not create a worktree or implicitly change issue status.
-- [ ] Reuse the existing issue picker, credentials, task types, and persistence
+- [x] Reuse the existing issue search, credentials, task types, and persistence
       wherever they fit; do not create a competing task system.
-- [ ] Make links visible and useful from both the Workspace and the relevant task
+- [x] Make links visible and useful from both the Workspace and the relevant task
       list, with issue identifier/title/status and a way to open the issue in Linear.
-- [ ] Provide explicit attach/detach actions; retain separate Workspace tabs,
+- [x] Provide explicit attach/detach actions; retain separate Workspace tabs,
       drafts, and agent conversations regardless of linked issues or shared roots.
-- [ ] Test multiple links, switching Workspaces, restart persistence, and failure
+- [x] Test multiple links, switching Workspaces, restart persistence, and failure
       states without modifying real Linear issues during automated tests.
-- [ ] Rebuild Ether, update usage notes, and commit the completed integration.
+- [x] Rebuild Ether, update usage notes, and commit the completed integration.
+
+Relationship: links belong to the Workspace UUID, not its branch or directories.
+One issue can be linked to several Workspaces, including Workspaces sharing the
+same checkout. A new Workspace starts with no links. Archive retains saved links
+but excludes the Workspace from active task matches. Unlinking is local metadata
+and works offline. Attach verifies the issue using its exact saved local Linear
+account; saved snapshots are explicitly historical, not live status promises.
+Existing encrypted Linear connections are reused from Orca's credential registry;
+they are not copied into the Ether profile or migrated as part of this work.
+
+### Using the Linear integration
+
+1. Connect Linear in Settings → Integrations if it is not already connected.
+2. Open a Workspace and select **Linear issues** in the directory panel, or from
+   its sidebar menu. Choose an account, search by issue identifier/title, and
+   select issues to link. **Unlink** removes only that Workspace's link.
+3. In Tasks → Linear, **Has Workspace** includes these links. **Workspaces (N)**
+   offers named Project / Workspace choices; **Attach Workspace** links another
+   existing Workspace without switching to it or launching an agent.
+4. Issue details also list linked Workspaces. Workspace snapshots remain visible
+   offline; live issue details continue to use the existing Linear reader.
+
+This extends Orca's existing Linear Tasks experience rather than adding another
+task system. Legacy single-task/worktree links and remote workflows remain
+available. The new many-to-many relationship is local-only. Linking is not a
+status transition, branch selection, or automatic agent instruction.
 
 ## Optional, ordered by likely value
 
 1. Improve failed-chat messages so the actual actionable cause is visible.
 2. Explicitly add linked-issue context to an agent prompt, with user review.
-3. Explicit Linear status/comment updates from Ether, only after local linking is
-   useful and the user can clearly see what will be sent.
+3. Workspace-panel status/comment actions, if useful beyond the existing Linear
+   issue editor. Keep all provider writes explicit and reviewable.
 4. Automatic issue/workspace creation, bidirectional synchronization, and broader
    remote or cross-platform workflow expansion.
 
 ## Verification and delivery record
 
 - Codex fix and acceptance tests committed as `4248962716`.
+- OpenCode editor chat committed as `7908178403`.
 
 - Initial Codex diagnosis: isolated app-server handshake/config/read/thread/start
   reproduced the response shape; no model turn, user credentials, or personal
@@ -118,3 +145,22 @@ OpenCode chat are not part of this slice. Provider configuration is never edited
   permission-update behavior. No failed prompt was automatically resent.
 - Previous working Codex bundle retained at
   `dist/ether-backups/before-opencode-Sg9ngdXO/Ether.app`.
+- Previous OpenCode-capable bundle retained at
+  `dist/ether-backups/before-linear-5j9oSHHr/Ether.app`.
+- Linear: 253 focused tests across 36 suites passed, including actual profile
+  persistence, account-scoped validation, failures/rollback, independent links,
+  and renderer actions. Full source typecheck and changed-code quality passed.
+- Linear hidden rendered acceptance passed (12.4 seconds): two issues on Main,
+  one shared with Review, Tasks filtering and explicit Workspace choice, unlink
+  on Main without changing Review, unchanged editor/tab/layout snapshots, and
+  normal Quit/reopen with persisted links. The real SDK/IPC/Store ran against an
+  isolated scripted GraphQL service; all provider mutations were refused. This
+  is not a claim of live authenticated Linear acceptance against personal issues.
+- The final hidden rerun passed in 11.1 seconds; screenshots of the two-issue
+  Workspace popover and two-Workspace Tasks chooser were inspected for readable,
+  unclipped controls. Tests never activated a visible window.
+- Final Ether production build and deep signature verification passed. The final
+  packaged app passed empty-profile startup/file/terminal/draft restoration (6.0s)
+  and another actual free-model OpenCode two-root conversation plus normal
+  Quit/reopen (15.4s). The restored chat screenshot was inspected. The installed
+  Homebrew OpenCode CLI remains the separate unresolved item above.

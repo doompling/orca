@@ -9,6 +9,10 @@ import type {
   UpdateLocalWorkspaceArgs
 } from '../../../../shared/local-projects/types'
 import { emptyLocalProjectsState } from '../../../../shared/local-projects/workspace-resolution'
+import type {
+  AttachLocalWorkspaceLinearIssueArgs,
+  DetachLocalWorkspaceLinearIssueArgs
+} from '../../../../shared/local-projects/linear-issues'
 import { hasLocalProjectsApi } from './local-projects-availability'
 import { folderWorkspaceKey } from '../../../../shared/workspace-scope'
 import { findKnownWorktreeById } from '@/store/slices/worktrees/listing/detected-worktree-meta'
@@ -48,6 +52,8 @@ export type LocalProjectsSlice = {
   updateLocalWorkspace: (args: UpdateLocalWorkspaceArgs) => Promise<void>
   updateLocalProjectRoots: (args: UpdateLocalProjectRootsArgs) => Promise<void>
   updateLocalWorkspaceCheckouts: (args: UpdateLocalWorkspaceCheckoutsArgs) => Promise<void>
+  attachLocalWorkspaceLinearIssue: (args: AttachLocalWorkspaceLinearIssueArgs) => Promise<void>
+  detachLocalWorkspaceLinearIssue: (args: DetachLocalWorkspaceLinearIssueArgs) => Promise<void>
 }
 
 function localProjectsApi() {
@@ -118,11 +124,17 @@ export const createLocalProjectsSlice: StateCreator<AppState, [], [], LocalProje
       if (!hasLocalProjectsApi()) {
         return
       }
+      const profileId = get().activeOrcaProfileId
       try {
         const localProjects = await localProjectsApi().getSnapshot()
+        if (get().activeOrcaProfileId !== profileId || get().orcaProfileSwitching) {
+          return
+        }
         set({ localProjects, localProjectsLoaded: true, localProjectsError: null })
       } catch (error) {
-        set({ localProjectsError: error instanceof Error ? error.message : String(error) })
+        if (get().activeOrcaProfileId === profileId && !get().orcaProfileSwitching) {
+          set({ localProjectsError: error instanceof Error ? error.message : String(error) })
+        }
         throw error
       }
     },
@@ -175,6 +187,26 @@ export const createLocalProjectsSlice: StateCreator<AppState, [], [], LocalProje
     updateLocalWorkspace: async (args) => {
       await localProjectsApi().updateWorkspace(args)
       await refreshCatalog()
+    },
+    attachLocalWorkspaceLinearIssue: async (args) => {
+      const profileId = get().activeOrcaProfileId
+      if (get().orcaProfileSwitching) {
+        throw new Error('Wait for the profile switch before linking issues.')
+      }
+      await localProjectsApi().attachLinearIssue(args)
+      if (get().activeOrcaProfileId === profileId && !get().orcaProfileSwitching) {
+        await get().fetchLocalProjects()
+      }
+    },
+    detachLocalWorkspaceLinearIssue: async (args) => {
+      const profileId = get().activeOrcaProfileId
+      if (get().orcaProfileSwitching) {
+        throw new Error('Wait for the profile switch before unlinking issues.')
+      }
+      await localProjectsApi().detachLinearIssue(args)
+      if (get().activeOrcaProfileId === profileId && !get().orcaProfileSwitching) {
+        await get().fetchLocalProjects()
+      }
     },
     updateLocalProjectRoots: async (args) => {
       const state = get()

@@ -16,6 +16,11 @@ import {
 import { localWorkspaceScopeMutationGuard } from './scope-mutation-guard'
 import { CreateLocalRootWorktreeSchema } from '../../shared/local-projects/worktree-creation'
 import { createLocalRootWorktree } from './root-worktree-creation'
+import {
+  AttachLocalWorkspaceLinearIssueSchema,
+  DetachLocalWorkspaceLinearIssueSchema
+} from '../../shared/local-projects/linear-issues'
+import { linkLocalWorkspaceLinearIssue } from './linear-issue-linking'
 
 type LocalProjectIpcStore = Pick<
   Store,
@@ -27,6 +32,8 @@ type LocalProjectIpcStore = Pick<
   | 'updateLocalWorkspace'
   | 'updateLocalProjectRoots'
   | 'updateLocalWorkspaceCheckouts'
+  | 'attachLocalWorkspaceLinearIssue'
+  | 'detachLocalWorkspaceLinearIssue'
 >
 
 export function registerLocalProjectHandlers(
@@ -43,7 +50,9 @@ export function registerLocalProjectHandlers(
     'localProjects:updateProject',
     'localProjects:updateWorkspace',
     'localProjects:updateProjectRoots',
-    'localProjects:updateWorkspaceCheckouts'
+    'localProjects:updateWorkspaceCheckouts',
+    'localProjects:attachLinearIssue',
+    'localProjects:detachLinearIssue'
   ]
   for (const channel of channels) {
     ipcMain.removeHandler(channel)
@@ -91,5 +100,20 @@ export function registerLocalProjectHandlers(
     )
     notifyReposChanged(mainWindow)
     return state
+  })
+  ipcMain.handle('localProjects:attachLinearIssue', async (_event, input: unknown) => {
+    const workspace = await linkLocalWorkspaceLinearIssue(
+      store,
+      AttachLocalWorkspaceLinearIssueSchema.parse(input)
+    )
+    notifyReposChanged(mainWindow)
+    return workspace
+  })
+  ipcMain.handle('localProjects:detachLinearIssue', (_event, input: unknown) => {
+    const workspace = store.detachLocalWorkspaceLinearIssue(
+      DetachLocalWorkspaceLinearIssueSchema.parse(input)
+    )
+    notifyReposChanged(mainWindow)
+    return workspace
   })
 }

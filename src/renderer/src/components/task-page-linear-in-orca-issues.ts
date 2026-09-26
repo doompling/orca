@@ -10,6 +10,8 @@ import { normalizeLinearIdentifier } from '../lib/linear-issue-workspace-attachm
 
 export type LinkedLinearIssueRef = {
   identifier: string
+  issueId?: string
+  organizationId?: string
   workspaceId: string | null
   organizationUrlKey?: string
   sourceContext?: TaskSourceContext | null
@@ -154,10 +156,36 @@ export function linkedLinearIssueRefsSignature(refs: readonly LinkedLinearIssueR
   return refs
     .map((ref) => {
       const sourceScope = ref.sourceContext ? getTaskSourceCacheScope(ref.sourceContext) : ''
-      return `${ref.identifier.toUpperCase()}::${ref.workspaceId ?? ''}::${ref.organizationUrlKey?.toLowerCase() ?? ''}::${sourceScope}`
+      return `${ref.issueId ?? ref.identifier.toUpperCase()}::${ref.organizationId ?? ''}::${ref.workspaceId ?? ''}::${ref.organizationUrlKey?.toLowerCase() ?? ''}::${sourceScope}`
     })
     .sort()
     .join('|')
+}
+
+type LinkedIssueReader = (
+  id: string,
+  workspaceId?: string | null,
+  options?: { sourceContext?: TaskSourceContext | null }
+) => Promise<LinearIssue | null>
+
+export async function readLinkedLinearIssueRef(
+  ref: LinkedLinearIssueRef,
+  options: {
+    fetch: LinkedIssueReader
+    refresh: LinkedIssueReader
+    forceRefresh: boolean
+    workspaceId?: string | null
+    sourceContext: TaskSourceContext | null
+  }
+): Promise<LinearIssue | null> {
+  const read = options.forceRefresh ? options.refresh : options.fetch
+  const result = await read(ref.issueId ?? ref.identifier, ref.workspaceId ?? options.workspaceId, {
+    sourceContext: ref.sourceContext ?? options.sourceContext
+  })
+  if (ref.issueId && (result?.id !== ref.issueId || result.workspaceId !== ref.workspaceId)) {
+    return null
+  }
+  return result
 }
 
 export async function readLinkedLinearIssuesWithLimit(

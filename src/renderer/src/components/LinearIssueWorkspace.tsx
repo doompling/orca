@@ -79,6 +79,8 @@ function LinearIssueWorkspaceIssue({
         issue={detail.displayed}
         issueLoading={detail.issueLoading}
         attachedWorkspace={attachedWorkspace !== null}
+        attachedWorkspaceLabel={attachedWorkspaceLabel}
+        sourceContext={sourceContext}
         variant={variant}
         backLabel={backLabel}
         onClose={onClose}

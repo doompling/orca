@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import type { LocalProjectsState } from './types'
 import { emptyLocalProjectsState } from './workspace-resolution'
+import { LocalWorkspaceLinearIssuesSchema } from './linear-issues'
 
 const id = z
   .string()
@@ -47,6 +48,7 @@ const workspaceSchema = z
     isUnread: z.boolean().optional(),
     isPinned: z.boolean().optional(),
     lastActivityAt: timestamp.optional(),
+    linearIssues: LocalWorkspaceLinearIssuesSchema.optional(),
     createdAt: timestamp,
     updatedAt: timestamp
   })

@@ -41,6 +41,7 @@ export function useTaskPageStoreBindings() {
   const listLinearIssues = useAppStore((s) => s.listLinearIssues)
   const linearListInvalidationToken = useAppStore((s) => s.linearListInvalidationToken)
   const folderWorkspaces = useAppStore((s) => s.folderWorkspaces)
+  const localProjects = useAppStore((s) => s.localProjects)
   const invalidateLinearIssueLists = useAppStore((s) => s.invalidateLinearIssueLists)
   const getCachedLinearIssues = useAppStore((s) => s.getCachedLinearIssues)
   const fetchLinearIssue = useAppStore((s) => s.fetchLinearIssue)
@@ -116,6 +117,7 @@ export function useTaskPageStoreBindings() {
     listLinearIssues,
     linearListInvalidationToken,
     folderWorkspaces,
+    localProjects,
     invalidateLinearIssueLists,
     getCachedLinearIssues,
     fetchLinearIssue,

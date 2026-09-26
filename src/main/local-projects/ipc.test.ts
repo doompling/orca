@@ -3,10 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { LocalProject, LocalWorkspace } from '../../shared/local-projects/types'
 import { registerLocalProjectHandlers } from './ipc'
 
-const { handlers, changed, createWorktree } = vi.hoisted(() => ({
+const { handlers, changed, createWorktree, linkIssue } = vi.hoisted(() => ({
   handlers: new Map<string, (_event: unknown, ...args: unknown[]) => unknown>(),
   changed: vi.fn(),
-  createWorktree: vi.fn(async () => ({ path: '/feature' }))
+  createWorktree: vi.fn(async () => ({ path: '/feature' })),
+  linkIssue: vi.fn()
 }))
 
 vi.mock('electron', () => ({
@@ -19,6 +20,7 @@ vi.mock('electron', () => ({
 }))
 vi.mock('../ipc/repos/repos-changed-notification', () => ({ notifyReposChanged: changed }))
 vi.mock('./root-worktree-creation', () => ({ createLocalRootWorktree: createWorktree }))
+vi.mock('./linear-issue-linking', () => ({ linkLocalWorkspaceLinearIssue: linkIssue }))
 
 const workspace: LocalWorkspace = {
   id: 'workspace',
@@ -52,6 +54,8 @@ function register() {
     resolveLocalWorkspace: vi.fn(() => null),
     updateLocalProject: vi.fn(() => project),
     updateLocalWorkspace: vi.fn(() => workspace),
+    attachLocalWorkspaceLinearIssue: vi.fn(() => workspace),
+    detachLocalWorkspaceLinearIssue: vi.fn(() => workspace),
     updateLocalProjectRoots: vi.fn(async () => ({
       version: 1 as const,
       projects: [project],
@@ -82,12 +86,13 @@ beforeEach(() => {
   handlers.clear()
   changed.mockReset()
   createWorktree.mockClear()
+  linkIssue.mockReset().mockResolvedValue(workspace)
 })
 
 describe('desktop local Project IPC', () => {
   it('registers one validated route per typed API operation', async () => {
     const store = register()
-    expect(handlers.size).toBe(9)
+    expect(handlers.size).toBe(11)
     expect(call('localProjects:getSnapshot')).toEqual(store.getLocalProjectsSnapshot())
     const input = {
       name: 'Application',
@@ -157,5 +162,37 @@ describe('desktop local Project IPC', () => {
       call('localProjects:updateProjectRoots', { ...request, connectionId: 'ssh' })
     ).rejects.toThrow()
     expect(store.updateLocalProjectRoots).toHaveBeenCalledOnce()
+  })
+
+  it('verifies issue links in main and only publishes after successful persistence', async () => {
+    const store = register()
+    const input = { workspaceId: workspace.id, linearWorkspaceId: 'account', issueId: 'issue' }
+    await expect(call('localProjects:attachLinearIssue', input)).resolves.toEqual(workspace)
+    expect(linkIssue).toHaveBeenCalledExactlyOnceWith(store, input)
+    expect(changed).toHaveBeenCalledOnce()
+    await expect(
+      call('localProjects:attachLinearIssue', { ...input, title: 'unverified' })
+    ).rejects.toThrow()
+    await expect(
+      call('localProjects:attachLinearIssue', { ...input, connectionId: 'remote' })
+    ).rejects.toThrow()
+    expect(linkIssue).toHaveBeenCalledOnce()
+    changed.mockClear()
+    linkIssue.mockRejectedValueOnce(new Error('offline'))
+    await expect(call('localProjects:attachLinearIssue', input)).rejects.toThrow('offline')
+    expect(changed).not.toHaveBeenCalled()
+  })
+
+  it('detaches an exact local issue without reading Linear', () => {
+    const store = register()
+    const input = { workspaceId: workspace.id, organizationId: 'org', issueId: 'issue' }
+    expect(call('localProjects:detachLinearIssue', input)).toEqual(workspace)
+    expect(store.detachLocalWorkspaceLinearIssue).toHaveBeenCalledExactlyOnceWith(input)
+    expect(linkIssue).not.toHaveBeenCalled()
+    expect(changed).toHaveBeenCalledOnce()
+    expect(() =>
+      call('localProjects:detachLinearIssue', { ...input, connectionId: 'ssh' })
+    ).toThrow()
+    expect(store.detachLocalWorkspaceLinearIssue).toHaveBeenCalledOnce()
   })
 })

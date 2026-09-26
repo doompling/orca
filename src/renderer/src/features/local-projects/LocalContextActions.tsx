@@ -12,6 +12,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { LocalProjectDialog } from './LocalProjectDialog'
 import { LocalWorkspaceCheckoutDialog } from './LocalWorkspaceCheckoutDialog'
+import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
+import { LocalWorkspaceLinearIssuesContent } from './LocalWorkspaceLinearIssues'
 
 export function LocalContextActions({
   kind,
@@ -43,6 +45,8 @@ export function LocalContextActions({
   })
   const [renaming, setRenaming] = useState(false)
   const [editing, setEditing] = useState(false)
+  const [issuesOpen, setIssuesOpen] = useState(false)
+  const profileId = useAppStore((state) => state.activeOrcaProfileId)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const update = (updates: { name?: string; isArchived?: boolean }) =>
@@ -61,20 +65,31 @@ export function LocalContextActions({
     }
   }
   return (
-    <>
+    <Popover open={issuesOpen} onOpenChange={setIssuesOpen}>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            aria-label={`${kind} actions for ${record.name}`}
-            disabled={busy}
-          >
-            <MoreHorizontal />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent>
+        <PopoverAnchor asChild>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              aria-label={`${kind} actions for ${record.name}`}
+              disabled={busy}
+            >
+              <MoreHorizontal />
+            </Button>
+          </DropdownMenuTrigger>
+        </PopoverAnchor>
+        <DropdownMenuContent
+          onCloseAutoFocus={(event) => {
+            if (issuesOpen) {
+              event.preventDefault()
+            }
+          }}
+        >
           <DropdownMenuItem onSelect={() => setRenaming(true)}>Rename {kind}</DropdownMenuItem>
+          {workspace && (
+            <DropdownMenuItem onSelect={() => setIssuesOpen(true)}>Linear issues…</DropdownMenuItem>
+          )}
           <DropdownMenuItem
             disabled={!project || record.isArchived || project.isArchived}
             onSelect={() => setEditing(true)}
@@ -93,6 +108,15 @@ export function LocalContextActions({
           <DropdownMenuLabel>Archiving keeps files, tabs, and sessions.</DropdownMenuLabel>
         </DropdownMenuContent>
       </DropdownMenu>
+      {workspace && (
+        <PopoverContent align="start" className="w-96 max-w-[90vw]">
+          <LocalWorkspaceLinearIssuesContent
+            key={`${profileId}:${workspace.id}`}
+            workspaceId={workspace.id}
+            onClose={() => setIssuesOpen(false)}
+          />
+        </PopoverContent>
+      )}
       {error && (
         <p role="alert" className="text-xs text-destructive">
           {error}
@@ -121,6 +145,6 @@ export function LocalContextActions({
             />
           )
         ))}
-    </>
+    </Popover>
   )
 }

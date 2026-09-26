@@ -19,10 +19,16 @@ import {
   collectLinkedLinearIssueRefsFromWorktrees,
   linkedLinearIssueRefsSignature
 } from '@/components/task-page-linear-in-orca-issues'
+import { localWorkspaceLinearTaskRefs } from '@/features/local-projects/local-workspace-linear-task-refs'
+import { getProviderRuntimeContextKey } from '@/lib/provider-runtime-context'
 export function useTaskPageLinearFilterSelection(model: TaskPageLinearListSelectionPreludeModel) {
   const {
     allWorktrees,
     linearStatus,
+    linearStatusContextKey,
+    linearStatusChecked,
+    localProjects,
+    linearTaskSourceContext,
     folderWorkspaces,
     selectedLinearWorkspaceId,
     linearMode,
@@ -117,12 +123,30 @@ export function useTaskPageLinearFilterSelection(model: TaskPageLinearListSelect
     [linearAttachmentWorkspaces]
   )
   const inOrcaLinkedLinearRefs = useMemo(
-    () =>
-      collectLinkedLinearIssueRefsFromWorktrees(linearAttachmentWorkspaces, {
+    () => [
+      ...collectLinkedLinearIssueRefsFromWorktrees(linearAttachmentWorkspaces, {
         workspaceId: selectedLinearWorkspaceId,
         workspaces: linearStatus.workspaces ?? []
       }),
-    [linearAttachmentWorkspaces, linearStatus.workspaces, selectedLinearWorkspaceId]
+      ...localWorkspaceLinearTaskRefs({
+        catalog: localProjects,
+        accounts:
+          linearStatusChecked && linearStatusContextKey === getProviderRuntimeContextKey(null)
+            ? (linearStatus.workspaces ?? [])
+            : [],
+        selectedAccountId: selectedLinearWorkspaceId,
+        sourceContext: linearTaskSourceContext
+      })
+    ],
+    [
+      linearAttachmentWorkspaces,
+      linearStatus.workspaces,
+      linearStatusContextKey,
+      linearStatusChecked,
+      localProjects,
+      linearTaskSourceContext,
+      selectedLinearWorkspaceId
+    ]
   )
   const inOrcaLinkedLinearRefsSignature = useMemo(
     () => linkedLinearIssueRefsSignature(inOrcaLinkedLinearRefs),

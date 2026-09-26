@@ -29,7 +29,13 @@
         "shadcn/no-restyle": [
           "error",
           {
-            "allow": ["layout"]
+            "allow": ["layout"],
+            "contracts": [
+              {
+                "pattern": "CommandItem",
+                "allow": ["layout", "jump-palette-item"]
+              }
+            ]
           }
         ],
         "shadcn/no-raw-colors": [

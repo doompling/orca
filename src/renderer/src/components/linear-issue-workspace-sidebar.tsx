@@ -12,6 +12,7 @@ import type { LinearProjectSummary } from '../../../shared/linear/project-types'
 import type { TaskSourceContext } from '../../../shared/task-source-context'
 import { copyLinearIssueText } from './linear-issue-clipboard'
 import { LinearIssueProjectSelector } from './linear-issue-project-selector'
+import { LocalIssueWorkspaceLinks } from '@/features/local-projects/LocalIssueWorkspaceLinks'
 
 function LinearIssueWorkspaceAttachmentCard({
   label,
@@ -158,10 +159,12 @@ export function LinearIssueWorkspaceSidebar({
         onProjectChanged={onProjectChanged}
         sourceContext={sourceContext}
       />
-      <LinearIssueWorkspaceAttachmentCard
-        label={attachedWorkspaceLabel}
-        onOpen={onOpenAttachedWorkspace}
-      />
+      <LocalIssueWorkspaceLinks issue={issue} sourceContext={sourceContext}>
+        <LinearIssueWorkspaceAttachmentCard
+          label={attachedWorkspaceLabel}
+          onOpen={onOpenAttachedWorkspace}
+        />
+      </LocalIssueWorkspaceLinks>
       <LinearIssueActionsCard issue={issue} comments={comments} />
     </aside>
   )

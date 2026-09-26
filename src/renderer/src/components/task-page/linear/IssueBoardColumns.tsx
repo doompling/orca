@@ -9,6 +9,7 @@ import { translate } from '@/i18n/i18n'
 import { FolderOpen, ArrowRight, ExternalLink } from 'lucide-react'
 import { LinearStateCell } from '../../task-page-linear-issue-model'
 import { formatRelativeTime } from '../../task-page-source-context'
+import { LocalIssueWorkspaceActions } from '@/features/local-projects/LocalIssueWorkspaceActions'
 export function TaskPageLinearIssueBoardColumns({
   model
 }: {
@@ -111,48 +112,55 @@ export function TaskPageLinearIssueBoardColumns({
                       </h3>
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            // Why: solid primary when a workspace is already linked so Open reads stronger than Start.
-                            variant={attachedWorkspace ? 'default' : 'ghost'}
-                            size="icon-xs"
-                            data-contextual-tour-target="tasks-start-workspace"
-                            onClick={(event) => {
-                              event.stopPropagation()
-                              handleOpenOrUseLinearItem(issue)
-                            }}
-                            aria-label={
-                              attachedWorkspace
-                                ? translate(
-                                    'auto.components.TaskPage.linearOpenAttachedWorkspace',
-                                    'Open workspace attached to {{value0}}',
-                                    {
-                                      value0: issue.identifier
-                                    }
-                                  )
-                                : translate(
-                                    'auto.components.TaskPage.ff90d0abc7',
-                                    'Start workspace from {{value0}}',
-                                    {
-                                      value0: issue.identifier
-                                    }
-                                  )
-                            }
-                          >
-                            {attachedWorkspace ? (
-                              <FolderOpen className="size-3.5" />
-                            ) : (
-                              <ArrowRight className="size-3.5" />
-                            )}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom" sideOffset={6}>
-                          {attachedWorkspace
-                            ? translate('auto.components.TaskPage.606a85c774', 'Open')
-                            : translate('auto.components.TaskPage.7d08e8be0f', 'Start')}
-                        </TooltipContent>
-                      </Tooltip>
+                      <LocalIssueWorkspaceActions
+                        issue={issue}
+                        sourceContext={linearTaskSourceContext}
+                        legacyWorkspaceLabel={attachedWorkspaceLabel}
+                        onOpenLegacyWorkspace={() => handleOpenOrUseLinearItem(issue)}
+                      >
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              // Why: solid primary when a workspace is already linked so Open reads stronger than Start.
+                              variant={attachedWorkspace ? 'default' : 'ghost'}
+                              size="icon-xs"
+                              data-contextual-tour-target="tasks-start-workspace"
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                handleOpenOrUseLinearItem(issue)
+                              }}
+                              aria-label={
+                                attachedWorkspace
+                                  ? translate(
+                                      'auto.components.TaskPage.linearOpenAttachedWorkspace',
+                                      'Open workspace attached to {{value0}}',
+                                      {
+                                        value0: issue.identifier
+                                      }
+                                    )
+                                  : translate(
+                                      'auto.components.TaskPage.ff90d0abc7',
+                                      'Start workspace from {{value0}}',
+                                      {
+                                        value0: issue.identifier
+                                      }
+                                    )
+                              }
+                            >
+                              {attachedWorkspace ? (
+                                <FolderOpen className="size-3.5" />
+                              ) : (
+                                <ArrowRight className="size-3.5" />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom" sideOffset={6}>
+                            {attachedWorkspace
+                              ? translate('auto.components.TaskPage.606a85c774', 'Open')
+                              : translate('auto.components.TaskPage.7d08e8be0f', 'Start')}
+                          </TooltipContent>
+                        </Tooltip>
+                      </LocalIssueWorkspaceActions>
                       <Button
                         variant="ghost"
                         size="icon-xs"

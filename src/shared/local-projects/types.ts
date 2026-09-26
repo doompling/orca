@@ -1,8 +1,15 @@
 import type { UpdateLocalProjectRootsArgs, UpdateLocalWorkspaceCheckoutsArgs } from './scope-update'
 import type {
+  AttachLocalWorkspaceLinearIssueArgs,
+  DetachLocalWorkspaceLinearIssueArgs,
+  LocalWorkspaceLinearIssue
+} from './linear-issues'
+import type {
   CreateLocalRootWorktreeArgs,
   CreateLocalRootWorktreeResult
 } from './worktree-creation'
+
+export type { LocalWorkspaceLinearIssue }
 
 export type LocalProjectRoot = {
   id: string
@@ -31,6 +38,7 @@ export type LocalWorkspace = {
   isUnread?: boolean
   isPinned?: boolean
   lastActivityAt?: number
+  linearIssues?: LocalWorkspaceLinearIssue[]
   createdAt: number
   updatedAt: number
 }
@@ -88,4 +96,6 @@ export type LocalProjectsApi = {
   updateWorkspace: (args: UpdateLocalWorkspaceArgs) => Promise<LocalWorkspace>
   updateProjectRoots: (args: UpdateLocalProjectRootsArgs) => Promise<LocalProjectsState>
   updateWorkspaceCheckouts: (args: UpdateLocalWorkspaceCheckoutsArgs) => Promise<LocalProjectsState>
+  attachLinearIssue: (args: AttachLocalWorkspaceLinearIssueArgs) => Promise<LocalWorkspace>
+  detachLinearIssue: (args: DetachLocalWorkspaceLinearIssueArgs) => Promise<LocalWorkspace>
 }
