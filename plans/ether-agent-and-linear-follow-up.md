@@ -22,7 +22,7 @@ and nested config overrides produced the correct scope. The existing override
 format does not need changing. The generic connection message obscured this
 failure; an old failed tab may replay its failed launch, so verify a new tab.
 
-### 2. OpenCode editor-rendered chat — implemented, live verified
+### 2. OpenCode editor-rendered chat — complete
 
 - [x] Inspect and reuse Orca's existing OpenCode/provider integration.
 - [x] Support the normal Workspace launch path with every root in scope and
@@ -33,8 +33,8 @@ failure; an old failed tab may replay its failed launch, so verify a new tab.
       authentication is unavailable, distinguish scripted coverage from unverified
       live use instead of claiming full acceptance.
 - [x] Rebuild Ether and commit any required changes separately.
-- [ ] Resolve the installed Homebrew CLI's upstream prompt-crash bug before
-      normal OpenCode use. Updating that separate installation awaits user approval.
+- [x] Resolve the installed Homebrew CLI's upstream prompt-crash bug before
+      normal OpenCode use. Approved upgrade to `1.18.30_2` passed live acceptance.
 
 Implementation boundary: a local OpenCode adapter uses the existing structured
 chat, session journal, status, and ownership machinery. Its privately owned
@@ -48,11 +48,14 @@ No credentials were copied; the free provider worked without a stored sign-in.
 The temporary binary was verified against the official release SHA-256 and
 selected only in the disposable test profile's existing per-agent PATH setting.
 
-The machine's Homebrew build of the same version crashes before any model
+The machine's previous Homebrew build (`1.18.30_1`) crashed before any model
 request, matching [upstream issue 48803](https://github.com/anomalyco/opencode/issues/48803).
-It remains untouched pending approval to update the separate CLI installation.
-Do not interpret native-chat test success with the official binary as success
-with that broken Homebrew binary.
+After approval, Homebrew upgraded only OpenCode to `1.18.30_2`. Its
+[formula](https://raw.githubusercontent.com/Homebrew/homebrew-core/HEAD/Formula/o/opencode.rb)
+disables the build splitting responsible for server failures. The installed CLI
+now passes the same packaged native-chat test without a temporary binary or
+per-agent PATH override. `opencode --version` still reports `1.18.30`; the `_2`
+is Homebrew's packaging revision. The previous revision is retained for rollback.
 
 Text, tools, approvals, grouped questions, model selection, cancellation, and
 saved-session reopening use the existing structured-chat host. Attachments,
@@ -113,6 +116,7 @@ status transition, branch selection, or automatic agent instruction.
 
 - Codex fix and acceptance tests committed as `4248962716`.
 - OpenCode editor chat committed as `7908178403`.
+- Linear Workspace linking and Tasks integration committed as `4a947be8f7`.
 
 - Initial Codex diagnosis: isolated app-server handshake/config/read/thread/start
   reproduced the response shape; no model turn, user credentials, or personal
@@ -162,5 +166,11 @@ status transition, branch selection, or automatic agent instruction.
 - Final Ether production build and deep signature verification passed. The final
   packaged app passed empty-profile startup/file/terminal/draft restoration (6.0s)
   and another actual free-model OpenCode two-root conversation plus normal
-  Quit/reopen (15.4s). The restored chat screenshot was inspected. The installed
-  Homebrew OpenCode CLI remains the separate unresolved item above.
+  Quit/reopen (15.4s). The restored chat screenshot was inspected. This initial
+  acceptance used the official test binary; normal Homebrew acceptance follows.
+- After the approved Homebrew upgrade, `/opt/homebrew/bin/opencode` resolves to
+  `Cellar/opencode/1.18.30_2/bin/opencode`. The same packaged Ether passed the live
+  `opencode/ling-3.0-flash-fin-free` test with no binary/PATH override (14.3s): both
+  fixture roots read, reply rendered, original files unchanged, and the same chat
+  restored after normal Quit/reopen. No Ether rebuild or provider settings change
+  was needed. Homebrew retained `1.18.30_1`; no other packages were upgraded.
