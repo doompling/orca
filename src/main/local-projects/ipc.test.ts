@@ -195,4 +195,25 @@ describe('desktop local Project IPC', () => {
     ).toThrow()
     expect(store.detachLocalWorkspaceLinearIssue).toHaveBeenCalledOnce()
   })
+
+  it('passes only the exact issue selection into atomic Workspace creation', async () => {
+    const store = register()
+    const input = {
+      projectId: project.id,
+      name: 'ENG-1 Work',
+      linearIssue: { linearWorkspaceId: 'account', issueId: 'uuid' }
+    }
+    await expect(call('localProjects:createWorkspace', input)).resolves.toEqual(workspace)
+    expect(store.createLocalWorkspace).toHaveBeenCalledExactlyOnceWith(input)
+    for (const linearIssue of [
+      { ...input.linearIssue, title: 'unverified' },
+      { ...input.linearIssue, connectionId: 'remote' },
+      { ...input.linearIssue, linearWorkspaceId: 'all' }
+    ]) {
+      await expect(
+        call('localProjects:createWorkspace', { ...input, linearIssue })
+      ).rejects.toThrow()
+    }
+    expect(store.createLocalWorkspace).toHaveBeenCalledOnce()
+  })
 })

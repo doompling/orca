@@ -38,7 +38,7 @@ export function TaskPageLinearProjectList({
         <LinearProjectTable
           projects={linearProjectsResult.items}
           loading={linearProjectsLoading}
-          hasError={!!linearProjectsResult.errors?.length}
+          hasError={!!linearProjectsError || !!linearProjectsResult.errors?.length}
           workspaceSelection={selectedLinearWorkspaceId}
           onSelectProject={openLinearProjectContext}
           onOpenProject={(project) => {

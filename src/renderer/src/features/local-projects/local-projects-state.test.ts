@@ -35,14 +35,17 @@ function setup(catalog = fixture()) {
   const createProject = vi
     .fn()
     .mockResolvedValue({ project: catalog.projects[0], workspace: catalog.workspaces[0] })
-  vi.stubGlobal('window', { api: { localProjects: { getSnapshot, updateProject, createProject } } })
+  const createWorkspace = vi.fn().mockResolvedValue(catalog.workspaces[1])
+  vi.stubGlobal('window', {
+    api: { localProjects: { getSnapshot, updateProject, createProject, createWorkspace } }
+  })
   const store = createTestStore()
   store.setState({
     localProjects: catalog,
     folderWorkspaces: projectLocalFolderWorkspaces(catalog),
     fetchFolderWorkspacesForAllHosts: vi.fn().mockResolvedValue(undefined)
   })
-  return { store, getSnapshot, updateProject, createProject }
+  return { store, getSnapshot, updateProject, createProject, createWorkspace }
 }
 
 afterEach(() => vi.unstubAllGlobals())
@@ -98,5 +101,18 @@ describe('Local Project activation and creation', () => {
       store.getState().createLocalProject({ name: 'Application', roots: [{ path: '/code/app' }] })
     ).rejects.toThrow('disk full')
     expect(store.getState().activeWorktreeId).toBeNull()
+  })
+
+  it('does not retry committed ticket Workspace creation when presentation refresh fails', async () => {
+    const { store, getSnapshot, createWorkspace } = setup()
+    getSnapshot.mockRejectedValue(new Error('catalog unavailable'))
+    const args = {
+      projectId: 'project',
+      name: 'ENG-1 Work',
+      linearIssue: { linearWorkspaceId: 'account', issueId: 'issue' }
+    }
+    await expect(store.getState().createLocalWorkspace(args)).resolves.toBeUndefined()
+    expect(createWorkspace).toHaveBeenCalledExactlyOnceWith(args)
+    expect(store.getState().localProjectsError).toContain('was created, but could not be opened')
   })
 })

@@ -32,6 +32,7 @@ export function TaskPageLinearIssueBoardColumns({
     handleLinearBoardCardDragStart,
     handleLinearBoardDragOver,
     handleLinearBoardDrop,
+    handleUseLinearItem,
     handleOpenOrUseLinearItem
   } = model
   return (
@@ -117,6 +118,7 @@ export function TaskPageLinearIssueBoardColumns({
                         sourceContext={linearTaskSourceContext}
                         legacyWorkspaceLabel={attachedWorkspaceLabel}
                         onOpenLegacyWorkspace={() => handleOpenOrUseLinearItem(issue)}
+                        onCreateWorkspace={() => handleUseLinearItem(issue)}
                       >
                         <Tooltip>
                           <TooltipTrigger asChild>

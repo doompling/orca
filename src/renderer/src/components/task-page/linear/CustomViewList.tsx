@@ -35,7 +35,7 @@ export function TaskPageLinearCustomViewList({
         <LinearCustomViewTable
           views={linearCustomViewsResult.items}
           loading={linearCustomViewsLoading}
-          hasError={!!linearCustomViewsResult.errors?.length}
+          hasError={!!linearCustomViewsError || !!linearCustomViewsResult.errors?.length}
           workspaceSelection={selectedLinearWorkspaceId}
           onSelectView={openLinearCustomViewContext}
           onOpenView={(view) => {

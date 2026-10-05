@@ -27,6 +27,15 @@ function linksPopover(page: Page) {
   })
 }
 
+function sidebarIssue(page: Page, name: string, issue?: typeof SHARED_ISSUE) {
+  return page.getByRole('region', { name: PROJECT, exact: true }).getByRole('button', {
+    name: issue
+      ? `Linear issue ${issue.identifier}: ${issue.title} for ${name}`
+      : `Link Linear issue to ${name}`,
+    exact: true
+  })
+}
+
 async function openLinks(page: Page, count: number) {
   await page.getByRole('button', { name: `Linear issues (${count})`, exact: true }).click()
   await expect(linksPopover(page)).toBeVisible()
@@ -119,15 +128,80 @@ test('links multiple Linear issues without coupling Workspace tabs and restores 
     await createProject(page, PROJECT, [firstRoot, secondRoot])
     await openRootReadme(page, 'app_a')
     const main = await editorSnapshot(page)
-    await openLinks(page, 0)
+    await sidebarIssue(page, 'Main').click()
+    await expect(linksPopover(page)).toBeVisible()
+    await expect(linksPopover(page).getByPlaceholder('Search Linear issues…')).toBeEnabled()
+    await expect(linksPopover(page).getByRole('option')).toHaveCount(0)
     await attachIssue(page, SHARED_ISSUE)
-    await attachIssue(page, MAIN_ISSUE)
+    await expect(sidebarIssue(page, 'Main', SHARED_ISSUE)).toContainText(SHARED_ISSUE.identifier)
+    await expect(sidebarIssue(page, 'Main', SHARED_ISSUE)).toContainText(SHARED_ISSUE.title)
+    await linksPopover(page)
+      .getByPlaceholder('Search Linear issues…')
+      .fill(`https://linear.app/ether-fixture/issue/${MAIN_ISSUE.identifier}/fixture`)
+    await linksPopover(page).getByRole('option').filter({ hasText: MAIN_ISSUE.title }).click()
     await expect(linksPopover(page).getByRole('listitem')).toHaveCount(2)
+    await expect(sidebarIssue(page, 'Main', MAIN_ISSUE)).toContainText(MAIN_ISSUE.identifier)
+    await expect(sidebarIssue(page, 'Main', MAIN_ISSUE)).toContainText(MAIN_ISSUE.title)
+    await linksPopover(page).getByPlaceholder('Search Linear issues…').fill('')
+    await expect(linksPopover(page).getByRole('option')).toHaveCount(0)
+    await linksPopover(page)
+      .getByRole('button', { name: `Refresh ${MAIN_ISSUE.identifier} details`, exact: true })
+      .click()
+    await expect(
+      linksPopover(page).getByRole('button', {
+        name: `Refresh ${MAIN_ISSUE.identifier} details`,
+        exact: true
+      })
+    ).toBeEnabled()
     await page.screenshot({
       path: testInfo.outputPath('linear-workspace-two-issues.png'),
       animations: 'disabled'
     })
+    await page.emulateMedia({ colorScheme: 'dark' })
+    await expect(page.locator('html')).toHaveClass(/dark/)
+    await page.screenshot({
+      path: testInfo.outputPath('linear-workspace-dark.png'),
+      animations: 'disabled'
+    })
+    await page.emulateMedia({ colorScheme: 'light' })
+    await expect(page.locator('html')).toHaveClass(/light/)
     await closeLinks(page)
+    expect(await editorSnapshot(page)).toEqual(main)
+
+    await page.evaluate(() => window.__store?.getState().setSidebarWidth(220))
+    await expect
+      .poll(() =>
+        sidebarIssue(page, 'Main', MAIN_ISSUE).evaluate(
+          (button) => button.scrollWidth <= button.clientWidth
+        )
+      )
+      .toBe(true)
+    await page.screenshot({ path: testInfo.outputPath('linear-sidebar-light.png') })
+    await page.emulateMedia({ colorScheme: 'dark' })
+    await expect(page.locator('html')).toHaveClass(/dark/)
+    await page.screenshot({ path: testInfo.outputPath('linear-sidebar-dark.png') })
+    await page.emulateMedia({ colorScheme: 'light' })
+    await sidebarIssue(page, 'Main', MAIN_ISSUE).focus()
+    await page.keyboard.press('Enter')
+    await expect(linksPopover(page)).toBeVisible()
+    await expect
+      .poll(() =>
+        linksPopover(page).evaluate((popover) => {
+          const bounds = popover.getBoundingClientRect()
+          return bounds.top >= 0 && bounds.bottom <= window.innerHeight
+        })
+      )
+      .toBe(true)
+    await closeLinks(page)
+    await expect(sidebarIssue(page, 'Main', MAIN_ISSUE)).toBeFocused()
+    await page.keyboard.press('Space')
+    await expect(linksPopover(page)).toBeVisible()
+    await linksPopover(page)
+      .getByRole('button', { name: `Open ${MAIN_ISSUE.identifier} in Ether`, exact: true })
+      .click()
+    await expect(linksPopover(page)).toHaveCount(0)
+    await expect(page.getByText(MAIN_ISSUE.title, { exact: true }).first()).toBeVisible()
+    await workspaceRow(page, 'Main').click()
     expect(await editorSnapshot(page)).toEqual(main)
 
     await createWorkspace(page, PROJECT, 'Review')
@@ -139,6 +213,10 @@ test('links multiple Linear issues without coupling Workspace tabs and restores 
     )
     await openLinks(page, 0)
     await attachIssue(page, SHARED_ISSUE)
+    await closeLinks(page)
+    await sidebarIssue(page, 'Main', MAIN_ISSUE).click()
+    await expect(linksPopover(page).getByRole('listitem')).toHaveCount(2)
+    await expect(workspaceRow(page, 'Review')).toHaveAttribute('aria-current', 'page')
     await closeLinks(page)
     expect(await editorSnapshot(page)).toEqual(review)
     expect(await editorSnapshot(page, main.owner)).toEqual(main)
@@ -175,6 +253,9 @@ test('links multiple Linear issues without coupling Workspace tabs and restores 
       linksPopover(page).getByRole('list', { name: 'Linked Linear issues' })
     ).not.toContainText(SHARED_ISSUE.identifier)
     await closeLinks(page)
+    await expect(sidebarIssue(page, 'Main', MAIN_ISSUE)).toBeVisible()
+    await expect(sidebarIssue(page, 'Main', SHARED_ISSUE)).toHaveCount(0)
+    await expect(sidebarIssue(page, 'Review', SHARED_ISSUE)).toBeVisible()
     await workspaceRow(page, 'Review').click()
     await openLinks(page, 1)
     await expect(
@@ -195,6 +276,8 @@ test('links multiple Linear issues without coupling Workspace tabs and restores 
     await waitForSessionReady(second.page)
     await connectLocalProjectLinearFixture(second.app, second.page)
     await expect(workspaceRow(second.page, 'Review')).toHaveAttribute('aria-current', 'page')
+    await expect(sidebarIssue(second.page, 'Main', MAIN_ISSUE)).toBeVisible()
+    await expect(sidebarIssue(second.page, 'Review', SHARED_ISSUE)).toBeVisible()
     await expect(second.page.locator('.rich-markdown-editor:visible')).toContainText(
       'app_b independent editor'
     )

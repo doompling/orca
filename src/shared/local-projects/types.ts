@@ -2,7 +2,8 @@ import type { UpdateLocalProjectRootsArgs, UpdateLocalWorkspaceCheckoutsArgs } f
 import type {
   AttachLocalWorkspaceLinearIssueArgs,
   DetachLocalWorkspaceLinearIssueArgs,
-  LocalWorkspaceLinearIssue
+  LocalWorkspaceLinearIssue,
+  LocalWorkspaceLinearIssueSelection
 } from './linear-issues'
 import type {
   CreateLocalRootWorktreeArgs,
@@ -72,6 +73,7 @@ export type CreateLocalWorkspaceArgs = {
   name: string
   checkoutOverridesByRootId?: Record<string, string>
   defaultRootId?: string
+  linearIssue?: LocalWorkspaceLinearIssueSelection
 }
 
 export type UpdateLocalProjectArgs = {

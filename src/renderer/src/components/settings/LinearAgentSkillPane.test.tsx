@@ -194,7 +194,8 @@ describe('LinearAgentSkillPane', () => {
     const markup = renderToStaticMarkup(<LinearAgentSkillPane />)
 
     expect(markup).toContain('Setup checklist')
-    expect(markup).toContain('2. Install the agent skill')
+    expect(markup).toContain('Optional: Linear agent skill')
+    expect(markup).toContain('2. Show Linear in Tasks')
     expect(mocks.panelProps.at(-1)).toEqual(
       expect.objectContaining({ hideHeader: true, description: null })
     )
@@ -203,7 +204,7 @@ describe('LinearAgentSkillPane', () => {
     expect(markup).toContain('Example prompts')
     expect(markup).toContain('Good to know')
     expect(markup).toContain('Start from a Linear issue')
-    expect(markup).toContain('All set')
+    expect(markup).toContain('>Ready<')
     // Skill lives inside the checklist; notes stay after examples.
     expect(markup.indexOf('Example prompts')).toBeLessThan(markup.indexOf('Good to know'))
     const examples = getLinearUsageExamples()
@@ -215,20 +216,22 @@ describe('LinearAgentSkillPane', () => {
     }
   })
 
-  it('reports an unverifiable skill scan as unknown instead of an unfinished step', () => {
+  it('keeps browsing ready when an optional skill scan is unverifiable', () => {
     mocks.skillInstalled = false
     mocks.skillUnverifiable = true
     const markup = renderToStaticMarkup(<LinearAgentSkillPane />)
 
-    expect(markup).toContain('Cannot verify')
+    expect(markup).toContain('>Ready<')
+    expect(markup).not.toContain('Cannot verify')
     expect(markup).not.toContain('2 of 3 ready')
   })
 
-  it('shows incomplete checklist when the skill is missing', () => {
+  it('shows ready browsing and the optional installer when the skill is missing', () => {
     mocks.skillInstalled = false
     const markup = renderToStaticMarkup(<LinearAgentSkillPane />)
 
-    expect(markup).toContain('2 of 3 ready')
+    expect(markup).toContain('>Ready<')
+    expect(markup).not.toContain('2 of 3 ready')
     expect(mocks.panelProps.at(-1)).toEqual(
       expect.objectContaining({ hideHeader: true, description: null })
     )

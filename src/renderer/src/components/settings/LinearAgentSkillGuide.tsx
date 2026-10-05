@@ -24,8 +24,6 @@ type LinearAgentSkillGuideProps = {
   readiness: LinearSetupReadiness
   onOpenTaskSources: () => void
   onManageLinearAccess: () => void
-  // Why: skill install/update lives once under step 2 so the page does not
-  // repeat an "Agent skill" section after the checklist.
   skillPanel: ReactNode
 }
 
@@ -69,40 +67,22 @@ function SetupStatusIcon({
   )
 }
 
-type LinearSetupPill = { tone: IntegrationStatusTone; label: string; showCount: boolean }
+type LinearSetupPill = { tone: IntegrationStatusTone; label: string }
 
 function getLinearSetupPill(readiness: LinearSetupReadiness): LinearSetupPill {
   const { completed, total } = getTaskProviderCompletedSteps(readiness)
-  // Why: route through the card's status so the two Linear surfaces share one
-  // precedence. Reading `skillUnverifiable` directly here headlined "Cannot verify"
-  // over a step the user had plainly not done (or before they had even connected).
   const status = getTaskProviderSetupStatus(readiness)
-  // Tone is the shared table's call, not this surface's; only the copy differs.
   const tone = TASK_PROVIDER_SETUP_STATUS_TONE[status]
   if (status === 'checking') {
     return {
       tone,
-      label: translate('auto.components.settings.LinearAgentSkillGuide.setupChecking', 'Checking…'),
-      showCount: false
+      label: translate('auto.components.settings.LinearAgentSkillGuide.setupChecking', 'Checking…')
     }
   }
   if (status === 'ready') {
     return {
       tone,
-      label: translate('auto.components.settings.LinearAgentSkillGuide.setupReady', 'All set'),
-      showCount: false
-    }
-  }
-  // Why: a scan that cannot vouch for "not installed" must not be counted against
-  // the user, so the label reports what was confirmed instead of asserting a failure.
-  if (status === 'skill-unverified') {
-    return {
-      tone,
-      label: translate(
-        'auto.components.settings.LinearAgentSkillGuide.setupUnverified',
-        'Cannot verify'
-      ),
-      showCount: true
+      label: translate('auto.components.settings.LinearAgentSkillGuide.browsingReady', 'Ready')
     }
   }
   return {
@@ -111,22 +91,18 @@ function getLinearSetupPill(readiness: LinearSetupReadiness): LinearSetupPill {
       'auto.components.settings.LinearAgentSkillGuide.setupProgress',
       '{{done}} of {{total}} ready',
       { done: completed, total }
-    ),
-    showCount: false
+    )
   }
 }
 
-// Connect, skill, and Tasks visibility in one checklist — skill UI is inlined.
+// Task browsing has two requirements; agent tooling remains a separate option.
 export function LinearAgentSkillGuide({
   readiness,
   onOpenTaskSources,
   onManageLinearAccess,
   skillPanel
 }: LinearAgentSkillGuideProps): React.JSX.Element {
-  // Share the Task Sources card's arithmetic so the two Linear setup surfaces
-  // cannot disagree about the same three facts; the copy stays count-based here.
   const pill = getLinearSetupPill(readiness)
-  const { completed, total } = getTaskProviderCompletedSteps(readiness)
 
   return (
     <section className="space-y-3 rounded-xl border border-border/60 bg-card/30 p-4">
@@ -140,21 +116,12 @@ export function LinearAgentSkillGuide({
           </h3>
           <p className="text-xs text-muted-foreground">
             {translate(
-              'auto.components.settings.LinearAgentSkillGuide.setupBody',
-              'All three are required for the full Tasks + agent loop. First-time path is also under Task Sources.'
+              'auto.components.settings.LinearAgentSkillGuide.browsingSetupBody',
+              'Connect Linear and show it in Tasks to browse issues and link Workspaces. The agent skill below is optional.'
             )}
           </p>
         </div>
-        <span className="inline-flex items-center gap-2">
-          <IntegrationStatusPill tone={pill.tone}>{pill.label}</IntegrationStatusPill>
-          {pill.showCount ? (
-            // Mirrors the Task Sources card so the confirmed count survives a label
-            // that no longer carries it.
-            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-              {`${completed}/${total}`}
-            </span>
-          ) : null}
-        </span>
+        <IntegrationStatusPill tone={pill.tone}>{pill.label}</IntegrationStatusPill>
       </div>
 
       <div className="divide-y divide-border/50">
@@ -171,8 +138,8 @@ export function LinearAgentSkillGuide({
             </p>
             <p className="text-xs text-muted-foreground">
               {translate(
-                'auto.components.settings.LinearAgentSkillGuide.setupConnectBody',
-                'Personal API key so Orca can list issues and open linked workspaces.'
+                'auto.components.settings.LinearAgentSkillGuide.browsingConnectBody',
+                'Personal API key to browse Linear issues and link them to Workspaces.'
               )}
             </p>
           </div>
@@ -192,33 +159,6 @@ export function LinearAgentSkillGuide({
           </Button>
         </div>
 
-        <div className="space-y-3 py-3">
-          <div className="flex flex-wrap items-start gap-3">
-            <div className="mt-0.5">
-              <SetupStatusIcon
-                done={readiness.skillInstalled}
-                checking={readiness.skillChecking}
-                unverifiable={readiness.skillUnverifiable}
-              />
-            </div>
-            <div className="min-w-0 flex-1 space-y-0.5">
-              <p className="text-sm font-medium text-foreground">
-                {translate(
-                  'auto.components.settings.LinearAgentSkillGuide.setupSkillTitle',
-                  '2. Install the agent skill'
-                )}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {translate(
-                  'auto.components.settings.LinearAgentSkillGuide.setupSkillBody',
-                  'Gives coding agents /orca-linear for reading, updates, triage, and attaching pull or merge requests.'
-                )}
-              </p>
-            </div>
-          </div>
-          {skillPanel}
-        </div>
-
         <div className="flex flex-wrap items-start gap-3 py-3">
           <div className="mt-0.5">
             <SetupStatusIcon done={readiness.visible} checking={false} />
@@ -226,8 +166,8 @@ export function LinearAgentSkillGuide({
           <div className="min-w-0 flex-1 space-y-0.5">
             <p className="text-sm font-medium text-foreground">
               {translate(
-                'auto.components.settings.LinearAgentSkillGuide.setupVisibleTitle',
-                '3. Show Linear in Tasks'
+                'auto.components.settings.LinearAgentSkillGuide.browsingVisibleTitle',
+                '2. Show Linear in Tasks'
               )}
             </p>
             <p className="text-xs text-muted-foreground">
@@ -249,6 +189,32 @@ export function LinearAgentSkillGuide({
               'Task Sources'
             )}
           </Button>
+        </div>
+        <div className="space-y-3 py-3">
+          <div className="flex flex-wrap items-start gap-3">
+            <div className="mt-0.5">
+              <SetupStatusIcon
+                done={readiness.skillInstalled}
+                checking={readiness.skillChecking}
+                unverifiable={readiness.skillUnverifiable}
+              />
+            </div>
+            <div className="min-w-0 flex-1 space-y-0.5">
+              <p className="text-sm font-medium text-foreground">
+                {translate(
+                  'auto.components.settings.LinearAgentSkillGuide.optionalSkillTitle',
+                  'Optional: Linear agent skill'
+                )}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {translate(
+                  'auto.components.settings.LinearAgentSkillGuide.optionalSkillBody',
+                  'Adds /orca-linear for agents that support skills. Browsing issues and linking Workspaces work without it.'
+                )}
+              </p>
+            </div>
+          </div>
+          {skillPanel}
         </div>
       </div>
     </section>

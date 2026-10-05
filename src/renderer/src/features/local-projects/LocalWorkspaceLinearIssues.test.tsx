@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { linearSearchIssues, linearStatus } from '@/runtime/runtime-linear-client'
+import { linearListIssues, linearSearchIssues, linearStatus } from '@/runtime/runtime-linear-client'
 import {
   LocalWorkspaceLinearIssues,
   LocalWorkspaceLinearIssuesContent
@@ -22,11 +22,14 @@ const actions = vi.hoisted(() => ({
 }))
 vi.mock('@/runtime/runtime-linear-client', () => ({
   linearStatus: vi.fn(),
-  linearSearchIssues: vi.fn()
+  linearSearchIssues: vi.fn(),
+  linearListIssues: vi.fn()
 }))
 vi.mock('@/store', () => ({
-  useAppStore: (selector: (value: ReturnType<typeof currentState>) => unknown) =>
-    selector(currentState())
+  useAppStore: Object.assign(
+    (selector: (value: ReturnType<typeof currentState>) => unknown) => selector(currentState()),
+    { getState: currentState }
+  )
 }))
 let catalog = localLinearCatalog()
 let switching = false
@@ -45,6 +48,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   vi.mocked(linearStatus).mockResolvedValue(localLinearStatus())
   vi.mocked(linearSearchIssues).mockResolvedValue([localLinearIssue()])
+  vi.mocked(linearListIssues).mockResolvedValue({ items: [localLinearIssue()] })
   vi.stubGlobal('api', { shell: { openUrl } })
 })
 afterEach(() => {

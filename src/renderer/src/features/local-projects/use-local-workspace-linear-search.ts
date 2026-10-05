@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
-import { linearSearchIssues, linearStatus } from '@/runtime/runtime-linear-client'
+import { linearStatus } from '@/runtime/runtime-linear-client'
 import type { LinearIssue } from '../../../../shared/linear/issue-types'
 import type { LinearConnectionStatus } from '../../../../shared/linear/workspace-types'
 
-const LOCAL_LINEAR_SETTINGS = { activeRuntimeEnvironmentId: null }
-export const LOCAL_WORKSPACE_LINEAR_SEARCH_LIMIT = 20
+import {
+  LOCAL_WORKSPACE_LINEAR_SETTINGS,
+  readLocalWorkspaceLinearIssues
+} from './local-workspace-linear-issue-reads'
+export { LOCAL_WORKSPACE_LINEAR_SEARCH_LIMIT } from './local-workspace-linear-issue-reads'
 
 export function useLocalWorkspaceLinearSearch() {
   const [status, setStatus] = useState<LinearConnectionStatus | null>(null)
@@ -26,7 +29,7 @@ export function useLocalWorkspaceLinearSearch() {
     setStatusError(null)
     setStatus(null)
     setResult(null)
-    void linearStatus(LOCAL_LINEAR_SETTINGS).then(
+    void linearStatus(LOCAL_WORKSPACE_LINEAR_SETTINGS).then(
       (next) => {
         if (!current) {
           return
@@ -59,26 +62,19 @@ export function useLocalWorkspaceLinearSearch() {
   const term = query.trim()
   const canSearch = Boolean(account && term.length >= 2)
   useEffect(() => {
-    if (!canSearch) {
+    setResult(null)
+    if (!canSearch || !account) {
       return
     }
     let current = true
     const timer = setTimeout(() => {
-      void linearSearchIssues(
-        LOCAL_LINEAR_SETTINGS,
-        term,
-        LOCAL_WORKSPACE_LINEAR_SEARCH_LIMIT,
-        accountId
-      ).then(
-        (issues) => {
+      void readLocalWorkspaceLinearIssues(account, term).then(
+        (next) => {
           if (current) {
             setResult({
               accountId,
               query: term,
-              issues: issues
-                .filter((issue) => issue.workspaceId === accountId)
-                .slice(0, LOCAL_WORKSPACE_LINEAR_SEARCH_LIMIT),
-              error: null
+              ...next
             })
           }
         },
@@ -98,9 +94,10 @@ export function useLocalWorkspaceLinearSearch() {
       current = false
       clearTimeout(timer)
     }
-  }, [accountId, canSearch, term, refresh])
+  }, [account, accountId, canSearch, term, refresh])
 
-  const currentResult = result?.accountId === accountId && result.query === term ? result : null
+  const currentResult =
+    canSearch && result?.accountId === accountId && result.query === term ? result : null
   return {
     accounts,
     account,

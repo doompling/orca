@@ -12,6 +12,14 @@ const timestamp = z.number().finite().nonnegative()
 
 export const MAX_LOCAL_WORKSPACE_LINEAR_ISSUES = 100
 
+export const LocalWorkspaceLinearIssueSelectionSchema = z
+  .object({ linearWorkspaceId: id.refine((value) => value !== 'all'), issueId: id })
+  .strict()
+
+export type LocalWorkspaceLinearIssueSelection = z.infer<
+  typeof LocalWorkspaceLinearIssueSelectionSchema
+>
+
 export const LocalWorkspaceLinearIssueSchema = z
   .object({
     linearWorkspaceId: id.refine((value) => value !== 'all'),

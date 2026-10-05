@@ -53,8 +53,8 @@ export function renderTasksSettingsSection(context: SettingsRenderContext): Reac
       id="tasks"
       title={translate('auto.components.settings.Settings.11faa2f7dd', 'Task Sources')}
       description={translate(
-        'auto.components.settings.Settings.tasksDescription',
-        'Connect providers, install the Linear skill, and choose what appears in Tasks.'
+        'auto.components.settings.Settings.taskSourcesOptionalSkillDescription',
+        'Connect providers and choose what appears in Tasks. The Linear agent skill is optional.'
       )}
       searchEntries={navigation.getSectionSearchEntries('tasks')}
     >

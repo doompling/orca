@@ -63,6 +63,9 @@ export function useTaskPageComposerActions(model: TaskPageJiraListEffectsModel) 
       const linkedWorkItem = buildLinearIssueLinkedWorkItem(issue)
       openModal('new-workspace-composer', {
         linkedWorkItem,
+        ...(issue.workspaceId
+          ? { linearIssue: { linearWorkspaceId: issue.workspaceId, issueId: issue.id } }
+          : {}),
         taskSourceContext: linearTaskSourceContext,
         prefilledName: getLinearIssueWorkspaceName(issue),
         telemetrySource: 'sidebar'

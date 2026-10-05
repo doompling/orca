@@ -129,7 +129,7 @@ describe('TasksPane', () => {
     mocks.readiness = {
       github: { connected: true, checking: false, visible: true },
       gitlab: { connected: true, checking: false, visible: true },
-      // Started-then-stalled: a Linear key is stored but agents have no skill.
+      // Browsing is ready even though the optional skill is absent.
       linear: {
         connected: true,
         checking: false,
@@ -152,15 +152,14 @@ describe('TasksPane', () => {
     container = null
   })
 
-  it('frames Task Sources as a guided setup hub, not visibility-only toggles', () => {
+  it('treats the Linear agent skill as optional without a setup warning', () => {
     const markup = renderPane()
 
     expect(markup).toContain('Task management setup')
-    expect(markup).toContain('Linear also needs the agent skill')
-    expect(markup).toContain(INCOMPLETE_BANNER)
-    expect(markup).toContain('Linear setup steps')
-    expect(markup).toContain('Hide providers you do not use')
-    expect(markup).toContain('API access, the agent skill, and Show in Tasks')
+    expect(markup).toContain('Linear browsing and Workspace links do not require an agent skill')
+    expect(markup).not.toContain(INCOMPLETE_BANNER)
+    expect(markup).not.toContain(LINEAR_SETUP_MARKER)
+    expect(markup).not.toContain('Skill required')
   })
 
   it('does not warn on a fresh install where nothing is connected yet', () => {
@@ -213,15 +212,19 @@ describe('TasksPane', () => {
   })
 
   it('passes context-safe readiness into the expanded Linear setup', () => {
+    mocks.readiness.linear.connected = false
     renderPane()
 
     expect(mocks.linearSetupProps).toEqual([
-      expect.objectContaining({ connected: true, checking: false })
+      expect.objectContaining({ connected: false, checking: false })
     ])
   })
 
   it('deep-links connected Linear credential management to its integration card', async () => {
     await renderInteractivePane()
+    await act(async () => {
+      container?.querySelector<HTMLButtonElement>('[aria-label="Show Linear setup steps"]')?.click()
+    })
 
     mocks.linearSetupProps.at(-1)?.onOpenIntegrations()
 
@@ -277,9 +280,10 @@ describe('TasksPane', () => {
 
   it('keeps Linear setup mounted while a skill recheck is in flight after auto-expand', async () => {
     // Same component instance keeps the sticky auto-expand ref across rechecks.
+    mocks.readiness.linear.connected = false
     await renderInteractivePane()
     expect(container?.querySelector('[data-testid="linear-setup"]')).not.toBeNull()
-    expect(container?.textContent).toContain(INCOMPLETE_BANNER)
+    expect(container?.textContent).not.toContain(INCOMPLETE_BANNER)
 
     mocks.readiness.linear = {
       connected: true,
@@ -295,11 +299,11 @@ describe('TasksPane', () => {
   })
 
   it('keeps the auto-expanded card open after hiding it instead of popping another open', async () => {
+    mocks.readiness.linear.connected = false
     await renderInteractivePane()
     expect(container?.querySelector('[data-testid="linear-setup"]')).not.toBeNull()
 
-    // Hiding the stalled provider is the banner's own advice; GitHub must not
-    // silently take over the expansion on a later unrelated render.
+    // A later check must not steal the user's expanded provider.
     mocks.readiness.linear = {
       connected: true,
       checking: false,
@@ -329,9 +333,9 @@ describe('TasksPane', () => {
     await renderInteractivePane()
     expect(container?.querySelector('[data-testid="linear-setup"]')).toBeNull()
 
-    // Linear status + skill scan land first, so Linear auto-expands.
+    // Linear resolves as unconnected first, so its setup auto-expands.
     mocks.readiness.linear = {
-      connected: true,
+      connected: false,
       checking: false,
       skillInstalled: false,
       skillChecking: false,

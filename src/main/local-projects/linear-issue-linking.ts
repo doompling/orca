@@ -2,7 +2,9 @@ import type { LinearIssue } from '../../shared/linear/issue-types'
 import type { LinearWorkspace } from '../../shared/linear/workspace-types'
 import {
   AttachLocalWorkspaceLinearIssueSchema,
+  LocalWorkspaceLinearIssueSelectionSchema,
   type AttachLocalWorkspaceLinearIssueArgs,
+  type LocalWorkspaceLinearIssueSelection,
   type LocalWorkspaceLinearIssue
 } from '../../shared/local-projects/linear-issues'
 import type { LocalProjectsState, LocalWorkspace } from '../../shared/local-projects/types'
@@ -35,6 +37,18 @@ export async function linkLocalWorkspaceLinearIssue(
 ): Promise<LocalWorkspace> {
   const args = AttachLocalWorkspaceLinearIssueSchema.parse(input)
   requireLocalLinearLinkWorkspace(owner.getLocalProjectsSnapshot(), args.workspaceId)
+  const issue = await readLocalWorkspaceLinearIssue(args, reader)
+  return owner.attachLocalWorkspaceLinearIssue(args.workspaceId, issue)
+}
+
+export async function readLocalWorkspaceLinearIssue(
+  input: LocalWorkspaceLinearIssueSelection,
+  reader: LinearIssueReader = localLinearReader
+): Promise<LocalWorkspaceLinearIssue> {
+  const args = LocalWorkspaceLinearIssueSelectionSchema.parse({
+    linearWorkspaceId: input.linearWorkspaceId,
+    issueId: input.issueId
+  })
   const account = reader.getWorkspaces().find((entry) => entry.id === args.linearWorkspaceId)
   if (!account?.organizationId || account.organizationId === 'legacy') {
     throw new Error('Connect this Linear account in Settings before linking its issues.')
@@ -57,7 +71,7 @@ export async function linkLocalWorkspaceLinearIssue(
     throw new Error('The Linear issue did not match the selected account. Search for it again.')
   }
   const now = Date.now()
-  return owner.attachLocalWorkspaceLinearIssue(args.workspaceId, {
+  return {
     linearWorkspaceId: args.linearWorkspaceId,
     organizationId,
     issueId: issue.id,
@@ -68,5 +82,5 @@ export async function linkLocalWorkspaceLinearIssue(
     linkedAt: now,
     refreshedAt: now,
     sourceContextId: 'local'
-  })
+  }
 }

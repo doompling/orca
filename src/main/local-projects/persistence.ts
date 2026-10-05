@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { readLocalWorkspaceLinearIssue } from './linear-issue-linking'
 import {
   attachLocalWorkspaceLinearIssue,
   detachLocalWorkspaceLinearIssue
@@ -113,6 +114,9 @@ export class LocalProjectsPersistence {
       project,
       args.checkoutOverridesByRootId ?? {}
     )
+    const linearIssue = args.linearIssue
+      ? await readLocalWorkspaceLinearIssue(args.linearIssue)
+      : undefined
     const current = this.getLocalProjectsSnapshot()
     const currentProject = requireActiveProject(current, args.projectId)
     if (
@@ -129,6 +133,7 @@ export class LocalProjectsPersistence {
       projectId: project.id,
       name: args.name,
       checkoutOverridesByRootId: overrides,
+      ...(linearIssue ? { linearIssues: [linearIssue] } : {}),
       ...(args.defaultRootId ? { defaultRootId: args.defaultRootId } : {}),
       isArchived: false,
       createdAt: now,

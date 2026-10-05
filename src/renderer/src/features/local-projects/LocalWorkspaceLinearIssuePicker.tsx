@@ -31,8 +31,13 @@ export function LocalWorkspaceLinearIssuePicker({
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs text-muted-foreground">Uses Linear access on this device.</p>
-        <Button variant="ghost" size="xs" onClick={search.refresh} disabled={search.statusLoading}>
-          Refresh access
+        <Button
+          variant="ghost"
+          size="xs"
+          onClick={search.refresh}
+          disabled={disabled || search.statusLoading}
+        >
+          Refresh issues
         </Button>
       </div>
       {search.statusLoading && (
@@ -80,6 +85,7 @@ export function LocalWorkspaceLinearIssuePicker({
             <CommandInput
               autoFocus
               placeholder="Search Linear issues…"
+              aria-label="Search by title, issue identifier, or Linear URL"
               value={search.query}
               onValueChange={search.setQuery}
               disabled={disabled || !search.account}
@@ -122,12 +128,12 @@ export function LocalWorkspaceLinearIssuePicker({
               {!search.account
                 ? 'Choose a Linear account.'
                 : search.query.trim().length < 2
-                  ? 'Search by issue identifier or title (at least two characters).'
+                  ? 'Enter at least two characters, an issue identifier, or a Linear URL.'
                   : search.searching
                     ? 'Searching Linear…'
                     : search.issues.length === 0
                       ? 'No issues returned. Try another search or check the connection.'
-                      : `Showing up to ${LOCAL_WORKSPACE_LINEAR_SEARCH_LIMIT} results. Select an issue to link it.`}
+                      : `Showing up to ${LOCAL_WORKSPACE_LINEAR_SEARCH_LIMIT} results. Select issues to link them.`}
             </p>
           )}
         </>

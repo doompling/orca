@@ -21,7 +21,8 @@ export function localWorkspacePaletteRows(catalog: LocalProjectsState | undefine
   }
   return localWorkspaceNavigationRows(catalog).map(({ project, workspace }) => ({
     ...folderWorkspaceToWorktree(projectLocalFolderWorkspace(catalog, workspace)),
-    displayName: `${project.name} / ${workspace.name}`
+    displayName: `${project.name} / ${workspace.name}`,
+    localLinearIssues: workspace.linearIssues ?? []
   }))
 }
 

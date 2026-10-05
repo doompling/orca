@@ -135,6 +135,14 @@ export function createWorktreeJumpPaletteWorktreeHandler({
               return {
                 prefilledName: getLinearIssueWorkspaceName(preview.issue),
                 linkedWorkItem: buildLinearIssueLinkedWorkItem(preview.issue),
+                ...(preview.issue.workspaceId
+                  ? {
+                      linearIssue: {
+                        linearWorkspaceId: preview.issue.workspaceId,
+                        issueId: preview.issue.id
+                      }
+                    }
+                  : {}),
                 ...(preview.initialRepoId ? { initialRepoId: preview.initialRepoId } : {}),
                 ...(sourceContext ? { taskSourceContext: sourceContext } : {})
               }

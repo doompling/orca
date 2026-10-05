@@ -20,6 +20,11 @@ export const LOCAL_PROJECT_LINEAR_FIXTURE = {
     color: '#999999',
     position: 0
   },
+  project: { id: '66666666-6666-4666-8666-666666666666', name: 'Cross-app launch' },
+  views: [
+    { id: '77777777-7777-4777-8777-777777777771', name: 'Engineering queue', modelName: 'Issue' },
+    { id: '77777777-7777-4777-8777-777777777772', name: 'Delivery overview', modelName: 'Project' }
+  ],
   issues: [
     {
       id: '55555555-5555-4555-8555-555555555551',
@@ -39,10 +44,14 @@ export const LOCAL_PROJECT_LINEAR_FIXTURE = {
   ]
 }
 
-type LinearFixture = typeof LOCAL_PROJECT_LINEAR_FIXTURE
+type LinearFixture = typeof LOCAL_PROJECT_LINEAR_FIXTURE & {
+  latencyMs?: number
+  stallOperationsOnce?: string[]
+}
 
 export function installLocalProjectLinearFetch(_electron: unknown, fixture: LinearFixture): void {
   const originalFetch = globalThis.fetch
+  const stalled = new Set(fixture.stallOperationsOnce ?? [])
   const pageInfo = {
     hasNextPage: false,
     hasPreviousPage: false,
@@ -50,6 +59,50 @@ export function installLocalProjectLinearFetch(_electron: unknown, fixture: Line
     endCursor: null
   }
   const collection = (nodes: unknown[]) => ({ nodes, pageInfo })
+  const project = {
+    ...fixture.project,
+    slugId: 'fixture-launch',
+    description: 'Multi-root launch fixture',
+    content: 'Launch both apps together.',
+    url: 'https://linear.app/ether-fixture/project/fixture-launch',
+    color: null,
+    icon: null,
+    health: null,
+    priority: 2,
+    priorityLabel: 'High',
+    progress: 0,
+    scope: 3,
+    issueCountHistory: [3],
+    completedIssueCountHistory: [0],
+    startDate: null,
+    targetDate: null,
+    createdAt: '2026-09-01T00:00:00.000Z',
+    updatedAt: '2026-09-27T00:00:00.000Z',
+    completedAt: null,
+    canceledAt: null,
+    startedAt: null,
+    status: { id: 'fixture-project-status', name: 'Planned', type: 'planned', color: '#999999' },
+    lead: null,
+    members: collection([]),
+    teams: collection([fixture.team]),
+    labels: collection([]),
+    projectMilestones: collection([]),
+    externalLinks: collection([]),
+    lastUpdate: null
+  }
+  const views = fixture.views.map((view) => ({
+    ...view,
+    slugId: view.id,
+    description: 'Scripted Linear view',
+    color: null,
+    icon: null,
+    shared: true,
+    createdAt: '2026-09-01T00:00:00.000Z',
+    updatedAt: '2026-09-27T00:00:00.000Z',
+    team: fixture.team,
+    owner: fixture.viewer,
+    creator: fixture.viewer
+  }))
   const issueRecords = fixture.issues.map((issue) => ({
     ...issue,
     __typename: 'Issue',
@@ -93,6 +146,22 @@ export function installLocalProjectLinearFetch(_electron: unknown, fixture: Line
     const operation = /\bquery\s+(\w+)/.exec(request.query)?.[1]
     if (!operation || /\bmutation\s/.test(request.query)) {
       throw new Error('Linear fixture refuses all provider mutations.')
+    }
+    if (stalled.delete(operation)) {
+      const signal = init.signal
+      if (!signal) {
+        throw new Error('Stalled Linear read did not provide a cancellation signal.')
+      }
+      return new Promise<Response>((_resolve, reject) => {
+        if (signal.aborted) {
+          reject(signal.reason)
+          return
+        }
+        signal.addEventListener('abort', () => reject(signal.reason), { once: true })
+      })
+    }
+    if (fixture.latencyMs) {
+      await new Promise((resolve) => setTimeout(resolve, fixture.latencyMs))
     }
     const variables =
       'variables' in request && request.variables && typeof request.variables === 'object'
@@ -161,10 +230,38 @@ export function installLocalProjectLinearFetch(_electron: unknown, fixture: Line
         data = { viewer: { createdIssues: collection(issueRecords) } }
         break
       case 'OrcaLinearProjects':
-        data = { projects: collection([]) }
+        data = { projects: collection([project]) }
+        break
+      case 'OrcaLinearProjectSearch':
+        data = { searchProjects: collection([project]) }
+        break
+      case 'OrcaLinearProject':
+        data = { project }
+        break
+      case 'OrcaLinearProjectIssues':
+        data = { project: { issues: collection(issueRecords) } }
+        break
+      case 'OrcaLinearProjectTeams':
+        data = { project: { teams: collection([fixture.team]) } }
         break
       case 'OrcaLinearCustomViews':
-        data = { customViews: collection([]) }
+        data = { customViews: collection(views) }
+        break
+      case 'OrcaLinearCustomView':
+        data = { customView: views.find((view) => view.id === requestedId) ?? null }
+        break
+      case 'OrcaLinearCustomViewIssues':
+        data = {
+          customView: { id: requestedId, modelName: 'Issue', issues: collection(issueRecords) }
+        }
+        break
+      case 'OrcaLinearCustomViewProjects':
+        data = {
+          customView: { id: requestedId, modelName: 'Project', projects: collection([project]) }
+        }
+        break
+      case 'OrcaLinearIssueComments':
+        data = { issue: { comments: collection([]) } }
         break
       default:
         throw new Error(`Unsupported Linear fixture query: ${operation}`)

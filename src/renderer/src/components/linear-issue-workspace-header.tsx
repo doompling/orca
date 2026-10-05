@@ -126,6 +126,7 @@ export function LinearIssueWorkspaceHeader({
           sourceContext={sourceContext}
           legacyWorkspaceLabel={attachedWorkspaceLabel}
           onOpenLegacyWorkspace={onOpenOrUseIssue}
+          onCreateWorkspace={onUseIssue}
         >
           {attachedWorkspace ? (
             <DropdownMenu modal={false}>

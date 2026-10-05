@@ -36,7 +36,7 @@ function buildReadiness(
 }
 
 describe('task-source-setup-state', () => {
-  it('counts Linear readiness as three steps', () => {
+  it('counts only connection and visibility for Linear readiness', () => {
     expect(
       getTaskProviderCompletedSteps({
         connected: true,
@@ -44,7 +44,7 @@ describe('task-source-setup-state', () => {
         skillInstalled: false,
         visible: true
       })
-    ).toEqual({ completed: 2, total: 3 })
+    ).toEqual({ completed: 2, total: 2 })
   })
 
   it('counts code-host readiness as two steps', () => {
@@ -53,7 +53,7 @@ describe('task-source-setup-state', () => {
     ).toEqual({ completed: 2, total: 2 })
   })
 
-  it('marks Linear ready only when connected, skill installed, and visible', () => {
+  it('marks connected and visible Linear ready with or without a skill', () => {
     expect(
       isTaskProviderReady({
         connected: true,
@@ -69,10 +69,10 @@ describe('task-source-setup-state', () => {
         skillInstalled: false,
         visible: true
       })
-    ).toBe(false)
+    ).toBe(true)
   })
 
-  it('never reports ready while a check is in flight', () => {
+  it('waits for connection checks but not optional skill checks', () => {
     expect(
       isTaskProviderReady({
         connected: true,
@@ -81,13 +81,11 @@ describe('task-source-setup-state', () => {
         skillChecking: true,
         visible: true
       })
-    ).toBe(false)
+    ).toBe(true)
     expect(isTaskProviderReady({ connected: true, checking: true, visible: true })).toBe(false)
   })
 
-  // A skill scan that could not vouch for "not installed" is not a step the user
-  // left undone, so it must not read as `skill-required`.
-  it('reports an unverifiable skill scan as unknown rather than as a missing step', () => {
+  it('does not block browsing readiness on an unverifiable optional skill', () => {
     const unverifiable = {
       connected: true,
       checking: false,
@@ -97,11 +95,10 @@ describe('task-source-setup-state', () => {
       visible: true
     }
 
-    expect(getTaskProviderSetupStatus(unverifiable)).toBe('skill-unverified')
-    expect(TASK_PROVIDER_SETUP_STATUS_TONE['skill-unverified']).toBe('attention')
-    expect(isTaskProviderReady(unverifiable)).toBe(false)
-    // The count reports confirmed steps, so it is unchanged by the unknown.
-    expect(getTaskProviderCompletedSteps(unverifiable)).toEqual({ completed: 2, total: 3 })
+    expect(getTaskProviderSetupStatus(unverifiable)).toBe('ready')
+    expect(TASK_PROVIDER_SETUP_STATUS_TONE.ready).toBe('connected')
+    expect(isTaskProviderReady(unverifiable)).toBe(true)
+    expect(getTaskProviderCompletedSteps(unverifiable)).toEqual({ completed: 2, total: 2 })
   })
 
   it('keeps an in-flight check and an unconnected provider ahead of an unverifiable scan', () => {
@@ -147,7 +144,7 @@ describe('task-source-setup-state', () => {
         skillInstalled: false,
         visible: true
       })
-    ).toBe('skill-required')
+    ).toBe('ready')
     expect(getTaskProviderSetupStatus({ connected: true, checking: false, visible: false })).toBe(
       'hidden'
     )
@@ -180,7 +177,7 @@ describe('task-source-setup-state', () => {
     const readiness = buildReadiness({
       github: { connected: false, visible: false },
       gitlab: { connected: false, checking: true },
-      linear: { skillInstalled: false }
+      linear: { connected: false, skillInstalled: false }
     })
 
     expect(getIncompleteVisibleTaskProviders(ORDER, readiness)).toEqual(['linear'])
@@ -189,7 +186,7 @@ describe('task-source-setup-state', () => {
   it('auto-expands only the first incomplete visible provider', () => {
     const readiness = buildReadiness({
       gitlab: { connected: false },
-      linear: { skillInstalled: false }
+      linear: { connected: false, skillInstalled: false }
     })
 
     expect(getIncompleteVisibleTaskProviders(ORDER, readiness)).toEqual(['gitlab', 'linear'])
@@ -219,22 +216,21 @@ describe('task-source-setup-state', () => {
     expect(getStalledVisibleTaskProviders(ORDER, untouched)).toEqual([])
   })
 
-  it('warns about setup that started and stalled partway', () => {
+  it('does not warn about connected Linear with no optional skill', () => {
     const stalled = buildReadiness({
       github: { connected: false },
       linear: { skillInstalled: false }
     })
 
-    // GitHub was never connected; Linear has a key but no skill.
-    expect(getStalledVisibleTaskProviders(ORDER, stalled)).toEqual(['linear'])
+    expect(getStalledVisibleTaskProviders(ORDER, stalled)).toEqual([])
   })
 
-  it('counts an installed skill as started even without an API key', () => {
+  it('does not treat independent skill installation as stalled provider setup', () => {
     const stalled = buildReadiness({
       linear: { connected: false, skillInstalled: true }
     })
 
-    expect(getStalledVisibleTaskProviders(ORDER, stalled)).toEqual(['linear'])
+    expect(getStalledVisibleTaskProviders(ORDER, stalled)).toEqual([])
   })
 
   it('keeps still-checking and hidden providers out of the warning', () => {
@@ -248,7 +244,7 @@ describe('task-source-setup-state', () => {
 
   it('keeps the previous auto-expanded provider open while a recheck is in flight', () => {
     const whileChecking = buildReadiness({
-      linear: { skillInstalled: false, skillChecking: true }
+      linear: { connected: false, checking: true, skillInstalled: false, skillChecking: true }
     })
 
     // Fresh incomplete list excludes checking providers (banner path).
@@ -265,7 +261,7 @@ describe('task-source-setup-state', () => {
 
   it('does not switch to a later incomplete provider during the previous provider recheck', () => {
     const whileChecking = buildReadiness({
-      linear: { skillInstalled: false, skillChecking: true },
+      linear: { connected: false, checking: true, skillInstalled: false, skillChecking: true },
       jira: { connected: false }
     })
 

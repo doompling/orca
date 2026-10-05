@@ -100,12 +100,8 @@ function isTaskProviderAvailable(
   if (provider === 'gitlab') {
     return availability.gitlabInstalled
   }
-  // Why: Jira can be connected from the Tasks surface itself, so hiding it
-  // when disconnected would remove the entry point for first-time setup.
-  if (provider === 'jira') {
-    return true
-  }
-  return availability.linearConnected
+  // Account-backed providers must remain reachable for first-time connection.
+  return true
 }
 
 export function resolveVisibleTaskProvider(

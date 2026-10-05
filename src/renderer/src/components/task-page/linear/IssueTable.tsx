@@ -24,6 +24,7 @@ export function TaskPageLinearIssueTable({
     effectiveLinearDisplayProperties,
     linearIssueGridStyle,
     linearIssueListRows,
+    handleUseLinearItem,
     handleOpenOrUseLinearItem
   } = model
   return (
@@ -208,6 +209,7 @@ export function TaskPageLinearIssueTable({
                 sourceContext={linearTaskSourceContext}
                 legacyWorkspaceLabel={attachedWorkspaceLabel}
                 onOpenLegacyWorkspace={() => handleOpenOrUseLinearItem(issue)}
+                onCreateWorkspace={() => handleUseLinearItem(issue)}
               >
                 <Tooltip>
                   <TooltipTrigger asChild>

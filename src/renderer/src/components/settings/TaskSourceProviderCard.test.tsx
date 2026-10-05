@@ -130,7 +130,7 @@ describe('TaskSourceProviderCard', () => {
     expect(markup).not.toContain('>Hide</button>')
   })
 
-  it('labels an unverifiable skill scan as unknown while keeping the confirmed count', () => {
+  it('shows connected Linear ready when its optional skill cannot be verified', () => {
     const markup = renderToStaticMarkup(
       <TaskSourceProviderCard
         icon={<span />}
@@ -144,8 +144,9 @@ describe('TaskSourceProviderCard', () => {
       />
     )
 
-    expect(markup).toContain('Cannot verify')
-    expect(markup).toContain('2/3')
+    expect(markup).toContain('Ready')
+    expect(markup).not.toContain('Cannot verify')
+    expect(markup).not.toContain('2/3')
     expect(markup).not.toContain('Skill required')
   })
 })

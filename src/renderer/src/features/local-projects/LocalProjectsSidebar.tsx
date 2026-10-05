@@ -6,6 +6,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { cn } from '@/lib/utils'
 import WorktreeCardAgents from '@/components/sidebar/WorktreeCardAgents'
 import { LocalContextActions } from './LocalContextActions'
+import { LocalWorkspaceLinearIssues } from './LocalWorkspaceLinearIssues'
 
 export function LocalProjectsSidebar(): React.JSX.Element {
   const catalog = useAppStore((s) => s.localProjects)
@@ -135,6 +136,12 @@ export function LocalProjectsSidebar(): React.JSX.Element {
                       </button>
                       <LocalContextActions kind="Workspace" record={workspace} />
                     </div>
+                    {((workspace.linearIssues?.length ?? 0) > 0 ||
+                      (!workspace.isArchived && !project.isArchived)) && (
+                      <div className="mr-7 min-w-0 pb-1">
+                        <LocalWorkspaceLinearIssues workspaceId={workspace.id} sidebar />
+                      </div>
+                    )}
                     {!workspace.isArchived && !project.isArchived && (
                       <WorktreeCardAgents worktreeId={`folder:${workspace.id}`} />
                     )}

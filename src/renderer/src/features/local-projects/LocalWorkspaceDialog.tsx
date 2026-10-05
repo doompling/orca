@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useAppStore } from '@/store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,8 +19,24 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { LocalWorkspaceCheckoutChoices } from './LocalWorkspaceCheckoutChoices'
+import NewWorkspaceComposerModal from '@/components/NewWorkspaceComposerModal'
+import {
+  localWorkspaceComposerIssueLabel,
+  readLocalWorkspaceComposerIssue,
+  usesLocalWorkspaceComposer
+} from './local-workspace-composer-intent'
 
 export function LocalWorkspaceDialog(): React.JSX.Element {
+  const modalData = useAppStore((s) => s.modalData)
+  const activeRuntimeEnvironmentId = useAppStore((s) => s.settings?.activeRuntimeEnvironmentId)
+  return usesLocalWorkspaceComposer(modalData, activeRuntimeEnvironmentId) ? (
+    <LocalWorkspaceForm />
+  ) : (
+    <NewWorkspaceComposerModal />
+  )
+}
+
+function LocalWorkspaceForm(): React.JSX.Element {
   const catalog = useAppStore((s) => s.localProjects)
   const activeWorktreeId = useAppStore((s) => s.activeWorktreeId)
   const modalData = useAppStore((s) => s.modalData)
@@ -36,7 +52,12 @@ export function LocalWorkspaceDialog(): React.JSX.Element {
       ? modalData.localProjectId
       : (activeWorkspace?.projectId ?? projects[0]?.id ?? '')
   )
-  const [name, setName] = useState('')
+  const [name, setName] = useState(
+    typeof modalData.prefilledName === 'string' ? modalData.prefilledName : ''
+  )
+  const linearIssue = readLocalWorkspaceComposerIssue(modalData)
+  const issueLabel = localWorkspaceComposerIssueLabel(modalData)
+  const submitting = useRef(false)
   const [copySource, setCopySource] = useState('none')
   const [checkoutOverrides, setCheckoutOverrides] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
@@ -46,9 +67,10 @@ export function LocalWorkspaceDialog(): React.JSX.Element {
   const project = projects.find((entry) => entry.id === projectId)
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
-    if (disabled) {
+    if (disabled || submitting.current) {
       return
     }
+    submitting.current = true
     setBusy(true)
     setError(null)
     try {
@@ -57,7 +79,12 @@ export function LocalWorkspaceDialog(): React.JSX.Element {
           .map(([rootId, path]) => [rootId, path.trim()])
           .filter(([, path]) => path)
       )
-      const args = { projectId, name, checkoutOverridesByRootId }
+      const args = {
+        projectId,
+        name,
+        checkoutOverridesByRootId,
+        ...(linearIssue ? { linearIssue } : {})
+      }
       await (copySource === 'none'
         ? createWorkspace(args)
         : createWorkspace(args, { copyFileLayoutFromWorkspaceId: copySource }))
@@ -65,6 +92,7 @@ export function LocalWorkspaceDialog(): React.JSX.Element {
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause))
     } finally {
+      submitting.current = false
       setBusy(false)
     }
   }
@@ -87,10 +115,17 @@ export function LocalWorkspaceDialog(): React.JSX.Element {
         {projects.length === 0 ? (
           <div className="space-y-3">
             <p className="text-sm">Create a Project to choose your directories first.</p>
-            <Button onClick={() => openModal('add-repo')}>New Project</Button>
+            <Button onClick={() => openModal('add-repo', { workspaceComposerIntent: modalData })}>
+              New Project
+            </Button>
           </div>
         ) : (
           <form onSubmit={submit} className="space-y-4">
+            {issueLabel && (
+              <p className="text-sm" role="status">
+                Link {issueLabel}. The issue will be verified before this Workspace is created.
+              </p>
+            )}
             <div className="space-y-2">
               <Label htmlFor="local-workspace-project">Project</Label>
               <Select

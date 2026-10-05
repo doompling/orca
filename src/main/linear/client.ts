@@ -54,7 +54,8 @@ export function getClient(workspaceId?: string | null): LinearClient | null {
 }
 
 export function getClients(
-  workspaceId?: LinearWorkspaceSelection | null
+  workspaceId?: LinearWorkspaceSelection | null,
+  signal?: AbortSignal
 ): LinearClientForWorkspace[] {
   const state = getWorkspaceState()
   const isAllSelection = workspaceId === 'all'
@@ -83,7 +84,7 @@ export function getClients(
     }
     clients.push({
       workspace,
-      client: new (loadLinearSdk().LinearClient)({ apiKey: token }),
+      client: new (loadLinearSdk().LinearClient)({ apiKey: token, ...(signal ? { signal } : {}) }),
       apiKey: token
     })
   }

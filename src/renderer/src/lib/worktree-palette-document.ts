@@ -19,6 +19,7 @@ import type { HostedReviewInfo } from '../../../shared/hosted-review'
 import type { Repo } from '../../../shared/repo-types'
 import type { Worktree } from '../../../shared/worktree/types'
 import { isGitHubPRSuppressed } from '../../../shared/worktree/github-pr-suppression'
+import { buildLocalWorkspaceLinearEvidence } from './worktree-palette-local-linear-issues'
 import {
   getPaletteWorktreeIdentity,
   resolvePaletteRepoForWorktree
@@ -124,6 +125,7 @@ function buildEvidence(
     comment,
     buildWorktreeAutomationEvidence(worktree),
     buildWorktreeLinkedTaskEvidence(worktree),
+    ...buildLocalWorkspaceLinearEvidence(worktree),
     buildWorktreeReviewEvidence(resolveReviewSource(worktree, repo, sources)),
     buildWorktreeIssueEvidence({
       number: worktree.linkedIssue,

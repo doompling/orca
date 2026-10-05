@@ -6,6 +6,7 @@ import type {
 import { acquire, release } from './linear-request-concurrency'
 import { clearToken } from './linear-token-store'
 import { getClients, isAuthError, type LinearClientForWorkspace } from './client'
+import { withLinearReadDeadline } from './linear-read-deadline'
 import {
   coalesce,
   normalizeConcreteWorkspaceId,
@@ -21,41 +22,44 @@ export async function readCollection<T>(
 ): Promise<LinearCollectionResult<T>> {
   return coalesce(
     key,
-    async () => {
-      const entries = getClients(workspaceId)
-      if (entries.length === 0) {
-        return { items: [] }
-      }
+    () =>
+      withLinearReadDeadline(async (signal) => {
+        const entries = getClients(workspaceId, signal)
+        if (entries.length === 0) {
+          return { items: [] }
+        }
 
-      const results = await Promise.all(
-        entries.map(async (entry) => {
-          await acquire()
-          try {
-            return await load(entry)
-          } catch (error) {
-            if (isAuthError(error)) {
-              clearToken(entry.workspace.id)
-            } else {
-              console.warn('[linear] project/view read failed:', error)
+        const results = await Promise.all(
+          entries.map(async (entry) => {
+            try {
+              await acquire(signal)
+              try {
+                return await load(entry)
+              } finally {
+                release()
+              }
+            } catch (error) {
+              if (isAuthError(error)) {
+                clearToken(entry.workspace.id)
+              } else {
+                console.warn('[linear] project/view read failed:', error)
+              }
+              if (shouldFailWholeRequest(workspaceId)) {
+                throw error
+              }
+              return { items: [], errors: [workspaceError(entry, error)] }
             }
-            if (shouldFailWholeRequest(workspaceId)) {
-              throw error
-            }
-            return { items: [], errors: [workspaceError(entry, error)] }
-          } finally {
-            release()
-          }
-        })
-      )
+          })
+        )
 
-      return {
-        items: results.flatMap((result) => result.items),
-        errors: results.flatMap((result) => result.errors ?? []).length
-          ? results.flatMap((result) => result.errors ?? [])
-          : undefined,
-        hasMore: results.some((result) => result.hasMore)
-      }
-    },
+        return {
+          items: results.flatMap((result) => result.items),
+          errors: results.flatMap((result) => result.errors ?? []).length
+            ? results.flatMap((result) => result.errors ?? [])
+            : undefined,
+          hasMore: results.some((result) => result.hasMore)
+        }
+      }),
     force
   )
 }

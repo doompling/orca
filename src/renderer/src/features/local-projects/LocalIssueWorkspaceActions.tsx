@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { FolderOpen, Link } from 'lucide-react'
+import { FolderOpen, Link, Plus } from 'lucide-react'
 import { useAppStore } from '@/store'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -20,12 +20,14 @@ export function LocalIssueWorkspaceActions({
   sourceContext,
   legacyWorkspaceLabel,
   onOpenLegacyWorkspace,
+  onCreateWorkspace,
   children
 }: {
   issue: LinearIssue
   sourceContext?: TaskSourceContext | null
   legacyWorkspaceLabel?: string | null
   onOpenLegacyWorkspace?: () => void
+  onCreateWorkspace?: () => void
   children: ReactNode
 }): React.JSX.Element {
   const { account, targets, attached } = useLocalLinearIssueWorkspaces(issue, sourceContext)
@@ -111,6 +113,22 @@ export function LocalIssueWorkspaceActions({
                   </CommandItem>
                 ))}
             </CommandGroup>
+            {onCreateWorkspace && (
+              <CommandGroup heading="Create Workspace">
+                <CommandItem
+                  value="New Workspace for issue"
+                  className="jump-palette-item"
+                  disabled={busy}
+                  onSelect={() => {
+                    setOpen(false)
+                    onCreateWorkspace()
+                  }}
+                >
+                  <Plus />
+                  New Workspace for issue
+                </CommandItem>
+              </CommandGroup>
+            )}
             {legacyWorkspaceLabel && onOpenLegacyWorkspace && (
               <CommandGroup heading="Legacy Workspace">
                 <CommandItem

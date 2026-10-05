@@ -1,7 +1,10 @@
 import { z } from 'zod'
 import type { LocalProjectsState } from './types'
 import { emptyLocalProjectsState } from './workspace-resolution'
-import { LocalWorkspaceLinearIssuesSchema } from './linear-issues'
+import {
+  LocalWorkspaceLinearIssuesSchema,
+  LocalWorkspaceLinearIssueSelectionSchema
+} from './linear-issues'
 
 const id = z
   .string()
@@ -117,7 +120,8 @@ export const CreateLocalWorkspaceSchema = z
     projectId: id,
     name,
     checkoutOverridesByRootId: overrides.optional(),
-    defaultRootId: id.optional()
+    defaultRootId: id.optional(),
+    linearIssue: LocalWorkspaceLinearIssueSelectionSchema.optional()
   })
   .strict()
 

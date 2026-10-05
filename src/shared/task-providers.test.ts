@@ -19,6 +19,15 @@ describe('task providers', () => {
     expect(normalizeVisibleTaskProviders([])).toEqual(['github', 'gitlab', 'linear', 'jira'])
   })
 
+  it('includes Linear in the default sources before any connection exists', () => {
+    expect(
+      filterAvailableTaskProviders(normalizeVisibleTaskProviders(undefined), {
+        gitlabInstalled: false,
+        linearConnected: false
+      })
+    ).toEqual(['github', 'linear', 'jira'])
+  })
+
   it('restores a valid saved default when provider settings drifted', () => {
     expect(
       normalizeTaskProviderSettings({
@@ -108,9 +117,38 @@ describe('task providers', () => {
     ).toEqual(['github'])
   })
 
-  it('falls back to GitHub when every preferred provider is unavailable', () => {
+  it('keeps disconnected Linear reachable for setup', () => {
     expect(
       filterAvailableTaskProviders(['gitlab', 'linear'], {
+        gitlabInstalled: false,
+        linearConnected: false
+      })
+    ).toEqual(['linear'])
+  })
+
+  it('preserves a Linear default before connection', () => {
+    expect(
+      restoreAvailableDefaultTaskProvider(
+        ['github'],
+        { gitlabInstalled: false, linearConnected: false },
+        'linear'
+      )
+    ).toEqual(['github', 'linear'])
+  })
+
+  it('does not override an explicit choice to hide Linear', () => {
+    expect(
+      restoreAvailableDefaultTaskProvider(
+        ['github', 'jira'],
+        { gitlabInstalled: false, linearConnected: true },
+        'github'
+      )
+    ).toEqual(['github', 'jira'])
+  })
+
+  it('falls back to GitHub when every preferred provider is unavailable', () => {
+    expect(
+      filterAvailableTaskProviders(['gitlab'], {
         gitlabInstalled: false,
         linearConnected: false
       })

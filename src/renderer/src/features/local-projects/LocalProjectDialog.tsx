@@ -23,6 +23,8 @@ export function LocalProjectDialog({
   onClose?: () => void
 } = {}): React.JSX.Element {
   const closeModal = useAppStore((s) => s.closeModal)
+  const openModal = useAppStore((s) => s.openModal)
+  const workspaceComposerIntent = useAppStore((s) => s.modalData.workspaceComposerIntent)
   const createProject = useAppStore((s) => s.createLocalProject)
   const updateRoots = useAppStore((s) => s.updateLocalProjectRoots)
   const [original] = useState(() => (project ? structuredClone(project) : null))
@@ -53,7 +55,11 @@ export function LocalProjectDialog({
             defaultRootId
           })
         : createProject({ name, roots, defaultRootId }))
-      close()
+      if (!original && workspaceComposerIntent && typeof workspaceComposerIntent === 'object') {
+        openModal('new-workspace-composer', { ...workspaceComposerIntent })
+      } else {
+        close()
+      }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause))
     } finally {

@@ -2,14 +2,17 @@
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { LinearIssue } from '../../../../shared/linear/issue-types'
-import { linearSearchIssues, linearStatus } from '@/runtime/runtime-linear-client'
+import { linearListIssues, linearSearchIssues, linearStatus } from '@/runtime/runtime-linear-client'
+import { linearGetIssue } from '@/runtime/runtime-linear-issue-mutations'
 import { useLocalWorkspaceLinearSearch } from './use-local-workspace-linear-search'
 import { localLinearIssue, localLinearStatus } from './workspace-linear-picker-test-fixtures'
 
 vi.mock('@/runtime/runtime-linear-client', () => ({
   linearStatus: vi.fn(),
-  linearSearchIssues: vi.fn()
+  linearSearchIssues: vi.fn(),
+  linearListIssues: vi.fn()
 }))
+vi.mock('@/runtime/runtime-linear-issue-mutations', () => ({ linearGetIssue: vi.fn() }))
 beforeEach(() => {
   vi.useFakeTimers()
   vi.mocked(linearStatus).mockResolvedValue(localLinearStatus())
@@ -28,6 +31,23 @@ async function setup() {
 }
 
 describe('local Workspace Linear search', () => {
+  it.each(['', '  ', 'a', ' a '])(
+    'does not read issues for an unsearched query %j',
+    async (query) => {
+      const { result } = await setup()
+      act(() => result.current.setQuery(query))
+      await act(() => vi.advanceTimersByTimeAsync(300))
+      act(() => result.current.refresh())
+      await act(() => vi.advanceTimersByTimeAsync(300))
+      expect(result.current.issues).toEqual([])
+      expect(result.current.searching).toBe(false)
+      expect(result.current.searchError).toBeNull()
+      expect(linearListIssues).not.toHaveBeenCalled()
+      expect(linearSearchIssues).not.toHaveBeenCalled()
+      expect(linearGetIssue).not.toHaveBeenCalled()
+    }
+  )
+
   it('pins every read to local access and a concrete account', async () => {
     const { result } = await setup()
     expect(linearStatus).toHaveBeenCalledWith({ activeRuntimeEnvironmentId: null })
@@ -88,6 +108,50 @@ describe('local Workspace Linear search', () => {
     expect(result.current.issues.map((issue) => issue.id)).toEqual(['issue'])
   })
 
+  it('clears completed results and cancels a pending search when the query is cleared', async () => {
+    const { result } = await setup()
+    act(() => result.current.setQuery('APP'))
+    await act(() => vi.advanceTimersByTimeAsync(250))
+    expect(result.current.issues).toEqual([localLinearIssue()])
+    act(() => result.current.setQuery('new'))
+    act(() => result.current.setQuery(''))
+    await act(() => vi.advanceTimersByTimeAsync(300))
+    expect(result.current.issues).toEqual([])
+    expect(result.current.searching).toBe(false)
+    expect(result.current.searchError).toBeNull()
+    expect(linearSearchIssues).toHaveBeenCalledOnce()
+    expect(linearListIssues).not.toHaveBeenCalled()
+    expect(linearGetIssue).not.toHaveBeenCalled()
+  })
+
+  it.each(['result', 'error'])(
+    'ignores a late %s after clearing an in-flight search',
+    async (outcome) => {
+      let completeRequest = () => {}
+      vi.mocked(linearSearchIssues).mockImplementationOnce(
+        () =>
+          new Promise((resolve, reject) => {
+            completeRequest = () => {
+              if (outcome === 'result') {
+                resolve([localLinearIssue()])
+              } else {
+                reject(new Error('Late request failure'))
+              }
+            }
+          })
+      )
+      const { result } = await setup()
+      act(() => result.current.setQuery('APP'))
+      await act(() => vi.advanceTimersByTimeAsync(250))
+      expect(result.current.searching).toBe(true)
+      act(() => result.current.setQuery(' '))
+      await act(async () => completeRequest())
+      expect(result.current.issues).toEqual([])
+      expect(result.current.searching).toBe(false)
+      expect(result.current.searchError).toBeNull()
+    }
+  )
+
   it('does not search with disconnected or undecryptable access', async () => {
     vi.mocked(linearStatus).mockResolvedValue({
       ...localLinearStatus(),
@@ -112,5 +176,17 @@ describe('local Workspace Linear search', () => {
     await act(() => vi.advanceTimersByTimeAsync(250))
     expect(result.current.searchError).toBeNull()
     expect(result.current.issues).toHaveLength(1)
+  })
+
+  it('clears an existing search failure when the query is shortened', async () => {
+    vi.mocked(linearSearchIssues).mockRejectedValueOnce(new Error('Network unavailable'))
+    const { result } = await setup()
+    act(() => result.current.setQuery('APP'))
+    await act(() => vi.advanceTimersByTimeAsync(250))
+    expect(result.current.searchError).toBe('Network unavailable')
+    act(() => result.current.setQuery('A'))
+    expect(result.current.searchError).toBeNull()
+    expect(result.current.issues).toEqual([])
+    expect(result.current.searching).toBe(false)
   })
 })

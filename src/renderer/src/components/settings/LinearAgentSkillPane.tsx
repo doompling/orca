@@ -33,7 +33,7 @@ function resolveLinearExampleIcon(example: SkillUsageExample): LucideIcon {
   return LINEAR_EXAMPLE_ICONS[example.id] ?? LinearIcon
 }
 
-// Checklist owns connect + skill + visibility; examples and notes sit below.
+// Browsing setup and optional agent tooling share the existing connection.
 export function LinearAgentSkillPane(): React.JSX.Element {
   const openSettingsPage = useAppStore((state) => state.openSettingsPage)
   const openSettingsTarget = useAppStore((state) => state.openSettingsTarget)
@@ -100,8 +100,8 @@ export function LinearAgentSkillPane(): React.JSX.Element {
     <SearchableSetting
       title={translate('auto.components.settings.LinearAgentSkillPane.title', 'Linear')}
       description={translate(
-        'auto.components.settings.LinearAgentSkillPane.description',
-        'How Linear works in Orca: browse issues, start linked workspaces, and let agents update tickets with /orca-linear.'
+        'auto.components.settings.LinearAgentSkillPane.browsingDescription',
+        'Browse Linear issues and link them to Workspaces. Optionally install /orca-linear for agents that support skills.'
       )}
       keywords={getLinearAgentSkillPaneSearchEntries()[0].keywords}
       className="space-y-6 py-2"

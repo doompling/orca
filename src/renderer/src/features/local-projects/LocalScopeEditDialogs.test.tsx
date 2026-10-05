@@ -10,6 +10,8 @@ import { LocalProjectDialog } from './LocalProjectDialog'
 import { LocalWorkspaceCheckoutDialog } from './LocalWorkspaceCheckoutDialog'
 
 const actions = vi.hoisted(() => ({
+  openModal: vi.fn(),
+  modalData: {},
   closeModal: vi.fn(),
   createLocalProject: vi.fn(),
   updateLocalProjectRoots: vi.fn(),

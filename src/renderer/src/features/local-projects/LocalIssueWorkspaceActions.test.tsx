@@ -86,6 +86,18 @@ describe('Tasks local Workspace actions', () => {
     await waitFor(() => expect(screen.queryByPlaceholderText('Search Workspaces…')).toBeNull())
   })
 
+  it('keeps creation available with existing targets and closes before leaving the chooser', async () => {
+    const onCreateWorkspace = vi.fn()
+    renderActions({ onCreateWorkspace })
+    openPicker()
+    expect(screen.getByRole('option', { name: 'Application / Main' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('option', { name: 'New Workspace for issue' }))
+    expect(onCreateWorkspace).toHaveBeenCalledExactlyOnceWith()
+    await waitFor(() => expect(screen.queryByPlaceholderText('Search Workspaces…')).toBeNull())
+    expect(actions.activateLocalWorkspace).not.toHaveBeenCalled()
+    expect(actions.attachLocalWorkspaceLinearIssue).not.toHaveBeenCalled()
+  })
+
   it('searches by Project and Workspace labels and cancelling writes nothing', async () => {
     renderActions()
     openPicker()

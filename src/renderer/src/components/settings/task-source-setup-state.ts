@@ -5,7 +5,7 @@ export type TaskProviderReadiness = {
   connected: boolean
   checking: boolean
   unavailable?: boolean
-  /** Linear only — agent skill install. Other providers leave this undefined. */
+  /** Optional Linear agent tooling; independent of browsing and linking readiness. */
   skillInstalled?: boolean
   skillChecking?: boolean
   /** The scan could not vouch for `skillInstalled: false`: an unread root, or an error before any answer. */
@@ -17,8 +17,6 @@ export type TaskProviderSetupStatus =
   | 'checking'
   | 'ready'
   | 'connect-required'
-  | 'skill-required'
-  | 'skill-unverified'
   | 'unavailable'
   | 'hidden'
   | 'incomplete'
@@ -32,27 +30,21 @@ export const TASK_PROVIDER_SETUP_STATUS_TONE: Record<
   // Why: hiding a provider is a deliberate choice, not something to warn about.
   hidden: 'neutral',
   'connect-required': 'attention',
-  'skill-required': 'attention',
-  'skill-unverified': 'attention',
   unavailable: 'attention',
   incomplete: 'attention'
 }
 
 export function isTaskProviderChecking(readiness: TaskProviderReadiness): boolean {
-  return readiness.checking || readiness.skillChecking === true
+  return readiness.checking
 }
 
 export function getTaskProviderCompletedSteps(readiness: TaskProviderReadiness): {
   completed: number
   total: number
 } {
-  const skillRequired = readiness.skillInstalled !== undefined
-  const total = skillRequired ? 3 : 2
+  const total = 2
   let completed = 0
   if (readiness.connected) {
-    completed += 1
-  }
-  if (skillRequired && readiness.skillInstalled) {
     completed += 1
   }
   if (readiness.visible) {
@@ -87,14 +79,7 @@ export function getTaskProviderSetupStatus(
   if (!readiness.connected) {
     return 'connect-required'
   }
-  // Why before `skill-required`: that status offers Install, which reinstalls a skill that may be present.
-  if (readiness.skillUnverifiable) {
-    return 'skill-unverified'
-  }
-  if (readiness.skillInstalled === false) {
-    return 'skill-required'
-  }
-  // Fallback if a future readiness field can leave connected+skill true but not ready.
+  // Future provider requirements may leave a connected source incomplete.
   return 'incomplete'
 }
 
@@ -112,12 +97,9 @@ export function getIncompleteVisibleTaskProviders(
   })
 }
 
-// A provider nobody has touched is the shipped default, not a problem: settings
-// expose all four, so treating "never connected" as a warning would fire on
-// every fresh install. Setup counts as started once a credential or the skill
-// landed.
+// An untouched source is not stalled; optional skill installation is independent.
 export function hasStartedTaskProviderSetup(readiness: TaskProviderReadiness): boolean {
-  return readiness.connected || readiness.skillInstalled === true
+  return readiness.connected
 }
 
 // Warn only about setup that started and stalled partway.

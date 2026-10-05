@@ -72,8 +72,8 @@ const PROVIDER_META: Record<
     },
     get description() {
       return translate(
-        'auto.components.settings.TasksPane.linearDescription',
-        'Connect Linear, install the agent skill, and show it in Tasks.'
+        'auto.components.settings.TasksPane.linearBrowsingDescription',
+        'Browse Linear issues and link them to Workspaces. The agent skill is optional.'
       )
     },
     Icon: ({ className }) => <LinearIcon className={className} />
@@ -151,8 +151,8 @@ export function TasksPane({ settings, updateSettings }: TasksPaneProps): React.J
             'Task management setup'
           )}
           description={translate(
-            'auto.components.settings.TasksPane.setupDescription',
-            'Finish connect + visibility for each provider in one place. Linear also needs the agent skill so coding agents can read and update tickets. At least one provider must stay visible.'
+            'auto.components.settings.TasksPane.browsingSetupDescription',
+            'Connect providers and choose what appears in Tasks. Linear browsing and Workspace links do not require an agent skill. At least one provider must stay visible.'
           )}
         />
 
@@ -164,18 +164,11 @@ export function TasksPane({ settings, updateSettings }: TasksPaneProps): React.J
                 'Some visible providers still need setup'
               )}
             </p>
-            {/* Linear is the only multi-step provider today; the generic body
-                covers any future provider that can stall the same way. */}
             <p className="mt-1">
-              {stalledVisible.includes('linear')
-                ? translate(
-                    'auto.components.settings.TasksPane.incompleteBannerBodyWithLinear',
-                    'Hide providers you do not use, or expand a card and finish its steps. For Linear: API access, the agent skill, and Show in Tasks.'
-                  )
-                : translate(
-                    'auto.components.settings.TasksPane.incompleteBannerBody',
-                    'Hide providers you do not use, or expand a card and finish its steps.'
-                  )}
+              {translate(
+                'auto.components.settings.TasksPane.incompleteBannerBody',
+                'Hide providers you do not use, or expand a card and finish its steps.'
+              )}
             </p>
           </div>
         ) : null}
@@ -183,8 +176,8 @@ export function TasksPane({ settings, updateSettings }: TasksPaneProps): React.J
         <SearchableSetting
           title={translate('auto.components.settings.TasksPane.f71d8a9dd3', 'Task Providers')}
           description={translate(
-            'auto.components.settings.TasksPane.providersDescription',
-            'Each card walks through connection (and skill, for Linear) plus whether it appears in Tasks.'
+            'auto.components.settings.TasksPane.browsingProvidersDescription',
+            'Each card covers connection and visibility. Linear also offers an optional agent skill.'
           )}
           keywords={getTasksPaneSearchKeywords()}
           className="space-y-3 py-2"

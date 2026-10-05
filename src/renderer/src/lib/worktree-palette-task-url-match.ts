@@ -25,6 +25,7 @@ import { isWorktreePaletteQueryTooLarge } from './worktree-palette-query-bounds'
 import { buildWorktreePaletteTaskUrlResult } from './worktree-palette-task-url-result'
 import type { PaletteSearchResult } from './worktree-palette-search'
 import { getPaletteWorktreeExecutionHostId } from './palette-repo-resolution'
+import { localWorkspaceMatchesLinearUrl } from './worktree-palette-local-linear-issues'
 
 export type CmdJTaskSourceUrl =
   | { provider: 'github'; link: GitHubIssueOrPRLink }
@@ -230,6 +231,9 @@ function worktreeMatchesGitHubUrl(
 }
 
 function worktreeMatchesLinearUrl(worktree: Worktree, intent: LinearIssueUrlIntent): boolean {
+  if (localWorkspaceMatchesLinearUrl(worktree, intent)) {
+    return true
+  }
   const identifier = normalizeLinearIdentifier(intent.identifier)
   const linkedIdentifier =
     normalizeLinearIdentifier(worktree.linkedLinearIssue) ??

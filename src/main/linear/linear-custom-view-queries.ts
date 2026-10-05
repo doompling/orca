@@ -30,6 +30,7 @@ import {
 } from './linear-project-models'
 import { readCollection, readConcreteCollection } from './linear-project-collection-read'
 import { readIssueConnectionPages } from './linear-project-issue-queries'
+import { withLinearReadDeadline } from './linear-read-deadline'
 
 export async function listCustomViews(
   model: LinearCustomViewModel,
@@ -74,30 +75,31 @@ export async function getCustomView(
   const key = `getCustomView:${concreteWorkspaceId}:${model}:${id}`
   return coalesce(
     key,
-    async () => {
-      const entries = getClients(concreteWorkspaceId)
-      const entry = entries[0]
-      if (!entry) {
-        return null
-      }
-      await acquire()
-      try {
-        const result = await entry.client.client.rawRequest<
-          CustomViewConnectionResponse,
-          LinearRawVariables
-        >(CUSTOM_VIEW_QUERY, { id })
-        const view = result.data?.customView
-        const mapped = view ? mapCustomViewForWorkspace(entry, view) : null
-        return mapped?.model === model ? mapped : null
-      } catch (error) {
-        if (isAuthError(error)) {
-          clearToken(entry.workspace.id)
+    () =>
+      withLinearReadDeadline(async (signal) => {
+        const entries = getClients(concreteWorkspaceId, signal)
+        const entry = entries[0]
+        if (!entry) {
+          return null
         }
-        throw error
-      } finally {
-        release()
-      }
-    },
+        await acquire(signal)
+        try {
+          const result = await entry.client.client.rawRequest<
+            CustomViewConnectionResponse,
+            LinearRawVariables
+          >(CUSTOM_VIEW_QUERY, { id })
+          const view = result.data?.customView
+          const mapped = view ? mapCustomViewForWorkspace(entry, view) : null
+          return mapped?.model === model ? mapped : null
+        } catch (error) {
+          if (isAuthError(error)) {
+            clearToken(entry.workspace.id)
+          }
+          throw error
+        } finally {
+          release()
+        }
+      }),
     force
   )
 }

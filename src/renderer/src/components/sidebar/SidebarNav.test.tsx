@@ -2,7 +2,7 @@
 
 import { act, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
-import { waitFor } from '@testing-library/react'
+import { waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { getDefaultSettings } from '../../../../shared/constants'
@@ -194,7 +194,7 @@ function getHideButton(menu: Element): HTMLButtonElement {
   return button
 }
 
-async function clickButton(button: HTMLButtonElement): Promise<void> {
+async function clickButton(button: HTMLElement): Promise<void> {
   await act(async () => {
     button.dispatchEvent(new MouseEvent('click', { bubbles: true }))
   })
@@ -216,6 +216,25 @@ describe('SidebarNav', () => {
     mocks.hasPairedMobileDevice = false
     mocks.agentBucketCounts = { attention: 0, working: 0, done: 0, idle: 0 }
     setSidebarState()
+  })
+
+  it('offers Linear setup from the sidebar before connection, including folder Projects', async () => {
+    setSidebarState({ repos: [folderRepo()] })
+    const container = await renderSidebarNav()
+
+    await clickButton(within(container).getByRole('button', { name: 'Open Linear tasks' }))
+
+    expect(mocks.openTaskPage).toHaveBeenCalledWith({ taskSource: 'linear' })
+  })
+
+  it('respects an explicit choice to hide Linear from Tasks', async () => {
+    setSidebarState({
+      settings: { ...getDefaultSettings('/tmp'), visibleTaskProviders: ['github'] }
+    })
+    const container = await renderSidebarNav()
+
+    expect(within(container).queryByRole('button', { name: 'Open Linear tasks' })).toBeNull()
+    expect(within(container).getByRole('button', { name: 'Open GitHub tasks' })).toBeTruthy()
   })
 
   it('keeps the Agent Dashboard row unmounted while its experiment is off', async () => {

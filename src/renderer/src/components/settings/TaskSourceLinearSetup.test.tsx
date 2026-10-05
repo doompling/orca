@@ -127,6 +127,12 @@ describe('TaskSourceLinearSetup', () => {
     expect(markup).toContain('data-testid="skill-panel"')
     expect(markup).toContain('Not installed')
     expect(markup).not.toContain('Connect Linear first')
+    expect(markup).toContain('Optional: Linear agent skill')
+    expect(markup).toContain('Browsing issues and linking Workspaces work without it.')
+    expect(markup.indexOf('Show in Tasks')).toBeLessThan(
+      markup.indexOf('Optional: Linear agent skill')
+    )
+    expect(markup.match(/<li\b/g)).toHaveLength(2)
   })
 
   it('routes connected credential management to Integrations', () => {
