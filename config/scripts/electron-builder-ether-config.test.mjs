@@ -9,6 +9,7 @@ const base = require('../electron-builder.config.cjs')
 const config = require('../electron-builder.ether.config.cjs')
 const product = require('../../src/shared/ether-product.json')
 const { FileMatcher } = require('app-builder-lib/out/fileMatcher')
+const fingerprint = 'A'.repeat(40)
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -24,12 +25,13 @@ describe('Ether local Mac package', () => {
     expect(config.protocols).toEqual([])
     expect(config.publish).toBeNull()
     expect(config.mac).toMatchObject({
-      identity: '-',
+      identity: process.env.ETHER_SIGN_IDENTITY || 'Ether Local Code Signing',
+      timestamp: 'none',
       hardenedRuntime: false,
       notarize: false,
       target: [{ target: 'dir', arch: ['arm64'] }]
     })
-    expect(config.forceCodeSigning).toBe(false)
+    expect(config.forceCodeSigning).toBe(true)
     expect(config.afterSign).toBeUndefined()
   })
 
@@ -55,17 +57,20 @@ describe('Ether local Mac package', () => {
     expect(packs('out/main/index.js')).toBe(true)
   })
 
-  it('refuses other architectures and signing before running packaging hooks', () => {
+  it('refuses other architectures and unverified signing before running packaging hooks', () => {
     const beforePack = vi.spyOn(base, 'beforePack').mockReturnValue(undefined)
     expect(() => config.beforePack({ electronPlatformName: 'darwin', arch: 1 })).toThrow('arm64')
     expect(() => config.beforePack({ electronPlatformName: 'win32', arch: 3 })).toThrow('arm64')
     expect(beforePack).not.toHaveBeenCalled()
     vi.stubEnv('CSC_LINK', '')
     vi.stubEnv('CSC_NAME', 'Developer ID Application: Somebody')
-    expect(() => config.beforePack({ electronPlatformName: 'darwin', arch: 3 })).toThrow('ad-hoc')
-    vi.stubEnv('CSC_NAME', '-')
+    expect(() => config.beforePack({ electronPlatformName: 'darwin', arch: 3 })).toThrow(
+      'persistent'
+    )
+    vi.stubEnv('ETHER_SIGN_IDENTITY', fingerprint)
+    vi.stubEnv('CSC_NAME', fingerprint)
     vi.stubEnv('CSC_IDENTITY_AUTO_DISCOVERY', 'false')
-    vi.stubEnv('ORCA_COMPUTER_MACOS_SIGN_IDENTITY', '-')
+    vi.stubEnv('ORCA_COMPUTER_MACOS_SIGN_IDENTITY', fingerprint)
     const context = { electronPlatformName: 'darwin', arch: 3 }
     config.beforePack(context, '/fixture/mobile-web')
     expect(beforePack).toHaveBeenCalledExactlyOnceWith(context, '/fixture/mobile-web')

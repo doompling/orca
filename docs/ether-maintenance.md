@@ -44,6 +44,34 @@ development test directory.
 
 ## Rebuild and verify
 
+### One-time local signing setup
+
+Normal Ether builds require a persistent code-signing certificate. In Keychain
+Access, choose **Certificate Assistant → Create a Certificate**, name it
+**Ether Local Code Signing**, choose **Self Signed Root** and **Code Signing**,
+and save it in the login keychain. Keep this certificate and its private key
+between builds; do not generate a replacement for each update. A local
+self-signed certificate provides identity continuity, not public distribution
+or notarization. See [Apple's certificate setup guide](https://support.apple.com/guide/keychain-access/create-self-signed-certificates-kyca8916/mac).
+
+Check availability with `security find-identity -v -p codesigning`. If macOS
+does not consider the new certificate valid, inspect its expiry and **Trust**
+settings in Keychain Access. For this local certificate, trust **Code Signing**
+only; do not change SSL, email, or other trust policies. Enter passwords only
+into macOS dialogs, never into build commands or chat. On the first signing
+operation, macOS may ask permission for `/usr/bin/codesign` to use this private
+key; future builds need that same access.
+
+The build defaults to the exact certificate name above. To use another
+uniquely named certificate, set `ETHER_SIGN_IDENTITY` to its exact name or SHA-1
+fingerprint. The runner resolves it to one valid identity before any build
+work, uses its fingerprint for the app and native helpers, and verifies the
+finished app's certificate and designated requirement. Missing, ambiguous,
+expired, or ad-hoc identities stop the build; there is no unsigned fallback.
+Private keys and certificate passwords must not be committed to this repository.
+
+### Build commands
+
 From this checkout on the supported Apple Silicon Mac:
 
 ```sh
@@ -54,10 +82,24 @@ pnpm build:ether
 ```
 
 `build:ether` reuses Orca's build and package checks, packages only the current
-arm64 Mac, signs locally/ad hoc, and disables publishing. It is not a notarized
+arm64 Mac, signs with the persistent local certificate, and disables publishing. It is not a notarized
 release for other machines. Building another architecture requires the upstream
 [release dependency policy](reference/pnpm-install-policy.md), not just changing
 the output filename.
+
+Use `ETHER_BUILD_STAGING=1 pnpm build:ether` to build into
+`dist/ether-staging/mac-arm64/Ether.app` while the current bundle is in use.
+The build never installs or launches that staged app. Quit Ether before manually
+replacing the everyday bundle, and retain the previous bundle for rollback.
+
+When changing from the old ad-hoc build to certificate signing, macOS may ask
+once for access to **Ether Safe Storage**. Approve the expected Ether app with
+**Always Allow** if desired. Keep the existing Keychain item and Ether profile;
+do not delete credentials or weaken access to all applications. Verify two
+different builds signed by the same certificate and repeated launches after
+that approval. Matching signature requirements are necessary, but do not alone
+prove that macOS retained Keychain approval. Repeated prompts for an unchanged
+build after **Always Allow** require separate Keychain-permission investigation.
 
 Quit the app before replacing its bundle. Keep its data and source directories
 intact. Test the replacement with a disposable profile before pointing it at

@@ -2,6 +2,10 @@ const { readFileSync, writeFileSync } = require('node:fs')
 const { join } = require('node:path')
 const base = require('./electron-builder.config.cjs')
 const product = require('../src/shared/ether-product.json')
+const {
+  DEFAULT_ETHER_SIGNING_IDENTITY,
+  requireEtherSigningHash
+} = require('./scripts/ether-signing-identity.cjs')
 
 const releaseFlags = ['ORCA_MAC_RELEASE', 'ORCA_MAC_HOURLY', 'ORCA_MAC_DAILY', 'ORCA_MAC_ADHOC']
 if (releaseFlags.some((key) => process.env[key] === '1')) {
@@ -14,7 +18,7 @@ module.exports = {
   productName: product.name,
   protocols: [],
   publish: null,
-  forceCodeSigning: false,
+  forceCodeSigning: true,
   directories: { ...base.directories, output: 'dist/ether' },
   extraMetadata: {
     ...base.extraMetadata,
@@ -34,7 +38,8 @@ module.exports = {
   ],
   mac: {
     ...base.mac,
-    identity: '-',
+    identity: process.env.ETHER_SIGN_IDENTITY || DEFAULT_ETHER_SIGNING_IDENTITY,
+    timestamp: 'none',
     hardenedRuntime: false,
     notarize: false,
     artifactName: 'ether-macos-${arch}.${ext}',
@@ -55,14 +60,7 @@ module.exports = {
     if (context.electronPlatformName !== 'darwin' || context.arch !== 3) {
       throw new Error('This Ether build supports only local macOS arm64 packaging.')
     }
-    if (
-      process.env.CSC_LINK ||
-      process.env.CSC_NAME !== '-' ||
-      process.env.CSC_IDENTITY_AUTO_DISCOVERY !== 'false' ||
-      process.env.ORCA_COMPUTER_MACOS_SIGN_IDENTITY !== '-'
-    ) {
-      throw new Error('Use the Ether local build runner with ad-hoc signing only.')
-    }
+    requireEtherSigningHash(process.env)
     return base.beforePack(context, ...args)
   },
   afterPack: async (context) => {

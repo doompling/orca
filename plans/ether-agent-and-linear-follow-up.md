@@ -6,6 +6,38 @@ restart or a whole-editor redesign. Keep the existing app profile and saved work
 
 ## Must-haves, in order
 
+### Current delivery blocker: persistent macOS signing — 2026-10-05
+
+- [x] Confirm the delivered app and local build runner use ad-hoc signing; the
+      rebuild-dependent identity can invalidate previous Keychain approval.
+- [x] Checkpoint the delivered Linear follow-up separately (`fb047d1a2f`).
+- [x] Replace forced ad-hoc signing with one explicitly selected certificate for
+      Ether and its native helpers, with no unsigned fallback.
+- [x] Add a staging output so verification does not replace the running app.
+- [ ] Complete the one-time local certificate setup in the user's login keychain.
+- [x] Pass signing-policy tests and existing build checks: 50 focused tests,
+      full `pnpm tc`, targeted lint, and changed-code quality passed. The native
+      verifier also correctly rejects the existing ad-hoc bundle without
+      changing it or accessing credentials. An actual runner invocation with a
+      nonexistent identity stops before rebuilding any files.
+- [ ] Verify two different packaged builds retain the same certificate-bound
+      designated requirement, then run a hidden disposable-profile smoke check.
+- [ ] After the user quits Ether, retain the old bundle and deliver the signed build.
+- [ ] User acceptance: approve Ether Safe Storage once if needed, verify Linear
+      still connects, and confirm repeated launches and a subsequent signed
+      update do not ask again. Signature checks alone do not prove this.
+- [x] Checkpoint the source signing fix separately; signed-build delivery and
+      the user-assisted Keychain acceptance above remain open.
+
+Source implementation is ready; signed-build and Keychain acceptance are still
+pending the one-time certificate setup. The existing running app has not been
+replaced, and no production profile or Keychain item was modified.
+
+Keep the Ether profile and existing Keychain item intact. No credential reset,
+plaintext storage, broad Keychain access, public notarization, or editor rewrite
+is part of this fix. Setup and rebuild instructions live in
+[Ether maintenance](../docs/ether-maintenance.md#one-time-local-signing-setup).
+
 ### 1. Codex editor-rendered chat — complete
 
 - [x] Correct the multi-root scope check: Codex grants its working directory

@@ -4,6 +4,8 @@ import { createJiti } from 'jiti'
 import product from '../../src/shared/ether-product.json' with { type: 'json' }
 import { getLocalBuildIdentity } from './build-mac-local.mjs'
 import { resolvePnpmCliInvocation } from './pnpm-cli-invocation.mjs'
+import signing from './ether-signing-identity.cjs'
+import { verifyEtherSignature } from './verify-ether-signature.mjs'
 
 const repoRoot = resolve(import.meta.dirname, '../..')
 const bundleId = product.appId
@@ -21,18 +23,23 @@ export function createEtherBuildPlan({
       throw new Error(`Unset ${key}: Ether is a local build, not an upstream release.`)
     }
   }
+  const signingIdentity = signing.getEtherSigningSelector(environment)
+  const outputDirectory =
+    environment.ETHER_BUILD_STAGING === '1' ? 'dist/ether-staging' : 'dist/ether'
   const env = {
     ...environment,
     ORCA_SKIP_DEV_CLI_INSTALL: '1',
     ORCA_COMPUTER_MACOS_BUNDLE_ID: `${bundleId}.computer-use`,
-    ORCA_COMPUTER_MACOS_SIGN_IDENTITY: '-',
-    CSC_NAME: '-',
+    ETHER_SIGN_IDENTITY: signingIdentity,
+    ORCA_COMPUTER_MACOS_SIGN_IDENTITY: signingIdentity,
+    CSC_NAME: signingIdentity,
     CSC_IDENTITY_AUTO_DISCOVERY: 'false'
   }
   delete env.CSC_LINK
   delete env.CSC_KEY_PASSWORD
   return {
     env,
+    outputDirectory,
     commands: [
       ['run', 'build:desktop'],
       ['run', 'build:computer-macos'],
@@ -55,7 +62,8 @@ export function createEtherBuildPlan({
         '--arm64',
         '--dir',
         '--publish',
-        'never'
+        'never',
+        `--config.directories.output=${outputDirectory}`
       ]
     ]
   }
@@ -64,13 +72,33 @@ export function createEtherBuildPlan({
 async function buildEther() {
   const plan = createEtherBuildPlan()
   process.chdir(repoRoot)
+  const { spawnProcess, runProcess } = await createJiti(import.meta.url).import(
+    '../../src/shared/child-process/run-process.ts'
+  )
+  const identities = await runProcess({
+    program: '/usr/bin/security',
+    args: ['find-identity', '-v', '-p', 'codesigning'],
+    timeoutMs: 15_000
+  })
+  if (
+    identities.code !== 0 ||
+    identities.timedOut ||
+    identities.signal ||
+    identities.outputTruncated
+  ) {
+    throw new Error(
+      'Cannot read available signing identities. Unlock your login keychain and retry.'
+    )
+  }
+  const signer = signing.selectEtherSigningIdentity(identities.stdout, plan.env.ETHER_SIGN_IDENTITY)
+  plan.env.ETHER_SIGN_IDENTITY = signer.hash
+  plan.env.CSC_NAME = signer.hash
+  plan.env.ORCA_COMPUTER_MACOS_SIGN_IDENTITY = signer.hash
+  console.log(`[Ether] Signing with ${signer.name} (${signer.hash})`)
   const identity = getLocalBuildIdentity()
   plan.env.ORCA_LOCAL_BUILD_VERSION = identity.version
   plan.env.ORCA_BUILD_COMMIT = identity.commit
   const { command, prefixArgs } = resolvePnpmCliInvocation()
-  const { spawnProcess } = await createJiti(import.meta.url).import(
-    '../../src/shared/child-process/run-process.ts'
-  )
   for (const args of plan.commands) {
     console.log(`[Ether] ${command} ${[...prefixArgs, ...args].join(' ')}`)
     await new Promise((done, fail) => {
@@ -91,7 +119,10 @@ async function buildEther() {
       })
     })
   }
-  console.log('[Ether] Built dist/ether/mac-arm64/Ether.app. No app was installed or launched.')
+  const appPath = resolve(repoRoot, plan.outputDirectory, 'mac-arm64', 'Ether.app')
+  const requirement = await verifyEtherSignature({ appPath, identityHash: signer.hash })
+  console.log(`[Ether] Verified signing identity: ${requirement}`)
+  console.log(`[Ether] Built ${appPath}. No app was installed or launched.`)
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === resolve(import.meta.filename)) {
