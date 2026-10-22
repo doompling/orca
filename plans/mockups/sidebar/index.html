@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Ether sidebar mockups</title>
+    <link rel="stylesheet" href="sidebar.css" />
+  </head>
+  <body>
+    <div class="controls">
+      <div class="grp">
+        <span class="lbl">Concept</span>
+        <span class="seg"
+          ><button data-set="concept:desk">A · Desk</button><button data-set="concept:stream">B · Stream</button
+          ><button data-set="concept:rail">C · Rail</button></span
+        >
+      </div>
+      <div class="grp">
+        <span class="lbl">Scope</span>
+        <span class="seg"
+          ><button data-set="scope:p0">P0</button><button data-set="scope:p1">P1</button
+          ><button data-set="scope:p2">P2+ vision</button></span
+        >
+      </div>
+      <div class="grp">
+        <span class="lbl">Theme</span>
+        <span class="seg"><button data-set="theme:dark">Dark</button><button data-set="theme:light">Light</button></span>
+      </div>
+      <div class="grp">
+        <span class="lbl">Width</span><input id="width" type="range" min="220" max="380" step="10" /><span
+          id="wv"
+          class="lbl"
+        ></span>
+      </div>
+      <div class="grp" data-scope-min="1">
+        <span class="lbl">Type marker</span>
+        <span class="seg"
+          ><button data-set="marker:rail">Rail</button><button data-set="marker:glyph">Glyph</button
+          ><button data-set="marker:both">Both</button></span
+        >
+      </div>
+      <div class="grp">
+        <span class="lbl">Roots</span>
+        <span class="seg"
+          ><button data-set="rootsStyle:line">Line</button><button data-set="rootsStyle:chips">Chips</button
+          ><button data-set="rootsStyle:footer">Footer only</button></span
+        >
+      </div>
+      <div class="grp">
+        <span class="lbl">Marked rows</span>
+        <span class="seg"
+          ><button data-set="marksPlacement:move">Move to Marks</button
+          ><button data-set="marksPlacement:both">Also in Project</button></span
+        >
+      </div>
+      <div class="grp">
+        <span class="lbl">Project order</span>
+        <span class="seg"
+          ><button data-set="projectOrder:recent">Recent</button><button data-set="projectOrder:manual">Manual</button></span
+        >
+      </div>
+      <label class="chk"><input type="checkbox" data-check="grayscale" /> Grayscale</label>
+      <label class="chk" data-scope-min="2"><input type="checkbox" data-check="compact" /> Compact rail</label>
+      <label class="chk" data-scope-min="2"><input type="checkbox" data-check="assistantOpen" /> Assistant</label>
+      <div class="grp">
+        <span class="lbl">Simulate</span>
+        <button class="act" data-trigger="agent-asks">Agent asks</button>
+        <button class="act" data-trigger="agent-done">Agent finishes</button>
+        <button class="act" data-trigger="drag">Drag preview</button>
+        <button class="act" data-trigger="archive">Archive open</button>
+        <button class="act" data-trigger="marks">Marks list</button>
+        <button class="act" data-trigger="mru">Recent switcher</button>
+        <button class="act" data-trigger="capture" data-scope-min="2">Capture</button>
+        <button class="act" data-trigger="reset">Reset</button>
+      </div>
+    </div>
+    <div class="stage"><div class="app" id="app"></div></div>
+    <div class="notes" id="notes"></div>
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
