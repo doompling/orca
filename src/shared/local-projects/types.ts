@@ -38,6 +38,8 @@ export type LocalWorkspace = {
   isArchived: boolean
   isUnread?: boolean
   isPinned?: boolean
+  /** Harpoon-style slot 1–9, unique across Workspaces; jump with the workspace digit shortcut. */
+  markSlot?: number
   lastActivityAt?: number
   linearIssues?: LocalWorkspaceLinearIssue[]
   createdAt: number
@@ -85,7 +87,10 @@ export type UpdateLocalWorkspaceArgs = {
   workspaceId: string
   updates: Partial<
     Pick<LocalWorkspace, 'name' | 'isArchived' | 'isUnread' | 'isPinned' | 'lastActivityAt'>
-  >
+  > & {
+    /** Taking a held slot swaps its holder into this Workspace's old slot; 'next' picks the first free one; null clears. Archiving also clears. */
+    markSlot?: number | null | 'next'
+  }
 }
 
 export type LocalProjectsApi = {

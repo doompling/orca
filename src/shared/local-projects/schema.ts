@@ -23,6 +23,7 @@ const path = z
   .max(32_768)
   .refine((value) => !value.includes('\0'))
 const timestamp = z.number().finite().nonnegative()
+const markSlot = z.number().int().min(1).max(9)
 const overrides = z.record(id, path)
 
 export const LocalProjectRootSchema = z.object({ id, label: name, path }).strict()
@@ -50,6 +51,7 @@ const workspaceSchema = z
     isArchived: z.boolean(),
     isUnread: z.boolean().optional(),
     isPinned: z.boolean().optional(),
+    markSlot: markSlot.optional(),
     lastActivityAt: timestamp.optional(),
     linearIssues: LocalWorkspaceLinearIssuesSchema.optional(),
     createdAt: timestamp,
@@ -72,6 +74,12 @@ export const LocalProjectsStateSchema = z
       workspaceIds.size !== state.workspaces.length
     ) {
       context.addIssue({ code: 'custom', message: 'Duplicate local Project or Workspace ID.' })
+    }
+    const markSlots = state.workspaces.flatMap((workspace) =>
+      workspace.markSlot === undefined ? [] : [workspace.markSlot]
+    )
+    if (new Set(markSlots).size !== markSlots.length) {
+      context.addIssue({ code: 'custom', message: 'Duplicate local Workspace mark slot.' })
     }
     for (const project of state.projects) {
       const rootIds = new Set(project.roots.map((root) => root.id))
@@ -147,6 +155,10 @@ export const UpdateLocalWorkspaceSchema = z
         isArchived: z.boolean().optional(),
         isUnread: z.boolean().optional(),
         isPinned: z.boolean().optional(),
+        markSlot: z
+          .union([markSlot, z.literal('next')])
+          .nullable()
+          .optional(),
         lastActivityAt: timestamp.optional()
       })
       .strict()

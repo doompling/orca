@@ -130,10 +130,13 @@ function LocalWorkspaceLinearIssuePopover({
 
 export function LocalWorkspaceLinearIssuesContent({
   workspaceId,
-  onClose
+  onClose,
+  padded = true
 }: {
   workspaceId: string
   onClose: () => void
+  /** Off inside a Dialog, which already pads its content. */
+  padded?: boolean
 }): React.JSX.Element {
   const workspace = useAppStore((state) =>
     state.localProjects.workspaces.find((entry) => entry.id === workspaceId)
@@ -175,7 +178,7 @@ export function LocalWorkspaceLinearIssuesContent({
   }
   const links = workspace?.linearIssues ?? []
   return (
-    <div className="space-y-3 p-4">
+    <div className={cn('space-y-3', padded && 'p-4')}>
       <div className="space-y-1">
         <h3 className="text-sm font-medium">Workspace Linear issues</h3>
         <p className="text-xs text-muted-foreground">

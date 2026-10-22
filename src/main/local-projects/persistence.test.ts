@@ -306,4 +306,55 @@ describe('local Project persistence in the existing profile Store', () => {
     })
     expect(JSON.parse(readFileSync(dataFile, 'utf8')).folderWorkspaces).toEqual([])
   })
+
+  it('keeps mark slots unique, moves a taken slot, and clears it on archive', async () => {
+    const { store, input, dataFile } = fixture()
+    const { project, workspace: main } = await store.createLocalProject(input)
+    const other = await store.createLocalWorkspace({ projectId: project.id, name: 'Other' })
+    store.updateLocalWorkspace({ workspaceId: main.id, updates: { markSlot: 2 } })
+    store.updateLocalWorkspace({ workspaceId: other.id, updates: { markSlot: 2 } })
+    const slots = () =>
+      Object.fromEntries(
+        store.getLocalProjectsSnapshot().workspaces.map((entry) => [entry.name, entry.markSlot])
+      )
+    expect(slots()).toEqual({ Main: undefined, Other: 2 })
+    store.updateLocalWorkspace({ workspaceId: other.id, updates: { isArchived: true } })
+    expect(slots()).toEqual({ Main: undefined, Other: undefined })
+    // Undo restores both in one write.
+    store.updateLocalWorkspace({
+      workspaceId: other.id,
+      updates: { isArchived: false, markSlot: 2 }
+    })
+    store.updateLocalWorkspace({ workspaceId: main.id, updates: { markSlot: 5 } })
+    store.updateLocalWorkspace({ workspaceId: main.id, updates: { markSlot: null } })
+    expect(slots()).toEqual({ Main: undefined, Other: 2 })
+    // Taking a held slot swaps the holder into the mover's old slot in one write.
+    store.updateLocalWorkspace({ workspaceId: main.id, updates: { markSlot: 7 } })
+    store.updateLocalWorkspace({ workspaceId: main.id, updates: { markSlot: 2 } })
+    expect(slots()).toEqual({ Main: 2, Other: 7 })
+    // 'next' keeps an existing slot and otherwise takes the first free one.
+    store.updateLocalWorkspace({ workspaceId: main.id, updates: { markSlot: 'next' } })
+    expect(slots()).toEqual({ Main: 2, Other: 7 })
+    store.updateLocalWorkspace({ workspaceId: other.id, updates: { markSlot: null } })
+    store.updateLocalWorkspace({ workspaceId: other.id, updates: { markSlot: 'next' } })
+    expect(slots()).toEqual({ Main: 2, Other: 1 })
+    // Archived Workspaces cannot take a slot.
+    store.updateLocalWorkspace({ workspaceId: other.id, updates: { isArchived: true } })
+    store.updateLocalWorkspace({ workspaceId: other.id, updates: { markSlot: 4 } })
+    expect(slots()).toEqual({ Main: 2, Other: undefined })
+    store.updateLocalWorkspace({
+      workspaceId: other.id,
+      updates: { isArchived: false, markSlot: 2 }
+    })
+    expect(slots()).toEqual({ Main: undefined, Other: 2 })
+    for (const markSlot of [0, 10, 1.5]) {
+      expect(() =>
+        store.updateLocalWorkspace({ workspaceId: main.id, updates: { markSlot } })
+      ).toThrow()
+    }
+    store.freezeWrites()
+    const reopened = new Store({ dataFile })
+    stores.push(reopened)
+    expect(reopened.getLocalProjectsSnapshot().workspaces[1]).toMatchObject({ markSlot: 2 })
+  })
 })

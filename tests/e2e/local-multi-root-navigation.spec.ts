@@ -6,7 +6,7 @@ import { createProject, createWorkspace } from './helpers/local-project-controls
 
 test.use({ seedTestRepo: false })
 
-test('searches local Workspaces and follows sidebar order through existing shortcut routing', async ({
+test('searches local Workspaces and jumps to marks through existing shortcut routing', async ({
   orcaPage: page,
   electronApp,
   registerPostElectronShutdownCleanup
@@ -37,14 +37,37 @@ test('searches local Workspaces and follows sidebar order through existing short
   await expect(palette).toHaveCount(0)
   await expect(investigateRow).toHaveAttribute('aria-current', 'page')
 
+  // Digits follow mark slots, not row order. Marking moves rows into the Marks list.
+  for (const region of [full, maintenance]) {
+    await region.getByRole('button', { name: 'Workspace actions for Main', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Add mark', exact: true }).click()
+  }
+  const marks = page.getByRole('list', { name: 'Marks', exact: true })
+  const markedFull = marks.locator('[data-worktree-id]').filter({ hasText: 'Full application' })
+  const markedMaintenance = marks
+    .locator('[data-worktree-id]')
+    .filter({ hasText: 'App A maintenance' })
+  await expect(markedFull).toContainText('1')
+  await expect(markedMaintenance).toContainText('2')
+  await expect(mainRow).toHaveCount(0)
+
   // Hidden CDP cannot exercise native accelerators; send their existing renderer event.
-  for (const index of [0, 2]) {
+  for (const [index, row] of [
+    [0, markedFull],
+    [1, markedMaintenance]
+  ] as const) {
     await electronApp.evaluate(({ BrowserWindow }, target) => {
       BrowserWindow.getAllWindows()[0]?.webContents.send('ui:jumpToWorktreeIndex', target)
     }, index)
-    await expect(index === 0 ? mainRow : maintenanceRow).toHaveAttribute('aria-current', 'page')
+    await expect(row).toHaveAttribute('aria-current', 'page')
   }
+  // An empty slot is a no-op rather than shifting to the next Workspace.
+  await electronApp.evaluate(({ BrowserWindow }) => {
+    BrowserWindow.getAllWindows()[0]?.webContents.send('ui:jumpToWorktreeIndex', 4)
+  })
+  await expect(markedMaintenance).toHaveAttribute('aria-current', 'page')
+  await expect(maintenanceRow).toHaveCount(0)
   await full.getByRole('button', { name: 'Full application', exact: true }).click()
-  await expect(mainRow).toHaveAttribute('aria-current', 'page')
+  await expect(markedFull).toHaveAttribute('aria-current', 'page')
   await page.screenshot({ path: testInfo.outputPath('local-workspace-navigation.png') })
 })

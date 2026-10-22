@@ -20,6 +20,8 @@ import { useSystemPrefersDark } from '@/components/terminal-pane/use-system-pref
 import { lazyWithRetry } from '@/lib/lazy-with-retry'
 import { hasLocalProjectsApi } from '@/features/local-projects/local-projects-availability'
 import { LocalProjectsSidebar } from '@/features/local-projects/LocalProjectsSidebar'
+import { LocalSidebarTop } from '@/features/local-projects/LocalSidebarTop'
+import { LocalWorkspaceShortcuts } from '@/features/local-projects/LocalWorkspaceShortcuts'
 
 // Why lazy: the Agents list pulls the whole activity pipeline (virtualizer, markdown
 // previews, thread derivation); users on the workspace view should not load or render any of it.
@@ -149,6 +151,7 @@ function Sidebar({
   })
 
   useWorkspaceRevealBodyRedirect(sidebarOpen && sidebarBody === 'agents')
+  const localProjects = hasLocalProjectsApi()
 
   return (
     <TooltipProvider delayDuration={400}>
@@ -162,7 +165,7 @@ function Sidebar({
         {sidebarOpen && (
           <>
             {/* Fixed controls */}
-            <SidebarNav />
+            {localProjects ? <LocalSidebarTop /> : <SidebarNav />}
             <SidebarHeader
               onWorkspaceBoardMenuOpenChange={setWorkspaceBoardMenuOpen}
               activityOptionsTarget={setAgentOptionsTarget}
@@ -182,7 +185,7 @@ function Sidebar({
                   />
                 </ActivityThreadCollapseContext.Provider>
               </React.Suspense>
-            ) : hasLocalProjectsApi() ? (
+            ) : localProjects ? (
               <LocalProjectsSidebar />
             ) : (
               <WorktreeList
@@ -245,6 +248,8 @@ function Sidebar({
         )}
       </div>
 
+      {/* Shortcuts stay live while the sidebar is collapsed. */}
+      {localProjects ? <LocalWorkspaceShortcuts /> : null}
       {/* Dialogs render outside sidebar to avoid clipping. Lazy-load them only
       for the modal that needs their flow-specific hooks and UI. */}
       <React.Suspense fallback={null}>

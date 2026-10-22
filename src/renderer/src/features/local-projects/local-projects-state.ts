@@ -172,6 +172,11 @@ export const createLocalProjectsSlice: StateCreator<AppState, [], [], LocalProje
       if (get().activeWorktreeId !== workspaceKey) {
         throw new Error('Workspace could not be opened.')
       }
+      // Same recency and history signals as the shared activation path, so new Workspaces join Ctrl+`.
+      get().markWorktreeVisited(workspaceKey)
+      if (!get().isNavigatingHistory) {
+        get().recordWorktreeVisit(workspaceKey)
+      }
       if (project.lastWorkspaceId !== workspaceId) {
         await localProjectsApi().updateProject({
           projectId: workspace.projectId,

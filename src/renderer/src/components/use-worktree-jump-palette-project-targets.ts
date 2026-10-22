@@ -10,6 +10,7 @@ import {
 } from '@/components/cmd-j/palette-results'
 import { getCmdJQuickActions } from '@/components/cmd-j/quick-actions'
 import { buildPluginQuickActions } from '@/components/cmd-j/plugin-quick-actions'
+import { getLocalWorkspaceQuickActions } from '@/features/local-projects/local-workspace-quick-actions'
 import type { ProjectTargetPaletteItem } from './worktree-jump-palette-model'
 import type { WorktreeJumpPaletteFilter } from './use-worktree-jump-palette-filter'
 import type { WorktreeJumpPaletteLocalState } from './use-worktree-jump-palette-local-state'
@@ -47,6 +48,7 @@ export function useWorktreeJumpPaletteProjectTargets({
     () =>
       buildCmdJActionResults([
         ...getCmdJQuickActions(),
+        ...getLocalWorkspaceQuickActions(),
         ...buildPluginQuickActions(pluginCommands)
       ]),
     [pluginCommands]

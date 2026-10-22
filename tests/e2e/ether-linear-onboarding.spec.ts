@@ -183,8 +183,12 @@ test('packaged Ether exposes Linear before connection and browses without an age
     mkdirSync(projectRoot)
     await createProject(page, 'Sidebar Linear', [projectRoot])
     const sidebar = page.getByRole('region', { name: 'Sidebar Linear', exact: true })
-    await sidebar.getByRole('button', { name: 'Link Linear issue to Main', exact: true }).click()
-    const manager = page.locator('[data-slot="popover-content"]').filter({
+    const openManager = async () => {
+      await sidebar.getByRole('button', { name: 'Workspace actions for Main', exact: true }).click()
+      await page.getByRole('menuitem', { name: 'Linear issues…', exact: true }).click()
+    }
+    await openManager()
+    const manager = page.locator('[data-slot="dialog-content"]').filter({
       has: page.getByRole('heading', { name: 'Workspace Linear issues', exact: true })
     })
     await expect(manager.getByPlaceholder('Search Linear issues…')).toBeEnabled()
@@ -200,12 +204,14 @@ test('packaged Ether exposes Linear before connection and browses without an age
     await expect(manager.getByRole('option')).toHaveCount(0)
     await page.keyboard.press('Escape')
     await expect(manager).toHaveCount(0)
-    const rows = sidebar.getByRole('button', { name: /^Linear issue / })
-    await expect(rows).toHaveCount(2)
-    for (const issue of LOCAL_PROJECT_LINEAR_FIXTURE.issues.slice(0, 2)) {
-      await expect(rows.filter({ hasText: issue.identifier })).toContainText(issue.title)
-    }
-    await rows.nth(1).click()
+    // The row shows the first key and "+1"; its tooltip names both issues.
+    const [firstIssue, secondIssue] = LOCAL_PROJECT_LINEAR_FIXTURE.issues
+    const keys = sidebar.locator(`[title*="${firstIssue.identifier} ${firstIssue.title}"]`)
+    await expect(keys).toHaveText(`${firstIssue.identifier} +1`)
+    await expect(
+      sidebar.locator(`[title*="${secondIssue.identifier} ${secondIssue.title}"]`)
+    ).toHaveCount(1)
+    await openManager()
     await expect(manager.getByRole('listitem')).toHaveCount(2)
     await page.screenshot({
       path: testInfo.outputPath('linear-sidebar-linked-issues.png'),
@@ -230,7 +236,9 @@ test('packaged Ether exposes Linear before connection and browses without an age
     if (tipVisible) {
       await cliTip.getByRole('button', { name: 'Close', exact: true }).click()
     }
-    await expect(reopened.page.getByRole('button', { name: /^Linear issue / })).toHaveCount(2)
+    await expect(
+      reopened.page.locator(`[title*="${LOCAL_PROJECT_LINEAR_FIXTURE.issues[0].identifier} "]`)
+    ).toHaveText(`${LOCAL_PROJECT_LINEAR_FIXTURE.issues[0].identifier} +1`)
     await openTasks(reopened.page)
     await expectIssues(reopened.page)
     await reopened.page.screenshot({ path: testInfo.outputPath('linear-after-reopen.png') })

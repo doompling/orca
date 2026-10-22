@@ -92,17 +92,25 @@ describe('local Workspace navigation projections', () => {
     )
   })
 
-  it('omits archived Projects and disabled archived Workspace rows from numbering', () => {
+  it('numbers digits by mark slot, keeps holes, and skips archived marks', () => {
     const state = catalog()
-    state.projects[1].isArchived = true
-    const main = state.workspaces.find((workspace) => workspace.id === 'workspace-0-0')
-    if (!main) {
-      throw new Error('Fixture Workspace is missing')
+    const byId = (id: string) => {
+      const found = state.workspaces.find((workspace) => workspace.id === id)
+      if (!found) {
+        throw new Error('Fixture Workspace is missing')
+      }
+      return found
     }
-    main.isArchived = true
-    expect(localWorkspaceShortcutTargets(state)).toEqual([
-      { id: 'folder:workspace-0-1', executionHostId: 'local' }
-    ])
+    expect(localWorkspaceShortcutTargets(state)).toEqual([])
+    byId('workspace-0-1').markSlot = 3
+    byId('workspace-0-0').markSlot = 1
+    byId('workspace-1-0').markSlot = 2
+    state.projects[1].isArchived = true
+    const targets = localWorkspaceShortcutTargets(state)
+    expect(targets).toHaveLength(3)
+    expect(targets[0]).toEqual({ id: 'folder:workspace-0-0', executionHostId: 'local' })
+    expect(1 in targets).toBe(false)
+    expect(targets[2]).toEqual({ id: 'folder:workspace-0-1', executionHostId: 'local' })
   })
 
   it('uses local visible order rather than stale legacy published shortcut targets', () => {

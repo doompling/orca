@@ -3,6 +3,7 @@ import type { LocalProjectsState } from '../../../../shared/local-projects/types
 import { projectLocalFolderWorkspace } from '../../../../shared/local-projects/folder-projection'
 import { folderWorkspaceToWorktree } from '../../../../shared/folder-workspace-worktree'
 import { folderWorkspaceKey, parseWorkspaceKey } from '../../../../shared/workspace-scope'
+import { localWorkspaceMarkSlots } from './local-sidebar-model'
 
 export function localWorkspaceNavigationRows(catalog: LocalProjectsState | undefined) {
   return (catalog?.projects ?? [])
@@ -26,11 +27,18 @@ export function localWorkspacePaletteRows(catalog: LocalProjectsState | undefine
   }))
 }
 
+/** Digit N opens mark slot N. Empty slots stay holes (sparse) so later digits never shift. */
 export function localWorkspaceShortcutTargets(catalog: LocalProjectsState | undefined) {
-  return localWorkspaceNavigationRows(catalog).map(({ workspace }) => ({
-    id: folderWorkspaceKey(workspace.id),
-    executionHostId: 'local' as const
-  }))
+  const targets: { id: string; executionHostId: 'local' }[] = []
+  if (!catalog) {
+    return targets
+  }
+  for (const { slot, workspace } of localWorkspaceMarkSlots(catalog)) {
+    if (workspace) {
+      targets[slot - 1] = { id: folderWorkspaceKey(workspace.id), executionHostId: 'local' }
+    }
+  }
+  return targets
 }
 
 export async function rememberLocalWorkspaceNavigation(

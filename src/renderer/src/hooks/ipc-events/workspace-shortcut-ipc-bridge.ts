@@ -9,6 +9,7 @@ import { isFloatingWorkspacePanelFocused } from '@/lib/floating-workspace-termin
 import { isGitRepoKind } from '../../../../shared/repo-kind'
 import { useAppStore } from '../../store'
 import { toggleAgentDashboardFromShortcut } from './agent-dashboard-command'
+import { archiveActiveLocalWorkspaceFromShortcut } from '@/features/local-projects/local-workspace-sidebar-actions'
 import { openNewWorkspaceFromShortcut } from './new-workspace-command'
 
 export function registerWorkspaceShortcutIpcBridge(unsubs: (() => void)[]): void {
@@ -38,6 +39,9 @@ export function registerWorkspaceShortcutIpcBridge(unsubs: (() => void)[]): void
     unsubs.push(
       window.api.ui.onDeleteCurrentWorkspace(() => {
         if (isFloatingWorkspacePanelFocused()) {
+          return
+        }
+        if (archiveActiveLocalWorkspaceFromShortcut()) {
           return
         }
         deleteHoveredWorkspaceImmediately(useAppStore.getState())

@@ -30,6 +30,7 @@ import {
   UpdateLocalWorkspaceSchema
 } from '../../shared/local-projects/schema'
 import { resolveLocalWorkspace } from '../../shared/local-projects/workspace-resolution'
+import { applyLocalWorkspaceMarkSlot } from '../../shared/local-projects/mark-slots'
 import {
   localProjectRootScope,
   sameLocalProjectRootScope,
@@ -209,29 +210,48 @@ export class LocalProjectsPersistence {
     if (!workspace) {
       throw new Error('Local Workspace not found.')
     }
+    const { markSlot: requestedMarkSlot, ...updates } = args.updates
+    // Archived Workspaces give up their slot so the digit shortcut never targets them.
+    const { markSlot: nextMarkSlot, displaced } = applyLocalWorkspaceMarkSlot(
+      current,
+      workspace,
+      requestedMarkSlot,
+      updates.isArchived ?? workspace.isArchived
+    )
     if (
-      (args.updates.name === undefined || args.updates.name === workspace.name) &&
-      (args.updates.isArchived === undefined || args.updates.isArchived === workspace.isArchived) &&
-      (args.updates.isUnread === undefined ||
-        args.updates.isUnread === (workspace.isUnread ?? false)) &&
-      (args.updates.isPinned === undefined ||
-        args.updates.isPinned === (workspace.isPinned ?? false)) &&
-      (args.updates.lastActivityAt === undefined ||
-        args.updates.lastActivityAt <= (workspace.lastActivityAt ?? 0))
+      (updates.name === undefined || updates.name === workspace.name) &&
+      (updates.isArchived === undefined || updates.isArchived === workspace.isArchived) &&
+      (updates.isUnread === undefined || updates.isUnread === (workspace.isUnread ?? false)) &&
+      (updates.isPinned === undefined || updates.isPinned === (workspace.isPinned ?? false)) &&
+      (updates.lastActivityAt === undefined ||
+        updates.lastActivityAt <= (workspace.lastActivityAt ?? 0)) &&
+      nextMarkSlot === workspace.markSlot
     ) {
       return structuredClone(workspace)
     }
-    const updated = {
-      ...workspace,
-      ...args.updates,
-      ...(args.updates.lastActivityAt !== undefined
-        ? { lastActivityAt: Math.max(workspace.lastActivityAt ?? 0, args.updates.lastActivityAt) }
+    const { markSlot: _previousMarkSlot, ...unmarked } = workspace
+    const updated: LocalWorkspace = {
+      ...unmarked,
+      ...updates,
+      ...(nextMarkSlot === undefined ? {} : { markSlot: nextMarkSlot }),
+      ...(updates.lastActivityAt !== undefined
+        ? { lastActivityAt: Math.max(workspace.lastActivityAt ?? 0, updates.lastActivityAt) }
         : {}),
       updatedAt: Math.max(workspace.updatedAt, Date.now())
     }
     commitLocalProjects(this, {
       ...current,
-      workspaces: current.workspaces.map((entry) => (entry.id === workspace.id ? updated : entry))
+      workspaces: current.workspaces.map((entry) => {
+        if (entry.id === workspace.id) {
+          return updated
+        }
+        if (displaced.has(entry.id)) {
+          const { markSlot: _taken, ...rest } = entry
+          const swapped = displaced.get(entry.id)
+          return swapped === undefined ? rest : { ...rest, markSlot: swapped }
+        }
+        return entry
+      })
     })
     return structuredClone(updated)
   }

@@ -6,7 +6,23 @@ interactive: switch concepts, scope levels, theme and width, and try the shortcu
 archive with undo, and the right-click menu. Iterate on the mockup until the design is settled; then
 implement in the order below.
 
-Status: **P0 approved for implementation** (2026-10-22). P1 and later remain design iterations.
+Status: **P0 implemented, uncommitted, ready to try** (2026-10-22). P1 and later remain design iterations.
+
+### P0 as built: known limits
+
+- Older Ether builds can't read the profile once a mark is set, because the local-projects schema is
+  strict. They report "unsupported version" and leave the data unchanged.
+- ⌘/Ctrl+1–9 follows mark slots only. With no marks they do nothing; there is no "nth row" fallback.
+- The mark, marks-list, and Ctrl+` shortcuts are renderer-side. They don't fire while a browser pane
+  has focus, because there is no main-process allowlist entry yet.
+- In local mode the Archive chord (⌘/Ctrl+⇧⌫) archives the open Workspace, with Undo. It is ignored
+  while a dialog is open, on Settings, or while typing.
+- The footer polls git status for the open Workspace's roots, which duplicates the Source Control
+  poller while both are visible.
+- Row overrides show the checkout folder name, not the branch or a dirty dot. Branch and dirty state
+  are in the footer only.
+- `ether-linear-onboarding.spec.ts` runs against the packaged app, so it needs `pnpm build:ether`
+  before it can pass.
 
 ### Chosen settings
 

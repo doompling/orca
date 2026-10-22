@@ -1,4 +1,5 @@
 import type { TuiAgent } from '../tui-agent'
+import type { LocalWorkspaceKeybindingActionId } from './definitions-local-workspaces'
 
 export type KeybindingScope =
   | 'global'
@@ -114,6 +115,7 @@ export type KeybindingActionId =
   | 'terminal.splitRight'
   | 'terminal.splitDown'
   | 'terminal.switchInputSource'
+  | LocalWorkspaceKeybindingActionId
   | PluginKeybindingActionId
 
 export type KeybindingOverrides = Partial<Record<KeybindingActionId, string[]>>

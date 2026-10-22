@@ -19,6 +19,10 @@ import type {
   PhysicalModifierToken
 } from '../../../shared/keybindings'
 import { shortcutPlatform } from './app-window-chrome'
+import {
+  archiveLocalWorkspace,
+  localWorkspaceArchiveShortcutTarget
+} from '@/features/local-projects/local-workspace-sidebar-actions'
 
 type AppStoreState = ReturnType<typeof useAppStore.getState>
 
@@ -219,6 +223,10 @@ export function createAppCommandHandlers(
       () => {
         if (floatingWorkspaceFocused) {
           return false
+        }
+        const localWorkspaceId = localWorkspaceArchiveShortcutTarget()
+        if (localWorkspaceId) {
+          return claim('workspace.delete', () => void archiveLocalWorkspace(localWorkspaceId))
         }
         const store = useAppStore.getState()
         const target = resolveHoveredWorkspaceDeleteTarget(store)

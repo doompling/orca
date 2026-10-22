@@ -1,6 +1,8 @@
+import { toast } from 'sonner'
 import { MoreHorizontal } from 'lucide-react'
 import { useState } from 'react'
 import { useAppStore } from '@/store'
+import { folderWorkspaceKey } from '../../../../shared/workspace-scope'
 import { Button } from '@/components/ui/button'
 import { ProjectGroupNameDialog } from '@/components/sidebar/ProjectGroupNameDialog'
 import {
@@ -8,20 +10,57 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuLabel,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuTrigger
+} from '@/components/ui/context-menu'
+import { useOptionalShortcutLabel } from '@/hooks/useShortcutLabel'
 import { LocalProjectDialog } from './LocalProjectDialog'
 import { LocalWorkspaceCheckoutDialog } from './LocalWorkspaceCheckoutDialog'
-import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
-import { LocalWorkspaceLinearIssuesContent } from './LocalWorkspaceLinearIssues'
+import {
+  archiveLocalWorkspace,
+  requestLocalWorkspaceLinearIssues,
+  toggleLocalWorkspaceMark
+} from './local-workspace-sidebar-actions'
+
+type MenuEntry =
+  | {
+      kind: 'item'
+      label: string
+      shortcut?: string | null
+      disabled?: boolean
+      onSelect: () => void
+    }
+  | { kind: 'separator' }
+  | { kind: 'note'; label: string }
+
+function entryKey(entry: MenuEntry): string {
+  return entry.kind === 'separator' ? 'separator' : entry.label
+}
+
+type Props = {
+  kind: 'Project' | 'Workspace'
+  record: { id: string; name: string; isArchived: boolean }
+  className?: string
+  /** Makes the row a right-click target too, sharing one menu model and dialog tree; place the ⋯ button it receives. */
+  children?: (menuButton: React.ReactNode) => React.ReactNode
+}
 
 export function LocalContextActions({
   kind,
-  record
-}: {
-  kind: 'Project' | 'Workspace'
-  record: { id: string; name: string; isArchived: boolean }
-}): React.JSX.Element {
+  record,
+  className,
+  children
+}: Props): React.JSX.Element {
   const updateProject = useAppStore((state) => state.updateLocalProject)
   const updateWorkspace = useAppStore((state) => state.updateLocalWorkspace)
   const workspace = useAppStore((state) =>
@@ -36,92 +75,77 @@ export function LocalContextActions({
   )
   const active = useAppStore((state) => {
     if (kind === 'Workspace') {
-      return state.activeWorktreeId === `folder:${record.id}`
+      return state.activeWorktreeId === folderWorkspaceKey(record.id)
     }
     return state.localProjects.workspaces.some(
-      (workspace) =>
-        workspace.projectId === record.id && state.activeWorktreeId === `folder:${workspace.id}`
+      (entry) =>
+        entry.projectId === record.id && state.activeWorktreeId === folderWorkspaceKey(entry.id)
     )
   })
+  const markShortcut = useOptionalShortcutLabel('workspace.toggleMark')
+  const archiveShortcut = useOptionalShortcutLabel('workspace.delete')
   const [renaming, setRenaming] = useState(false)
   const [editing, setEditing] = useState(false)
-  const [issuesOpen, setIssuesOpen] = useState(false)
-  const profileId = useAppStore((state) => state.activeOrcaProfileId)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const update = (updates: { name?: string; isArchived?: boolean }) =>
     kind === 'Project'
       ? updateProject({ projectId: record.id, updates })
       : updateWorkspace({ workspaceId: record.id, updates })
   const toggleArchive = async () => {
-    setBusy(true)
-    setError(null)
+    if (kind === 'Workspace' && !record.isArchived) {
+      await archiveLocalWorkspace(record.id)
+      return
+    }
     try {
       await update({ isArchived: !record.isArchived })
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause))
-    } finally {
-      setBusy(false)
+      toast.error(`Could not ${record.isArchived ? 'restore' : 'archive'} ${record.name}.`, {
+        description: cause instanceof Error ? cause.message : String(cause)
+      })
     }
   }
-  return (
-    <Popover open={issuesOpen} onOpenChange={setIssuesOpen}>
-      <DropdownMenu>
-        <PopoverAnchor asChild>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              aria-label={`${kind} actions for ${record.name}`}
-              disabled={busy}
-            >
-              <MoreHorizontal />
-            </Button>
-          </DropdownMenuTrigger>
-        </PopoverAnchor>
-        <DropdownMenuContent
-          onCloseAutoFocus={(event) => {
-            if (issuesOpen) {
-              event.preventDefault()
-            }
-          }}
-        >
-          <DropdownMenuItem onSelect={() => setRenaming(true)}>Rename {kind}</DropdownMenuItem>
-          {workspace && (
-            <DropdownMenuItem onSelect={() => setIssuesOpen(true)}>Linear issues…</DropdownMenuItem>
-          )}
-          <DropdownMenuItem
-            disabled={!project || record.isArchived || project.isArchived}
-            onSelect={() => setEditing(true)}
-          >
-            {kind === 'Project' ? 'Edit Project roots' : 'Edit Workspace checkouts'}
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            disabled={active && !record.isArchived}
-            onSelect={() => void toggleArchive()}
-          >
-            {record.isArchived ? 'Restore' : 'Archive'} {kind}
-          </DropdownMenuItem>
-          {active && !record.isArchived && (
-            <DropdownMenuLabel>Switch away before archiving.</DropdownMenuLabel>
-          )}
-          <DropdownMenuLabel>Archiving keeps files, tabs, and sessions.</DropdownMenuLabel>
-        </DropdownMenuContent>
-      </DropdownMenu>
-      {workspace && (
-        <PopoverContent align="start" className="w-96 max-w-[90vw]">
-          <LocalWorkspaceLinearIssuesContent
-            key={`${profileId}:${workspace.id}`}
-            workspaceId={workspace.id}
-            onClose={() => setIssuesOpen(false)}
-          />
-        </PopoverContent>
-      )}
-      {error && (
-        <p role="alert" className="text-xs text-destructive">
-          {error}
-        </p>
-      )}
+
+  // Why: an open Project's Workspaces would vanish from under the user; Workspaces hand off via the successor picker instead.
+  const projectArchiveBlocked = kind === 'Project' && active && !record.isArchived
+  // Frequent verbs first; rare and destructive ones last.
+  const entries: MenuEntry[] = []
+  if (workspace && !workspace.isArchived) {
+    entries.push(
+      {
+        kind: 'item',
+        label: workspace.markSlot === undefined ? 'Add mark' : `Remove mark ${workspace.markSlot}`,
+        shortcut: active ? markShortcut : null,
+        onSelect: () => void toggleLocalWorkspaceMark(workspace.id)
+      },
+      {
+        kind: 'item',
+        label: 'Linear issues…',
+        onSelect: () => requestLocalWorkspaceLinearIssues(workspace.id)
+      }
+    )
+  }
+  entries.push(
+    { kind: 'item', label: `Rename ${kind}`, onSelect: () => setRenaming(true) },
+    {
+      kind: 'item',
+      label: kind === 'Project' ? 'Edit Project roots…' : 'Edit Workspace checkouts…',
+      disabled: !project || record.isArchived || project.isArchived,
+      onSelect: () => setEditing(true)
+    },
+    { kind: 'separator' },
+    {
+      kind: 'item',
+      label: `${record.isArchived ? 'Restore' : 'Archive'} ${kind}`,
+      shortcut: kind === 'Workspace' && active && !record.isArchived ? archiveShortcut : null,
+      disabled: projectArchiveBlocked,
+      onSelect: () => void toggleArchive()
+    }
+  )
+  if (projectArchiveBlocked) {
+    entries.push({ kind: 'note', label: 'Switch away before archiving.' })
+  }
+
+  const dialogs = (
+    <>
       <ProjectGroupNameDialog
         open={renaming}
         onOpenChange={setRenaming}
@@ -145,6 +169,78 @@ export function LocalContextActions({
             />
           )
         ))}
-    </Popover>
+    </>
+  )
+
+  const menuButton = (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          className={className}
+          aria-label={`${kind} actions for ${record.name}`}
+        >
+          <MoreHorizontal />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        {entries.map((entry) =>
+          entry.kind === 'separator' ? (
+            <DropdownMenuSeparator key={entryKey(entry)} />
+          ) : entry.kind === 'note' ? (
+            <DropdownMenuLabel key={entryKey(entry)}>{entry.label}</DropdownMenuLabel>
+          ) : (
+            <DropdownMenuItem
+              key={entryKey(entry)}
+              disabled={entry.disabled}
+              onSelect={entry.onSelect}
+            >
+              {entry.label}
+              {entry.shortcut ? (
+                <DropdownMenuShortcut>{entry.shortcut}</DropdownMenuShortcut>
+              ) : null}
+            </DropdownMenuItem>
+          )
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+
+  if (!children) {
+    return (
+      <>
+        {menuButton}
+        {dialogs}
+      </>
+    )
+  }
+  return (
+    <>
+      <ContextMenu>
+        <ContextMenuTrigger asChild>{children(menuButton)}</ContextMenuTrigger>
+        <ContextMenuContent>
+          {entries.map((entry) =>
+            entry.kind === 'separator' ? (
+              <ContextMenuSeparator key={entryKey(entry)} />
+            ) : entry.kind === 'note' ? (
+              <ContextMenuLabel key={entryKey(entry)}>{entry.label}</ContextMenuLabel>
+            ) : (
+              <ContextMenuItem
+                key={entryKey(entry)}
+                disabled={entry.disabled}
+                onSelect={entry.onSelect}
+              >
+                {entry.label}
+                {entry.shortcut ? (
+                  <ContextMenuShortcut>{entry.shortcut}</ContextMenuShortcut>
+                ) : null}
+              </ContextMenuItem>
+            )
+          )}
+        </ContextMenuContent>
+      </ContextMenu>
+      {dialogs}
+    </>
   )
 }

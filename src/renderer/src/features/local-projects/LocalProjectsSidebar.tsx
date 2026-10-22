@@ -1,46 +1,137 @@
-import { useState } from 'react'
-import { Folder, Plus } from 'lucide-react'
+import { useMemo, useRef, useState } from 'react'
+import { Plus } from 'lucide-react'
 import { useAppStore } from '@/store'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { cn } from '@/lib/utils'
-import WorktreeCardAgents from '@/components/sidebar/WorktreeCardAgents'
+import { useNow } from '@/hooks/use-now'
+import type { LocalProject } from '../../../../shared/local-projects/types'
 import { LocalContextActions } from './LocalContextActions'
-import { LocalWorkspaceLinearIssues } from './LocalWorkspaceLinearIssues'
+import { LocalSidebarScopeFooter } from './LocalSidebarScopeFooter'
+import { LocalSidebarWorkspaceRow } from './LocalSidebarWorkspaceRow'
+import { buildLocalSidebarModel, holdRowOrder, type LocalSidebarRow } from './local-sidebar-model'
+import { openLocalWorkspace } from './local-workspace-sidebar-actions'
+
+export function useLocalSidebarModel(showArchived: boolean) {
+  const catalog = useAppStore((s) => s.localProjects)
+  const folderWorkspaces = useAppStore((s) => s.folderWorkspaces)
+  return useMemo(
+    () => buildLocalSidebarModel(catalog, folderWorkspaces, { showArchived }),
+    [catalog, folderWorkspaces, showArchived]
+  )
+}
+
+function LocalSidebarProjectSection({
+  project,
+  rows,
+  now
+}: {
+  project: LocalProject
+  rows: LocalSidebarRow[]
+  now: number
+}): React.JSX.Element {
+  const openModal = useAppStore((s) => s.openModal)
+  // Marked Workspaces live in Marks, so look past the visible rows for the one to reopen.
+  const reopenId = useAppStore((s) => {
+    const open = s.localProjects.workspaces.filter(
+      (entry) => entry.projectId === project.id && !entry.isArchived
+    )
+    return (open.find((entry) => entry.id === project.lastWorkspaceId) ?? open[0])?.id
+  })
+  return (
+    <section className="mt-3 first:mt-1" aria-label={project.name}>
+      <div className="group/project flex h-7 items-center gap-0.5">
+        <button
+          type="button"
+          disabled={project.isArchived || !reopenId}
+          className="flex h-full min-w-0 flex-1 items-center rounded-md px-2 text-left text-[13px] font-semibold text-worktree-sidebar-foreground outline-none hover:bg-worktree-sidebar-accent focus-visible:ring-2 focus-visible:ring-worktree-sidebar-ring disabled:hover:bg-transparent"
+          title="Open the last Workspace used in this Project"
+          onClick={() => reopenId && openLocalWorkspace(reopenId)}
+        >
+          <span className="truncate">
+            {project.name}
+            {project.isArchived ? ' (Archived)' : ''}
+          </span>
+        </button>
+        <span className="flex shrink-0 items-center opacity-0 focus-within:opacity-100 group-hover/project:opacity-100 has-[[data-state=open]]:opacity-100">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                aria-label={`New Workspace in ${project.name}`}
+                disabled={project.isArchived}
+                onClick={() => openModal('new-workspace-composer', { localProjectId: project.id })}
+              >
+                <Plus />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top" sideOffset={4}>
+              New Workspace
+            </TooltipContent>
+          </Tooltip>
+          <LocalContextActions kind="Project" record={project} />
+        </span>
+      </div>
+      {rows.length > 0 ? (
+        <ul className="space-y-px">
+          {rows.map((row) => (
+            <LocalSidebarWorkspaceRow key={row.workspace.id} row={row} now={now} />
+          ))}
+        </ul>
+      ) : null}
+    </section>
+  )
+}
 
 export function LocalProjectsSidebar(): React.JSX.Element {
-  const catalog = useAppStore((s) => s.localProjects)
   const loaded = useAppStore((s) => s.localProjectsLoaded)
   const loadError = useAppStore((s) => s.localProjectsError)
-  const activeWorktreeId = useAppStore((s) => s.activeWorktreeId)
-  const activate = useAppStore((s) => s.activateLocalWorkspace)
   const openModal = useAppStore((s) => s.openModal)
   const refresh = useAppStore((s) => s.fetchLocalProjects)
-  const [error, setError] = useState<string | null>(null)
+  const hasArchived = useAppStore(
+    (s) =>
+      s.localProjects.projects.some((entry) => entry.isArchived) ||
+      s.localProjects.workspaces.some((entry) => entry.isArchived)
+  )
   const [showArchived, setShowArchived] = useState(false)
-  const selectWorkspace = async (id: string) => {
-    setError(null)
-    try {
-      await activate(id)
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause))
+  const model = useLocalSidebarModel(showArchived)
+  const now = useNow(30_000)
+  // Why: recency re-sorts on every agent event; freeze while pointer or focus is here so rows don't move under a click.
+  const [heldOrder, setHeldOrder] = useState<ReadonlyMap<string, readonly string[]> | null>(null)
+  const holders = useRef({ pointer: false, focus: false })
+  const hold = (holder: 'pointer' | 'focus', on: boolean) => {
+    const wasHeld = holders.current.pointer || holders.current.focus
+    holders.current[holder] = on
+    const isHeld = holders.current.pointer || holders.current.focus
+    if (isHeld && !wasHeld) {
+      setHeldOrder(
+        new Map(
+          model.projects.map((group) => [group.project.id, group.rows.map((row) => row.worktreeId)])
+        )
+      )
+    } else if (!isHeld && wasHeld) {
+      setHeldOrder(null)
     }
   }
-  const projects = catalog.projects.filter((entry) => showArchived || !entry.isArchived)
-  const hasArchived =
-    catalog.projects.some((entry) => entry.isArchived) ||
-    catalog.workspaces.some((entry) => entry.isArchived)
   return (
-    <div
-      className="min-h-0 flex-1 overflow-auto px-2 pb-3 scrollbar-sleek"
-      aria-label="Local Projects"
-    >
-      {(error || loadError) && (
-        <div className="space-y-2 p-2">
-          <p role="alert" className="text-xs text-destructive">
-            {error || loadError}
-          </p>
-          {loadError && (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div
+        className="min-h-0 flex-1 overflow-y-auto px-2 pb-3 scrollbar-sleek"
+        aria-label="Local Projects"
+        onPointerEnter={() => hold('pointer', true)}
+        onPointerLeave={() => hold('pointer', false)}
+        onFocus={() => hold('focus', true)}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) {
+            hold('focus', false)
+          }
+        }}
+      >
+        {loadError ? (
+          <div className="space-y-2 p-2">
+            <p role="alert" className="text-xs text-destructive">
+              {loadError}
+            </p>
             <Button
               variant="secondary"
               size="sm"
@@ -48,115 +139,41 @@ export function LocalProjectsSidebar(): React.JSX.Element {
             >
               Retry
             </Button>
-          )}
-        </div>
-      )}
-      {!loaded && !loadError && (
-        <p className="p-2 text-xs text-muted-foreground">Loading Projects…</p>
-      )}
-      {loaded && projects.length === 0 && (
-        <div className="space-y-3 p-2">
-          <p className="text-xs text-muted-foreground">
-            Group your local directories in a Project.
-          </p>
-          <Button size="sm" onClick={() => openModal('add-repo')}>
-            New Project
+          </div>
+        ) : null}
+        {!loaded && !loadError ? (
+          <p className="p-2 text-xs text-muted-foreground">Loading Projects…</p>
+        ) : null}
+        {loaded && model.projects.length === 0 ? (
+          <div className="space-y-3 p-2">
+            <p className="text-xs text-muted-foreground">
+              Group your local directories in a Project.
+            </p>
+            <Button size="sm" onClick={() => openModal('add-repo')}>
+              New Project
+            </Button>
+          </div>
+        ) : null}
+        {model.projects.map((group) => (
+          <LocalSidebarProjectSection
+            key={group.project.id}
+            project={group.project}
+            rows={holdRowOrder(group.rows, heldOrder?.get(group.project.id))}
+            now={now}
+          />
+        ))}
+        {hasArchived || showArchived ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mt-3"
+            onClick={() => setShowArchived(!showArchived)}
+          >
+            {showArchived ? 'Hide archived' : 'Show archived'}
           </Button>
-        </div>
-      )}
-      {projects.map((project) => {
-        const workspaces = catalog.workspaces.filter(
-          (entry) => entry.projectId === project.id && (showArchived || !entry.isArchived)
-        )
-        const lastWorkspace =
-          workspaces.find((entry) => entry.id === project.lastWorkspaceId && !entry.isArchived) ??
-          workspaces.find((entry) => !entry.isArchived)
-        return (
-          <section key={project.id} className="mb-3" aria-label={project.name}>
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                disabled={project.isArchived}
-                className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-2 text-sm font-medium hover:bg-sidebar-accent"
-                onClick={() => {
-                  if (lastWorkspace) {
-                    void selectWorkspace(lastWorkspace.id)
-                  }
-                }}
-              >
-                <Folder className="size-4 shrink-0 text-muted-foreground" />
-                <span className="truncate">
-                  {project.name}
-                  {project.isArchived ? ' (Archived)' : ''}
-                </span>
-              </button>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon-xs"
-                    aria-label={`New Workspace in ${project.name}`}
-                    disabled={project.isArchived}
-                    onClick={() =>
-                      openModal('new-workspace-composer', { localProjectId: project.id })
-                    }
-                  >
-                    <Plus />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>New Workspace</TooltipContent>
-              </Tooltip>
-              <LocalContextActions kind="Project" record={project} />
-            </div>
-            <ul className="space-y-1 pl-3">
-              {workspaces.map((workspace) => {
-                const selected = activeWorktreeId === `folder:${workspace.id}`
-                return (
-                  <li key={workspace.id}>
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        data-worktree-id={`folder:${workspace.id}`}
-                        data-current={selected}
-                        aria-current={selected ? 'page' : undefined}
-                        disabled={project.isArchived || workspace.isArchived}
-                        className={cn(
-                          'min-w-0 flex-1 rounded-md px-2 py-2 text-left text-sm hover:bg-sidebar-accent',
-                          selected && 'bg-sidebar-accent text-sidebar-accent-foreground'
-                        )}
-                        onClick={() => void selectWorkspace(workspace.id)}
-                      >
-                        <span className="block truncate">
-                          {workspace.name}
-                          {workspace.isArchived ? ' (Archived)' : ''}
-                        </span>
-                        <span className="block truncate text-xs text-muted-foreground">
-                          {project.roots.map((root) => root.label).join(' · ')}
-                        </span>
-                      </button>
-                      <LocalContextActions kind="Workspace" record={workspace} />
-                    </div>
-                    {((workspace.linearIssues?.length ?? 0) > 0 ||
-                      (!workspace.isArchived && !project.isArchived)) && (
-                      <div className="mr-7 min-w-0 pb-1">
-                        <LocalWorkspaceLinearIssues workspaceId={workspace.id} sidebar />
-                      </div>
-                    )}
-                    {!workspace.isArchived && !project.isArchived && (
-                      <WorktreeCardAgents worktreeId={`folder:${workspace.id}`} />
-                    )}
-                  </li>
-                )
-              })}
-            </ul>
-          </section>
-        )
-      })}
-      {(hasArchived || showArchived) && (
-        <Button variant="ghost" size="sm" onClick={() => setShowArchived(!showArchived)}>
-          {showArchived ? 'Hide archived' : 'Show archived'}
-        </Button>
-      )}
+        ) : null}
+      </div>
+      <LocalSidebarScopeFooter />
     </div>
   )
 }

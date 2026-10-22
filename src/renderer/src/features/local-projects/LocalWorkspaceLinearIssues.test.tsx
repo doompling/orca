@@ -13,6 +13,7 @@ import {
   localLinearStatus
 } from './workspace-linear-picker-test-fixtures'
 import { LocalContextActions } from './LocalContextActions'
+import { LocalWorkspaceShortcuts } from './LocalWorkspaceShortcuts'
 
 const actions = vi.hoisted(() => ({
   attachLocalWorkspaceLinearIssue: vi.fn(async () => {}),
@@ -162,7 +163,12 @@ describe('Workspace Linear issue controls', () => {
   })
 
   it('opens the same issue controls from the Workspace actions menu', async () => {
-    render(<LocalContextActions kind="Workspace" record={catalog.workspaces[0]} />)
+    render(
+      <>
+        <LocalContextActions kind="Workspace" record={catalog.workspaces[0]} />
+        <LocalWorkspaceShortcuts />
+      </>
+    )
     fireEvent.pointerDown(screen.getByRole('button', { name: 'Workspace actions for Main' }), {
       button: 0,
       ctrlKey: false
