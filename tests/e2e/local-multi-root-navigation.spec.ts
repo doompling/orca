@@ -30,9 +30,7 @@ test('searches local Workspaces and jumps to marks through existing shortcut rou
 
   await page.getByRole('button', { name: 'Search worktrees and browser tabs', exact: true }).click()
   const palette = page.getByRole('dialog', { name: 'Jump to...', exact: true })
-  await palette
-    .getByPlaceholder('Search chats, terminals, worktrees, settings, and actions...')
-    .fill('Investigate')
+  await palette.getByRole('combobox').fill('Investigate')
   await palette.getByText('Full application / Investigate login', { exact: true }).first().click()
   await expect(palette).toHaveCount(0)
   await expect(investigateRow).toHaveAttribute('aria-current', 'page')

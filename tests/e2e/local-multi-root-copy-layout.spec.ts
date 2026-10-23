@@ -115,7 +115,7 @@ async function expectSideBySideFiles(page: Page, snapshot: WorkspaceSnapshot, pa
   await expect(page.locator('[data-native-chat-root="true"]:visible')).toHaveCount(0)
 }
 
-test('copies only clean saved-file splits into independent Workspaces and retains them after normal quit', async (// oxlint-disable-next-line no-empty-pattern -- this test owns both Electron launches.
+test('copies only clean saved-file splits into new Workspaces and retains them after normal quit', async (// oxlint-disable-next-line no-empty-pattern -- this test owns both Electron launches.
 {}, testInfo) => {
   test.skip(process.platform === 'win32', 'The scripted source-agent fixture is POSIX-only')
   const fixture = realpathSync.native(mkdtempSync(path.join(os.tmpdir(), 'orca-copy-file-layout-')))
@@ -164,7 +164,7 @@ test('copies only clean saved-file splits into independent Workspaces and retain
       process.env.PATH = `${directory}${process.platform === 'win32' ? ';' : ':'}${process.env.PATH ?? ''}`
     }, scriptedDirectory)
     await page.getByRole('button', { name: 'New tab', exact: true }).last().click()
-    await page.getByRole('menuitem', { name: /^Claude(?:\s|$)/ }).click()
+    await page.getByRole('menuitem', { name: 'Start a chat with Claude', exact: true }).click()
     const chat = page.locator('[data-native-chat-root="true"]:visible')
     await expect(chat.getByRole('textbox')).toBeEditable({ timeout: 20_000 })
     await chat.getByRole('textbox').fill(SCRIPTED_CHAT_MESSAGE)
@@ -221,13 +221,14 @@ test('copies only clean saved-file splits into independent Workspaces and retain
     await editorFor(page, copiedA).click()
     await page.keyboard.press(process.platform === 'darwin' ? 'Meta+ArrowDown' : 'Control+End')
     await page.keyboard.press('Enter')
-    await page.keyboard.type('Copied task independent draft')
-    await expect(editorFor(page, copiedA)).toContainText('Copied task independent draft')
+    await page.keyboard.type('Copied task shared draft')
+    await expect(editorFor(page, copiedA)).toContainText('Copied task shared draft')
     await page.screenshot({ path: testInfo.outputPath('copied-file-splits.png') })
 
     await workspaceRow(page, 'Main').click()
-    await expect(editorFor(page, fileTab(source, readmeA))).not.toContainText(
-      'Copied task independent draft'
+    // The copied tab and its source view one physical file, so they share its draft.
+    await expect(editorFor(page, fileTab(source, readmeA))).toContainText(
+      'Copied task shared draft'
     )
     const sourceDirty = fileTab(source, dirtyPath)
     await page.locator(`[data-tab-id="${sourceDirty.id}"]:visible`).click()
@@ -246,7 +247,7 @@ test('copies only clean saved-file splits into independent Workspaces and retain
     ).toHaveAttribute('title', alternate.worktreePath)
     expect(await localPtyIds(page)).toEqual(sourcePtys)
     await workspaceRow(page, 'Copied task').click()
-    await expect(editorFor(page, copiedA)).toContainText('Copied task independent draft')
+    await expect(editorFor(page, copiedA)).toContainText('Copied task shared draft')
     const beforeQuit = await workspaceSnapshot(page)
     const child = first.app.process()
     await session.close(first.app)
@@ -259,15 +260,15 @@ test('copies only clean saved-file splits into independent Workspaces and retain
     await waitForSessionReady(second.page)
     await expect(workspaceRow(second.page, 'Copied task')).toHaveAttribute('aria-current', 'page')
     await expectSideBySideFiles(second.page, copied, [readmeA, readmeB])
-    await expect(editorFor(second.page, copiedA)).toContainText('Copied task independent draft')
+    await expect(editorFor(second.page, copiedA)).toContainText('Copied task shared draft')
     expect(await workspaceSnapshot(second.page)).toEqual(beforeQuit)
     await second.page.screenshot({ path: testInfo.outputPath('copied-file-splits-restored.png') })
     await workspaceRow(second.page, 'Main').click()
     await second.page.locator(`[data-tab-id="${sourceDirty.id}"]:visible`).click()
     await expect(editorFor(second.page, sourceDirty)).toContainText('Source-only unsaved draft')
     await second.page.locator(`[data-tab-id="${fileTab(source, readmeA).id}"]:visible`).click()
-    await expect(editorFor(second.page, fileTab(source, readmeA))).not.toContainText(
-      'Copied task independent draft'
+    await expect(editorFor(second.page, fileTab(source, readmeA))).toContainText(
+      'Copied task shared draft'
     )
     expect(readFileSync(readmeA, 'utf8')).toBe('# Source A saved file\n')
     expect(readFileSync(readmeB, 'utf8')).toBe('# Source B saved file\n')

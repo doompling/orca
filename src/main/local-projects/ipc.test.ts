@@ -65,7 +65,8 @@ function register() {
       version: 1 as const,
       projects: [project],
       workspaces: [workspace]
-    }))
+    })),
+    whenLocalProjectsDurable: vi.fn(async () => {})
   }
   registerLocalProjectHandlers(new BrowserWindow(), store, {
     acquireWorktreeTerminalMutation: vi.fn(async () => () => {}),
@@ -105,12 +106,12 @@ describe('desktop local Project IPC', () => {
     })
     expect(store.createLocalProject).toHaveBeenCalledWith(input)
     expect(changed).toHaveBeenCalledOnce()
-    expect(() =>
+    await expect(
       call('localProjects:updateWorkspace', {
         workspaceId: 'workspace',
         updates: { folderPath: '/elsewhere' }
       })
-    ).toThrow()
+    ).rejects.toThrow()
     expect(store.updateLocalWorkspace).not.toHaveBeenCalled()
   })
 
@@ -183,16 +184,16 @@ describe('desktop local Project IPC', () => {
     expect(changed).not.toHaveBeenCalled()
   })
 
-  it('detaches an exact local issue without reading Linear', () => {
+  it('detaches an exact local issue without reading Linear', async () => {
     const store = register()
     const input = { workspaceId: workspace.id, organizationId: 'org', issueId: 'issue' }
-    expect(call('localProjects:detachLinearIssue', input)).toEqual(workspace)
+    await expect(call('localProjects:detachLinearIssue', input)).resolves.toEqual(workspace)
     expect(store.detachLocalWorkspaceLinearIssue).toHaveBeenCalledExactlyOnceWith(input)
     expect(linkIssue).not.toHaveBeenCalled()
     expect(changed).toHaveBeenCalledOnce()
-    expect(() =>
+    await expect(
       call('localProjects:detachLinearIssue', { ...input, connectionId: 'ssh' })
-    ).toThrow()
+    ).rejects.toThrow()
     expect(store.detachLocalWorkspaceLinearIssue).toHaveBeenCalledOnce()
   })
 

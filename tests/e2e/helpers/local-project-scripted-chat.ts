@@ -49,7 +49,9 @@ export function installLocalProjectScriptedChat(
   const executable = path.join(directory, 'claude')
   writeFileSync(
     executable,
-    `#!/bin/sh\nexec ${quoteStartupArg(process.execPath, 'posix')} ${quoteStartupArg(scriptPath, 'posix')} "$@"\n`
+    // Upstream also runs short print-mode (-p) probes through this CLI; they must not overwrite
+    // the chat child's report.
+    `#!/bin/sh\ncase " $* " in *" -p "*) unset ORCA_SDK_CONTRACT_REPORT_PATH ;; esac\nexec ${quoteStartupArg(process.execPath, 'posix')} ${quoteStartupArg(scriptPath, 'posix')} "$@"\n`
   )
   chmodSync(executable, 0o755)
   const scenarioPath = path.join(directory, 'scenario.json')

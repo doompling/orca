@@ -13,6 +13,7 @@ import {
 } from './helpers/local-project-controls'
 import { waitForSessionReady } from './helpers/store'
 import {
+  focusLastTerminalPane,
   focusActiveTerminalInput,
   getTerminalContent,
   waitForActivePanePtyId,
@@ -37,7 +38,7 @@ function visibleTabIds(page: Page): Promise<(string | null)[]> {
     .evaluateAll((tabs) => tabs.map((tab) => tab.getAttribute('data-tab-id')))
 }
 
-test('restores overlapping Projects, independent drafts and the same live terminal after normal quit', async (// oxlint-disable-next-line no-empty-pattern -- this test owns both Electron launches.
+test('restores overlapping Projects, their shared drafts and the same live terminal after normal quit', async (// oxlint-disable-next-line no-empty-pattern -- this test owns both Electron launches.
 {}, testInfo) => {
   const fixture = mkdtempSync(path.join(os.tmpdir(), 'orca-local-project-restart-'))
   const appA = path.join(fixture, 'app_a')
@@ -195,7 +196,8 @@ test('restores overlapping Projects, independent drafts and the same live termin
     await expect(second.page.locator('.rich-markdown-editor:visible')).toContainText(
       'Investigate restart draft'
     )
-    await expect(second.page.locator('.rich-markdown-editor:visible')).not.toContainText(
+    // Both Workspaces opened the same file, so they share its one restored draft.
+    await expect(second.page.locator('.rich-markdown-editor:visible')).toContainText(
       'Maintenance restart draft'
     )
     expect(await visibleTabIds(second.page)).toEqual(investigateTabs)
@@ -207,6 +209,8 @@ test('restores overlapping Projects, independent drafts and the same live termin
     await waitForActiveTerminalManager(second.page)
     const restoredPanes = await waitForPaneIdentitySnapshot(second.page, 2)
     expect(restoredPanes.ptyIdsByLeafId).toEqual(mainPanes.ptyIdsByLeafId)
+    // The marker was typed in the split's new (last) pane; focus it rather than rely on restored focus.
+    await focusLastTerminalPane(second.page)
     expect(await waitForActivePanePtyId(second.page)).toBe(ptyId)
     await expect
       .poll(() => getTerminalContent(second.page))

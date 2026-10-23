@@ -220,7 +220,8 @@ test('cold runtime restores overlapping contexts and drafts without claiming the
     await expect(second.page.locator('.rich-markdown-editor:visible')).toContainText(
       'Main cold draft'
     )
-    await expect(second.page.locator('.rich-markdown-editor:visible')).not.toContainText(
+    // Both Workspaces opened the same file, so they share its one restored draft.
+    await expect(second.page.locator('.rich-markdown-editor:visible')).toContainText(
       'Maintenance cold draft'
     )
     expect(readFileSync(path.join(appA, 'README.md'), 'utf8')).toBe('# app_a cold restart marker\n')
@@ -268,7 +269,9 @@ test('cold native chat keeps its history and frozen roots, then continues in a n
     await createProject(first.page, 'Cold chat project', directories)
     await pointAtScriptedChat(first.app, scriptedChat)
     await first.page.getByRole('button', { name: 'New tab', exact: true }).last().click()
-    await first.page.getByRole('menuitem', { name: /^Claude(?:\s|$)/ }).click()
+    await first.page
+      .getByRole('menuitem', { name: 'Start a chat with Claude', exact: true })
+      .click()
     const chat = first.page.locator('[data-native-chat-root="true"]:visible')
     await expect(chat.getByRole('textbox')).toBeEditable({ timeout: 20_000 })
     await chat.getByRole('textbox').fill(SCRIPTED_CHAT_MESSAGE)

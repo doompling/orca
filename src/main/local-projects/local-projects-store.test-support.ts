@@ -27,3 +27,8 @@ export function readSavedProfileDomain(profileDir: string, domain: string): unkn
   }
   return result.kind === 'value' ? result.value : undefined
 }
+
+/** The next local Projects durability barrier reports a refused profile write, as a full disk would. */
+export function refuseNextDurableWrite(store: Store, message = 'Disk full'): void {
+  vi.spyOn(store, 'whenLocalProjectsDurable').mockRejectedValueOnce(new Error(message))
+}

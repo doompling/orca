@@ -10,6 +10,11 @@ import type {
 } from '../../shared/local-projects/linear-issues'
 import { basename } from 'node:path'
 import type { StoreRuntimeState } from '../persistence/loading-store/store-runtime-state'
+import {
+  scheduleSave,
+  type WriteSchedulingOperations
+} from '../persistence/loading-store/write-scheduling'
+import type { WriteFlushBarrierOperations } from '../persistence/loading-store/write-flush-barriers'
 import type {
   CreateLocalProjectArgs,
   CreateLocalProjectResult,
@@ -48,21 +53,33 @@ import {
   resolveExistingLocalDirectory
 } from './root-validation'
 
-type LocalProjectsRuntime = Pick<
-  StoreRuntimeState,
-  'state' | 'writesFrozen' | 'quitFlushStarted' | 'flushOrThrow'
->
+type LocalProjectsContext = {
+  runtime: Pick<StoreRuntimeState, 'state' | 'writesFrozen' | 'quitFlushStarted'>
+  scheduling: WriteSchedulingOperations
+  flushBarriers: Pick<WriteFlushBarrierOperations, 'flushPendingOrThrowAsync'>
+}
 const localProjectsContext = Symbol('LocalProjectsPersistence')
 
 export class LocalProjectsPersistence {
-  readonly [localProjectsContext]: LocalProjectsRuntime
+  readonly [localProjectsContext]: LocalProjectsContext
 
-  constructor(runtime: LocalProjectsRuntime) {
-    this[localProjectsContext] = runtime
+  constructor(
+    runtime: LocalProjectsContext['runtime'],
+    scheduling: WriteSchedulingOperations,
+    flushBarriers: LocalProjectsContext['flushBarriers']
+  ) {
+    this[localProjectsContext] = { runtime, scheduling, flushBarriers }
+  }
+
+  /** Settles once every change made so far is on disk; rejects if the profile refused the write. */
+  whenLocalProjectsDurable(): Promise<void> {
+    return this[localProjectsContext].flushBarriers.flushPendingOrThrowAsync({
+      drainToStableGeneration: false
+    })
   }
 
   getLocalProjectsSnapshot(): LocalProjectsState {
-    return readLocalProjectsState(this[localProjectsContext].state.localProjects)
+    return readLocalProjectsState(this[localProjectsContext].runtime.state.localProjects)
   }
 
   resolveLocalWorkspace(workspaceId: string): ResolvedLocalWorkspace | null {
@@ -105,6 +122,7 @@ export class LocalProjectsPersistence {
       projects: [...current.projects, project],
       workspaces: [...current.workspaces, workspace]
     })
+    await this.whenLocalProjectsDurable()
     return structuredClone({ project, workspace })
   }
 
@@ -144,14 +162,19 @@ export class LocalProjectsPersistence {
       ...current,
       workspaces: [...current.workspaces, workspace]
     })
+    await this.whenLocalProjectsDurable()
     return structuredClone(workspace)
   }
 
-  updateLocalProjectRoots(
+  async updateLocalProjectRoots(
     input: UpdateLocalProjectRootsArgs,
     guard: LocalWorkspaceScopeMutationGuard
   ): Promise<LocalProjectsState> {
-    return updateLocalProjectRoots(this, input, guard, (next) => commitLocalProjects(this, next))
+    const state = await updateLocalProjectRoots(this, input, guard, (next) =>
+      commitLocalProjects(this, next)
+    )
+    await this.whenLocalProjectsDurable()
+    return state
   }
 
   attachLocalWorkspaceLinearIssue(
@@ -167,13 +190,15 @@ export class LocalProjectsPersistence {
     return detachLocalWorkspaceLinearIssue(this, args, (next) => commitLocalProjects(this, next))
   }
 
-  updateLocalWorkspaceCheckouts(
+  async updateLocalWorkspaceCheckouts(
     input: UpdateLocalWorkspaceCheckoutsArgs,
     guard: LocalWorkspaceScopeMutationGuard
   ): Promise<LocalProjectsState> {
-    return updateLocalWorkspaceCheckouts(this, input, guard, (next) =>
+    const state = await updateLocalWorkspaceCheckouts(this, input, guard, (next) =>
       commitLocalProjects(this, next)
     )
+    await this.whenLocalProjectsDurable()
+    return state
   }
 
   updateLocalProject(input: UpdateLocalProjectArgs): LocalProject {
@@ -265,8 +290,10 @@ function requireActiveProject(state: LocalProjectsState, projectId: string): Loc
   return project
 }
 
+/** Applies the change and schedules the profile write, like upstream folder-workspace writes;
+ *  callers that must report a refused write await `whenLocalProjectsDurable`. */
 function commitLocalProjects(owner: LocalProjectsPersistence, value: LocalProjectsState): void {
-  const runtime = owner[localProjectsContext]
+  const { runtime, scheduling } = owner[localProjectsContext]
   if (runtime.writesFrozen || runtime.quitFlushStarted) {
     throw new Error('Cannot change local Projects while the profile is closing.')
   }
@@ -278,12 +305,6 @@ function commitLocalProjects(owner: LocalProjectsPersistence, value: LocalProjec
   ) {
     throw new Error('Local Workspace identity conflicts with an existing workspace.')
   }
-  const previous = runtime.state.localProjects
   runtime.state.localProjects = next
-  try {
-    runtime.flushOrThrow()
-  } catch (error) {
-    runtime.state.localProjects = previous
-    throw error
-  }
+  scheduleSave(scheduling, ['localProjects'])
 }

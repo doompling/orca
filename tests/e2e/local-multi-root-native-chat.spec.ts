@@ -51,7 +51,9 @@ test('normal built-in Claude chat carries both local roots through the real SDK 
     }
     await state.updateSettings({
       experimentalNativeChat: true,
-      agentDefaultArgs: { claude: '' }
+      agentDefaultArgs: { claude: '' },
+      // Manual permissions; a fresh profile otherwise starts chats with Full access.
+      nativeChatPermissionMode: 'ask'
     })
   })
   await createProject(page, 'Scripted chat project', directories)
@@ -72,7 +74,7 @@ test('normal built-in Claude chat carries both local roots through the real SDK 
     { ...fixture, delimiter: path.delimiter }
   )
   await page.getByRole('button', { name: 'New tab', exact: true }).last().click()
-  await page.getByRole('menuitem', { name: /^Claude(?:\s|$)/ }).click()
+  await page.getByRole('menuitem', { name: 'Start a chat with Claude', exact: true }).click()
   const chat = page.locator('[data-native-chat-root="true"]:visible')
   await expect(chat).toBeVisible({ timeout: 20_000 })
   const composer = chat.getByRole('textbox')
@@ -98,7 +100,8 @@ test('normal built-in Claude chat carries both local roots through the real SDK 
   const addedDirectories = argv.flatMap((arg, index) =>
     arg === '--add-dir' ? [argv[index + 1]] : []
   )
-  expect(addedDirectories).toEqual(directories)
+  // Upstream also grants its own attachment and scratch folders; every Workspace root must be there.
+  expect(addedDirectories).toEqual(expect.arrayContaining(directories))
   expect(argv).not.toContain('--dangerously-skip-permissions')
   const initialize = report.controlRequests.find((frame) => frame.request.subtype === 'initialize')
   const appendSystemPrompt = initialize?.request.appendSystemPrompt

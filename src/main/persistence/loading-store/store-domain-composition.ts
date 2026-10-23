@@ -119,7 +119,6 @@ export function installStoreDomainContexts(target: Store, domains: StoreDomains)
 }
 
 export function createStoreDomains(runtime: StoreRuntimeState): StoreDomains {
-  const localProjects = new LocalProjectsPersistence(runtime)
   const adaptation = new LoadedStateAdaptationOperations(runtime)
   const cohorts = new LoadedCohortMigrationOperations(runtime)
   const loader = new LoadedStateParsingOperations(runtime, cohorts)
@@ -127,6 +126,8 @@ export function createStoreDomains(runtime: StoreRuntimeState): StoreDomains {
   const writes = new PrimaryStateWriteOperations(runtime, serialization)
   const scheduling = new WriteSchedulingOperations(runtime, writes)
   const flushBarriers = new WriteFlushBarrierOperations(runtime, writes)
+  // Ether seam: persistence
+  const localProjects = new LocalProjectsPersistence(runtime, scheduling, flushBarriers)
   const preferences = new ProfilePreferences(runtime, scheduling)
   const repos = new RepoLifecycleOperations(runtime, scheduling)
   const bindingRecovery = new TerminalBindingRecoveryOperations(runtime)

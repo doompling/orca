@@ -2889,22 +2889,6 @@
         }
       }
     },
-    "features": {
-      "local": {
-        "projects": {
-          "LocalRootWorktreeCreation": {
-            "7db5cec376": "Creates a new branch from this Project checkout&apos;s current committed HEAD:"
-          },
-          "LocalWorkspaceCheckoutChoices": {
-            "bcc7ee06d6": "Optional: select an existing worktree or explicitly create a new one for a Git directory. Leave a path empty to share the Project&apos;s directory. Plain folders remain shared."
-          },
-          "LocalWorkspaceDialog": {
-            "241b5a08f1": "Copies clean saved file tabs and their split arrangement. Unsaved edits, previews, terminals, agents, browsers, and transient tabs are excluded. Files keep their physical paths; tabs outside the new Workspace&apos;s directories are excluded, not moved to an alternate checkout.",
-            "4ee804fde0": "A separate set of tabs, drafts, and sessions over your Project&apos;s directories."
-          }
-        }
-      }
-    },
     "hooks": {
       "ipc": {
         "events": {

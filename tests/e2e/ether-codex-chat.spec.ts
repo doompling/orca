@@ -202,7 +202,7 @@ test('packaged Ether Codex chat reads both fixture roots and restores the conver
     const first = await launch()
     await createProject(first.page, 'Codex native smoke', directories)
     await first.page.getByRole('button', { name: 'New tab', exact: true }).last().click()
-    await first.page.getByRole('menuitem', { name: /^Codex(?:\s|$)/ }).click()
+    await first.page.getByRole('menuitem', { name: 'Start a chat with Codex', exact: true }).click()
     const tabId = await assertReadyChat(first.page, model)
     const chat = first.page.locator('[data-native-chat-root="true"]:visible')
     await chat.screenshot({ path: testInfo.outputPath('codex-ready-before-request.png') })

@@ -18860,9 +18860,7 @@
             "62769c7775": "Creating worktree…",
             "bdd267726d": "Use an absolute path that does not exist, inside an existing local directory. Creating a worktree does not save the Workspace. Cancelling later leaves it on disk.",
             "baf9dd60b9": "new worktree directory",
-            "4f7b921cbf": "new branch",
-            "787c2285d5": ". It does not start from a Workspace alternate or copy uncommitted edits. No Orca setup or agent is started.",
-            "7db5cec376": "Creates a new branch from this Project checkout&apos;s current committed HEAD:"
+            "4f7b921cbf": "new branch"
           },
           "LocalSidebarMarks": {
             "1b498dd9c2": "Marks",
@@ -18892,7 +18890,7 @@
           },
           "LocalWorkspaceCheckoutChoices": {
             "0440338700": "existing worktree path",
-            "bcc7ee06d6": "Optional: select an existing worktree or explicitly create a new one for a Git directory. Leave a path empty to share the Project&apos;s directory. Plain folders remain shared.",
+            "bcc7ee06d6": "Optional: select an existing worktree or explicitly create a new one for a Git directory. Leave a path empty to share the Project's directory. Plain folders remain shared.",
             "fab9cd3c2c": "Choose worktrees"
           },
           "LocalWorkspaceCheckoutDialog": {
@@ -18911,13 +18909,13 @@
             "d4aa96af90": "Directories without an alternate worktree share files and branches.",
             "2dacefc4d7": "Workspace directories",
             "83f1f3437b": "Workspace name",
-            "241b5a08f1": "Copies clean saved file tabs and their split arrangement. Unsaved edits, previews, terminals, agents, browsers, and transient tabs are excluded. Files keep their physical paths; tabs outside the new Workspace&apos;s directories are excluded, not moved to an alternate checkout.",
+            "241b5a08f1": "Copies clean saved file tabs and their split arrangement. Unsaved edits, previews, terminals, agents, browsers, and transient tabs are excluded. Files keep their physical paths; tabs outside the new Workspace's directories are excluded, not moved to an alternate checkout.",
             "49d62ba8f0": "Do not copy",
             "283b1b5b83": "Copy saved file tabs from",
             "b99c22962e": "Project",
             "59300f057f": "New Project",
             "2fcadaa4b7": "Create a Project to choose your directories first.",
-            "4ee804fde0": "A separate set of tabs, drafts, and sessions over your Project&apos;s directories.",
+            "4ee804fde0": "A separate set of tabs, drafts, and sessions over your Project's directories.",
             "cf3c0f1a3a": "New Workspace"
           },
           "LocalWorkspaceLinearIssuePicker": {
@@ -21407,7 +21405,8 @@
     },
     "worktreeCreation": {
       "toggle": "Create new worktree for {{label}}",
-      "created": "Created branch {{branch}} at {{path}}. Save the Workspace to use it. Cancelling or a failed save leaves this worktree intact; select its path as an existing worktree to use it later."
+      "created": "Created branch {{branch}} at {{path}}. Save the Workspace to use it. Cancelling or a failed save leaves this worktree intact; select its path as an existing worktree to use it later.",
+      "source": "Creates a new branch from this Project checkout's current committed HEAD: {{path}}. It does not start from a Workspace alternate or copy uncommitted edits. No Orca setup or agent is started."
     },
     "checkoutDialog": {
       "description": "Directory choices for {{name}}. Clean tabs from replaced checkouts will close. Files stay where they are."

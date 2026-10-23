@@ -3,7 +3,10 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Store } from '../persistence/loading-store/store'
-import { openLocalProjectsTestStore } from './local-projects-store.test-support'
+import {
+  openLocalProjectsTestStore,
+  refuseNextDurableWrite
+} from './local-projects-store.test-support'
 import { folderWorkspaceKey } from '../../shared/workspace-scope'
 import {
   LocalWorkspaceLinearIssuesSchema,
@@ -118,9 +121,9 @@ describe('Workspace Linear link persistence', () => {
     const remaining = store.detachLocalWorkspaceLinearIssue(args)
     expect(remaining.linearIssues?.map((entry) => entry.organizationId)).toEqual(['other-org'])
     expect(store.getLocalProjectsSnapshot().workspaces[1].linearIssues).toEqual([issue])
-    const flush = vi.spyOn(store, 'flushOrThrow')
+    const write = vi.spyOn(store, 'runDurableMutation')
     expect(store.detachLocalWorkspaceLinearIssue(args)).toEqual(remaining)
-    expect(flush).not.toHaveBeenCalled()
+    expect(write).not.toHaveBeenCalled()
   })
 
   it('persists links across restart without changing saved tabs or drafts', async () => {
@@ -145,7 +148,7 @@ describe('Workspace Linear link persistence', () => {
     store.setWorkspaceSession(session)
     store.attachLocalWorkspaceLinearIssue(workspace.id, issue)
     expect(store.getWorkspaceSession()).toEqual(session)
-    store.flushOrThrow()
+    await store.whenLocalProjectsDurable()
     store.freezeWrites()
     const reopened = openLocalProjectsTestStore(profileDir)
     stores.push(reopened)
@@ -170,26 +173,25 @@ describe('Workspace Linear link persistence', () => {
     ).toEqual([])
   })
 
-  it('rolls back failed writes and refuses closing-profile writes', async () => {
+  it('reports refused writes and refuses closing-profile writes', async () => {
     const { store, workspace } = await fixture()
     store.attachLocalWorkspaceLinearIssue(workspace.id, issue)
+    await store.whenLocalProjectsDurable()
     const before = store.getLocalProjectsSnapshot()
-    vi.spyOn(store, 'flushOrThrow').mockImplementationOnce(() => {
-      throw new Error('disk full')
+    refuseNextDurableWrite(store)
+    store.detachLocalWorkspaceLinearIssue({
+      workspaceId: workspace.id,
+      organizationId: 'org',
+      issueId: 'issue'
     })
-    expect(() =>
-      store.detachLocalWorkspaceLinearIssue({
-        workspaceId: workspace.id,
-        organizationId: 'org',
-        issueId: 'issue'
-      })
-    ).toThrow('disk full')
-    expect(store.getLocalProjectsSnapshot()).toEqual(before)
+    await expect(store.whenLocalProjectsDurable()).rejects.toThrow('Disk full')
+    const afterRefusal = store.getLocalProjectsSnapshot()
+    expect(afterRefusal).not.toEqual(before)
     store.freezeWrites()
     expect(() =>
       store.attachLocalWorkspaceLinearIssue(workspace.id, { ...issue, title: 'Late' })
     ).toThrow('closing')
-    expect(store.getLocalProjectsSnapshot()).toEqual(before)
+    expect(store.getLocalProjectsSnapshot()).toEqual(afterRefusal)
   })
 
   it('bounds and validates snapshots without introducing credentials or remote references', () => {

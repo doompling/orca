@@ -14,7 +14,8 @@ import { folderWorkspaceKey } from '../../shared/workspace-scope'
 import type { Store } from '../persistence/loading-store/store'
 import {
   openLocalProjectsTestStore,
-  readSavedProfileDomain
+  readSavedProfileDomain,
+  refuseNextDurableWrite
 } from './local-projects-store.test-support'
 import { resolveAuthorizedPath } from '../ipc/filesystem-auth'
 import { gitExecFileSync } from '../git/runner'
@@ -180,15 +181,10 @@ describe('local Project persistence in the existing profile Store', () => {
     expect(store.getFolderWorkspaces()).toEqual([])
   })
 
-  it('rolls back both in-memory records when the existing durability barrier fails', async () => {
+  it('reports a refused profile write to the caller', async () => {
     const { store, input } = fixture()
-    const flush = vi.spyOn(store, 'flushOrThrow').mockImplementationOnce(() => {
-      throw new Error('disk full')
-    })
-    await expect(store.createLocalProject(input)).rejects.toThrow('disk full')
-    expect(flush).toHaveBeenCalledOnce()
-    expect(store.getLocalProjectsSnapshot()).toEqual({ version: 1, projects: [], workspaces: [] })
-    expect(store.getFolderWorkspaces()).toEqual([])
+    refuseNextDurableWrite(store)
+    await expect(store.createLocalProject(input)).rejects.toThrow('Disk full')
   })
 
   it('rejects an invalid default, root override, or closing profile without changing state', async () => {
@@ -229,7 +225,7 @@ describe('local Project persistence in the existing profile Store', () => {
         ]
       }
     })
-    store.flushOrThrow()
+    await store.whenLocalProjectsDurable()
     store.freezeWrites()
     const reopened = openLocalProjectsTestStore(profileDir)
     stores.push(reopened)
@@ -284,9 +280,9 @@ describe('local Project persistence in the existing profile Store', () => {
       isPinned: true,
       lastActivityAt: 20
     })
-    const flush = vi.spyOn(store, 'flushOrThrow')
+    const write = vi.spyOn(store, 'runDurableMutation')
     store.updateFolderWorkspace(workspace.id, { lastActivityAt: 10 })
-    expect(flush).not.toHaveBeenCalled()
+    expect(write).not.toHaveBeenCalled()
     store.updateFolderWorkspace(workspace.id, { isUnread: false, lastActivityAt: 10 })
     expect(store.getFolderWorkspace(workspace.id)).toMatchObject({
       isUnread: false,
@@ -296,6 +292,7 @@ describe('local Project persistence in the existing profile Store', () => {
     for (const lastActivityAt of [-1, Number.NaN, Number.POSITIVE_INFINITY]) {
       expect(() => store.updateFolderWorkspace(workspace.id, { lastActivityAt })).toThrow()
     }
+    await store.whenLocalProjectsDurable()
     store.freezeWrites()
     const reopened = openLocalProjectsTestStore(profileDir)
     stores.push(reopened)
@@ -357,6 +354,7 @@ describe('local Project persistence in the existing profile Store', () => {
         store.updateLocalWorkspace({ workspaceId: main.id, updates: { markSlot } })
       ).toThrow()
     }
+    await store.whenLocalProjectsDurable()
     store.freezeWrites()
     const reopened = openLocalProjectsTestStore(profileDir)
     stores.push(reopened)

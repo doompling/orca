@@ -5,7 +5,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Store } from '../persistence/loading-store/store'
 import {
   openLocalProjectsTestStore,
-  readSavedProfileDomain
+  readSavedProfileDomain,
+  refuseNextDurableWrite
 } from './local-projects-store.test-support'
 import { gitExecFileSync } from '../git/runner'
 import {
@@ -155,7 +156,7 @@ describe('guarded local Project root updates', () => {
     expect(store.getLocalProjectsSnapshot().projects[0]).toEqual(project)
   })
 
-  it('preserves the previous durable state when validation or the existing flush barrier fails', async () => {
+  it('leaves state unchanged on validation failure and reports a refused profile write', async () => {
     const { store, project, roots } = await fixture()
     const before = store.getLocalProjectsSnapshot()
     const request = {
@@ -170,11 +171,9 @@ describe('guarded local Project root updates', () => {
         idle
       )
     ).rejects.toThrow('only be added once')
-    vi.spyOn(store, 'flushOrThrow').mockImplementationOnce(() => {
-      throw new Error('disk full')
-    })
-    await expect(store.updateLocalProjectRoots(request, idle)).rejects.toThrow('disk full')
     expect(store.getLocalProjectsSnapshot()).toEqual(before)
+    refuseNextDurableWrite(store)
+    await expect(store.updateLocalProjectRoots(request, idle)).rejects.toThrow('Disk full')
   })
 
   it('validates existing checkout replacements and removes only obsolete bindings/defaults', async () => {

@@ -17,7 +17,7 @@ import {
 
 test.use({ seedTestRepo: false })
 
-test('creates overlapping multi-root Projects and restores independent Workspace drafts through normal controls', async ({
+test('creates overlapping multi-root Projects that share one draft per file through normal controls', async ({
   orcaPage: page,
   registerPostElectronShutdownCleanup
 }, testInfo) => {
@@ -72,66 +72,43 @@ test('creates overlapping multi-root Projects and restores independent Workspace
   }
   expect(terminalIds[0]).not.toBe(terminalIds[1])
 
+  // One physical file has one editor buffer: every Workspace that opens it shares its draft.
+  const editor = page.locator('.rich-markdown-editor:visible')
   await openRootReadme(page, 'app_a')
-  await appendToReadme(page, 'Main independent unsaved draft')
+  await appendToReadme(page, 'Main shared draft')
   await createWorkspace(page, 'Full application', 'Investigate login')
   const investigate = fullApplication
     .locator('[data-worktree-id]')
     .filter({ hasText: /^Investigate login/ })
   await expect(investigate).toHaveAttribute('aria-current', 'page')
-  await expect(page.locator('.rich-markdown-editor:visible')).toHaveCount(0)
+  await expect(editor).toHaveCount(0)
   await openRootReadme(page, 'app_a')
-  await expect(page.locator('.rich-markdown-editor:visible')).not.toContainText(
-    'Main independent unsaved draft'
-  )
-  await appendToReadme(page, 'Investigate independent unsaved draft')
+  await expect(editor).toContainText('Main shared draft')
+  await appendToReadme(page, 'Investigate shared draft')
   await main.click()
-  await expect(page.locator('.rich-markdown-editor:visible')).toContainText(
-    'Main independent unsaved draft'
-  )
-  await expect(page.locator('.rich-markdown-editor:visible')).not.toContainText(
-    'Investigate independent unsaved draft'
-  )
+  await expect(editor).toContainText('Main shared draft')
+  await expect(editor).toContainText('Investigate shared draft')
 
   await createProject(page, 'App A maintenance', [appA])
   await expect(roots.getByRole('button')).toHaveCount(1)
   await openRootReadme(page, 'app_a')
-  await expect(page.locator('.rich-markdown-editor:visible')).not.toContainText(
-    'independent unsaved draft'
-  )
-  await appendToReadme(page, 'Maintenance independent unsaved draft')
+  await expect(editor).toContainText('Investigate shared draft')
+  await appendToReadme(page, 'Maintenance shared draft')
   await investigate.click()
-  await expect(page.locator('.rich-markdown-editor:visible')).toContainText(
-    'Investigate independent unsaved draft'
-  )
-  await main.click()
-  await expect(page.locator('.rich-markdown-editor:visible')).toContainText(
-    'Main independent unsaved draft'
-  )
-  expect(readFileSync(path.join(appA, 'README.md'), 'utf8')).not.toContain(
-    'independent unsaved draft'
-  )
+  await expect(editor).toContainText('Maintenance shared draft')
+  expect(readFileSync(path.join(appA, 'README.md'), 'utf8')).not.toContain('shared draft')
   await page.screenshot({ path: testInfo.outputPath('overlapping-project-drafts.png') })
 
+  await main.click()
   await page.keyboard.press('ControlOrMeta+S')
   await expect
     .poll(() => readFileSync(path.join(appA, 'README.md'), 'utf8'))
-    .toContain('Main independent unsaved draft')
+    .toContain('Maintenance shared draft')
   await investigate.click()
-  await expect(page.locator('.rich-markdown-editor:visible')).toContainText(
-    'Investigate independent unsaved draft'
-  )
-  await page.keyboard.press('ControlOrMeta+S')
-  const conflict = page.getByRole('alert').filter({ hasText: 'This file changed on disk.' })
-  await expect(conflict).toBeVisible()
-  expect(readFileSync(path.join(appA, 'README.md'), 'utf8')).not.toContain(
-    'Investigate independent unsaved draft'
-  )
-  await page.screenshot({ path: testInfo.outputPath('shared-file-conflict.png') })
-  await conflict.getByRole('button', { name: 'Reload from Disk', exact: true }).click()
-  await expect(page.locator('.rich-markdown-editor:visible')).toContainText(
-    'Main independent unsaved draft'
-  )
+  await expect(editor).toContainText('Maintenance shared draft')
+  await expect(
+    page.getByRole('alert').filter({ hasText: 'This file changed on disk.' })
+  ).toHaveCount(0)
   await main.click()
   await appendToReadme(page, 'Second Main saved update')
   await page.keyboard.press('ControlOrMeta+S')
@@ -139,9 +116,7 @@ test('creates overlapping multi-root Projects and restores independent Workspace
     .poll(() => readFileSync(path.join(appA, 'README.md'), 'utf8'))
     .toContain('Second Main saved update')
   await investigate.click()
-  await expect(page.locator('.rich-markdown-editor:visible')).toContainText(
-    'Second Main saved update'
-  )
+  await expect(editor).toContainText('Second Main saved update')
 
   await main.click()
   await appendToReadme(page, 'Draft retained while archived')
@@ -164,9 +139,7 @@ test('creates overlapping multi-root Projects and restores independent Workspace
   await page.getByRole('menuitem', { name: 'Restore Workspace', exact: true }).click()
   await expect(daily).toBeEnabled()
   await daily.click()
-  await expect(page.locator('.rich-markdown-editor:visible')).toContainText(
-    'Draft retained while archived'
-  )
+  await expect(editor).toContainText('Draft retained while archived')
   expect(readFileSync(path.join(appA, 'README.md'), 'utf8')).toBe(diskBeforeArchive)
   await page.screenshot({ path: testInfo.outputPath('restored-archived-workspace.png') })
   expect(rendererErrors).toEqual([])

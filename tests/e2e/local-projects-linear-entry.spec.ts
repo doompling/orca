@@ -68,9 +68,7 @@ test('creates one ticket-linked Workspace from Tasks and finds its second issue 
   await expect(workspaceRows(page)).toHaveCount(1)
 
   const previewPalette = await openJumpPalette(electronApp, page)
-  const previewInput = previewPalette.getByPlaceholder(
-    'Search chats, terminals, worktrees, settings, and actions...'
-  )
+  const previewInput = previewPalette.getByRole('combobox')
   await previewInput.fill(NEW_ISSUE_URL)
   await expect(
     previewPalette.locator(
@@ -120,9 +118,7 @@ test('creates one ticket-linked Workspace from Tasks and finds its second issue 
     await workspaceRow(page, 'Main').click()
     await expect(workspaceRow(page, 'Main')).toHaveAttribute('aria-current', 'page')
     const palette = await openJumpPalette(electronApp, page)
-    await palette
-      .getByPlaceholder('Search chats, terminals, worktrees, settings, and actions...')
-      .fill(query)
+    await palette.getByRole('combobox').fill(query)
     const match = palette.getByRole('option').filter({ hasText: `${PROJECT} / ${WORKSPACE_NAME}` })
     await expect(match).toHaveCount(1)
     await expect(match).toBeVisible()

@@ -53,7 +53,7 @@ async function editScope(page: Page, kind: 'Project' | 'Workspace') {
   const name = kind === 'Project' ? 'Recovery project' : 'Main'
   await project.getByRole('button', { name: `${kind} actions for ${name}`, exact: true }).click()
   const title = kind === 'Project' ? 'Edit Project roots' : 'Edit Workspace checkouts'
-  await page.getByRole('menuitem', { name: title, exact: true }).click()
+  await page.getByRole('menuitem', { name: `${title}…`, exact: true }).click()
   return page.getByRole('dialog', { name: title, exact: true })
 }
 

@@ -82,13 +82,9 @@ export function LocalRootWorktreeCreation({
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground">
             {translate(
-              'auto.features.local.projects.LocalRootWorktreeCreation.7db5cec376',
-              "Creates a new branch from this Project checkout's current committed HEAD:"
-            )}{' '}
-            {root.path}
-            {translate(
-              'auto.features.local.projects.LocalRootWorktreeCreation.787c2285d5',
-              '. It does not start from a Workspace alternate or copy uncommitted edits. No Orca setup or agent is started.'
+              'localProjects.worktreeCreation.source',
+              "Creates a new branch from this Project checkout's current committed HEAD: {{path}}. It does not start from a Workspace alternate or copy uncommitted edits. No Orca setup or agent is started.",
+              { path: root.path }
             )}
           </p>
           {!created && (

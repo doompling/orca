@@ -3,7 +3,10 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Store } from '../persistence/loading-store/store'
-import { openLocalProjectsTestStore } from './local-projects-store.test-support'
+import {
+  openLocalProjectsTestStore,
+  refuseNextDurableWrite
+} from './local-projects-store.test-support'
 import type { LocalWorkspaceLinearIssue } from '../../shared/local-projects/linear-issues'
 
 const { verifyIssue } = vi.hoisted(() => ({ verifyIssue: vi.fn() }))
@@ -70,13 +73,14 @@ describe('atomic verified Linear Workspace creation', () => {
   it('commits the Workspace and verified link together, preserving Main and restart state', async () => {
     const { store, args, profileDir } = await fixture()
     const before = store.getLocalProjectsSnapshot()
-    const flush = vi.spyOn(store, 'flushOrThrow')
+    const durable = vi.spyOn(store, 'whenLocalProjectsDurable')
     const workspace = await store.createLocalWorkspace(args)
     expect(verifyIssue).toHaveBeenCalledExactlyOnceWith(args.linearIssue)
-    expect(flush).toHaveBeenCalledOnce()
+    expect(durable).toHaveBeenCalledOnce()
     expect(workspace.name).toBe(args.name)
     expect(workspace.linearIssues).toEqual([link])
     expect(store.getLocalProjectsSnapshot().workspaces[0]).toEqual(before.workspaces[0])
+    await store.whenLocalProjectsDurable()
     store.freezeWrites()
     const reopened = openLocalProjectsTestStore(profileDir)
     stores.push(reopened)
@@ -106,14 +110,10 @@ describe('atomic verified Linear Workspace creation', () => {
     expect(store.getLocalProjectsSnapshot().workspaces).toHaveLength(1)
   })
 
-  it('rolls back both records on a persistence failure and never verifies ordinary creation', async () => {
+  it('reports a refused write and never verifies ordinary creation', async () => {
     const { store, args } = await fixture()
-    const before = store.getLocalProjectsSnapshot()
-    vi.spyOn(store, 'flushOrThrow').mockImplementationOnce(() => {
-      throw new Error('disk full')
-    })
-    await expect(store.createLocalWorkspace(args)).rejects.toThrow('disk full')
-    expect(store.getLocalProjectsSnapshot()).toEqual(before)
+    refuseNextDurableWrite(store)
+    await expect(store.createLocalWorkspace(args)).rejects.toThrow('Disk full')
     verifyIssue.mockClear()
     await store.createLocalWorkspace({ projectId: args.projectId, name: 'Plain' })
     expect(verifyIssue).not.toHaveBeenCalled()

@@ -34,6 +34,7 @@ type LocalProjectIpcStore = Pick<
   | 'updateLocalWorkspaceCheckouts'
   | 'attachLocalWorkspaceLinearIssue'
   | 'detachLocalWorkspaceLinearIssue'
+  | 'whenLocalProjectsDurable'
 >
 
 export function registerLocalProjectHandlers(
@@ -57,6 +58,11 @@ export function registerLocalProjectHandlers(
   for (const channel of channels) {
     ipcMain.removeHandler(channel)
   }
+  // Changes apply at once; the reply waits until they are on disk, so a refused write reaches the UI.
+  const durable = async <T>(value: T): Promise<T> => {
+    await store.whenLocalProjectsDurable()
+    return value
+  }
   ipcMain.handle('localProjects:getSnapshot', () => store.getLocalProjectsSnapshot())
   ipcMain.handle('localProjects:createProject', async (_event, input: unknown) => {
     const result = await store.createLocalProject(CreateLocalProjectSchema.parse(input))
@@ -74,44 +80,46 @@ export function registerLocalProjectHandlers(
   ipcMain.handle('localProjects:resolveWorkspace', (_event, workspaceId: unknown) =>
     store.resolveLocalWorkspace(LocalWorkspaceIdSchema.parse(workspaceId))
   )
-  ipcMain.handle('localProjects:updateProject', (_event, input: unknown) => {
-    const project = store.updateLocalProject(UpdateLocalProjectSchema.parse(input))
+  ipcMain.handle('localProjects:updateProject', async (_event, input: unknown) => {
+    const project = await durable(store.updateLocalProject(UpdateLocalProjectSchema.parse(input)))
     notifyReposChanged(mainWindow)
     return project
   })
-  ipcMain.handle('localProjects:updateWorkspace', (_event, input: unknown) => {
-    const workspace = store.updateLocalWorkspace(UpdateLocalWorkspaceSchema.parse(input))
+  ipcMain.handle('localProjects:updateWorkspace', async (_event, input: unknown) => {
+    const workspace = await durable(
+      store.updateLocalWorkspace(UpdateLocalWorkspaceSchema.parse(input))
+    )
     notifyReposChanged(mainWindow)
     return workspace
   })
   const guard = localWorkspaceScopeMutationGuard(runtime)
   ipcMain.handle('localProjects:updateProjectRoots', async (_event, input: unknown) => {
-    const state = await store.updateLocalProjectRoots(
-      UpdateLocalProjectRootsSchema.parse(input),
-      guard
+    const state = await durable(
+      await store.updateLocalProjectRoots(UpdateLocalProjectRootsSchema.parse(input), guard)
     )
     notifyReposChanged(mainWindow)
     return state
   })
   ipcMain.handle('localProjects:updateWorkspaceCheckouts', async (_event, input: unknown) => {
-    const state = await store.updateLocalWorkspaceCheckouts(
-      UpdateLocalWorkspaceCheckoutsSchema.parse(input),
-      guard
+    const state = await durable(
+      await store.updateLocalWorkspaceCheckouts(
+        UpdateLocalWorkspaceCheckoutsSchema.parse(input),
+        guard
+      )
     )
     notifyReposChanged(mainWindow)
     return state
   })
   ipcMain.handle('localProjects:attachLinearIssue', async (_event, input: unknown) => {
-    const workspace = await linkLocalWorkspaceLinearIssue(
-      store,
-      AttachLocalWorkspaceLinearIssueSchema.parse(input)
+    const workspace = await durable(
+      await linkLocalWorkspaceLinearIssue(store, AttachLocalWorkspaceLinearIssueSchema.parse(input))
     )
     notifyReposChanged(mainWindow)
     return workspace
   })
-  ipcMain.handle('localProjects:detachLinearIssue', (_event, input: unknown) => {
-    const workspace = store.detachLocalWorkspaceLinearIssue(
-      DetachLocalWorkspaceLinearIssueSchema.parse(input)
+  ipcMain.handle('localProjects:detachLinearIssue', async (_event, input: unknown) => {
+    const workspace = await durable(
+      store.detachLocalWorkspaceLinearIssue(DetachLocalWorkspaceLinearIssueSchema.parse(input))
     )
     notifyReposChanged(mainWindow)
     return workspace

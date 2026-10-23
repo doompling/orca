@@ -133,7 +133,9 @@ test('searches both roots and targets Git and an existing worktree through norma
     await page.getByRole('button', { name: /Source Control/ }).click()
     await page.getByLabel('Git directory').click()
     await page.getByRole('option', { name: labelA, exact: true }).click()
-    await expect(page.getByText(alternate.branchName, { exact: true })).toBeVisible()
+    await expect(
+      page.getByLabel('Workspace Source Control').getByText(alternate.branchName, { exact: true })
+    ).toBeVisible()
     await expect(unstaged).toBeVisible()
     await unstaged.getByRole('button', { name: 'Stage README.md', exact: true }).click()
     await expect(staged).toBeVisible()
