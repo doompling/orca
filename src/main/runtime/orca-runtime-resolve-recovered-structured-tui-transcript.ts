@@ -5,11 +5,6 @@ import { agentSessionOwnerBindingsEqual } from '../../shared/claimed-agent-pty-o
 import { resolvePinnedCodexRolloutProof } from '../codex/codex-tui-rollout-proof'
 import { supportsCodexStructuredLocation } from '../codex/codex-structured-location-support'
 import { supportsClaudeStructuredLocation } from '../claude/claude-structured-location-support'
-import { supportsOpenCodeStructuredLocation } from '../opencode/opencode-structured-launch-resolution'
-import { captureOpenCodeAccountHome } from '../opencode/opencode-structured-account-home'
-import { resolveLoginShellEnvironment } from '../startup/login-shell-environment'
-import type { AgentSessionHandleProvider } from '../../shared/agent-session-provider-handle'
-import type { AgentSessionAccountHome } from '../../shared/agent-session-record'
 import { getStructuredAgentSessionHost } from '../native-chat/agent-session-wire/structured-agent-session-registry'
 import { resolveStructuredAgentSessionCreateSupport } from '../native-chat/structured-agent-session-create-support'
 import {
@@ -63,7 +58,7 @@ export class OrcaRuntimeWithResolveRecoveredStructuredTuiTranscript extends Orca
 
   async getStructuredAgentSessionCreateSupport(
     worktreeSelector: string,
-    agent: AgentSessionHandleProvider
+    agent: 'claude' | 'codex'
   ): Promise<{ supported: boolean; reason?: 'agent' | 'remote' | 'wsl' }> {
     const location = await this.resolveStructuredAgentSessionLocation(worktreeSelector)
     return resolveStructuredAgentSessionCreateSupport({
@@ -72,9 +67,7 @@ export class OrcaRuntimeWithResolveRecoveredStructuredTuiTranscript extends Orca
       adapterSupportsCreate:
         agent === 'claude'
           ? supportsClaudeStructuredLocation(location)
-          : agent === 'opencode'
-            ? supportsOpenCodeStructuredLocation(location)
-            : supportsCodexStructuredLocation(location),
+          : supportsCodexStructuredLocation(location),
       getSettings: () => this.requireStore().getSettings()
     })
   }
@@ -133,23 +126,10 @@ export class OrcaRuntimeWithResolveRecoveredStructuredTuiTranscript extends Orca
   async resolveStructuredAgentSessionCreateIntent(input: {
     envelope: { sessionId: string; clientOperationId: string }
     worktree: string
-    agent: AgentSessionHandleProvider
+    agent: 'claude' | 'codex'
     callerKey?: string
     resumeFrom?: { providerSessionId: string }
   }): Promise<AgentSessionAttachParams> {
-    if (input.agent === 'opencode') {
-      if (input.resumeFrom) {
-        throw new Error(
-          'Importing OpenCode terminal conversations is not supported. Reopen its saved Ether chat instead.'
-        )
-      }
-      return this.resolveStructuredAgentSessionIntent(input, async ({ workspacePath, launchEnv }) =>
-        captureOpenCodeAccountHome(
-          { ...(await resolveLoginShellEnvironment()), ...launchEnv },
-          workspacePath
-        )
-      )
-    }
     if (input.agent === 'claude') {
       return this.resolveStructuredAgentSessionIntent(input, async ({ launchEnv, location }) => {
         return (
@@ -181,7 +161,7 @@ export class OrcaRuntimeWithResolveRecoveredStructuredTuiTranscript extends Orca
     input: {
       envelope: { sessionId: string; clientOperationId: string }
       worktree: string
-      agent: AgentSessionHandleProvider
+      agent: 'claude' | 'codex'
       callerKey?: string
       resumeFrom?: { providerSessionId: string }
     },
@@ -194,7 +174,7 @@ export class OrcaRuntimeWithResolveRecoveredStructuredTuiTranscript extends Orca
         workspaceId: string
         workspaceKind: 'folder' | 'git-worktree'
       }
-    }) => string | AgentSessionAccountHome | Promise<string | AgentSessionAccountHome>
+    }) => string | Promise<string>
   ): Promise<AgentSessionAttachParams> {
     const support = await this.getStructuredAgentSessionCreateSupport(input.worktree, input.agent)
     if (!support.supported) {
@@ -210,25 +190,20 @@ export class OrcaRuntimeWithResolveRecoveredStructuredTuiTranscript extends Orca
     const localWorkspaceScope = captureStructuredLocalWorkspaceScope(this.requireStore(), location)
     const workspacePath = (await this.resolveRuntimeFileTarget(input.worktree)).worktree.path
     const host = getStructuredAgentSessionHost()
-    const committedReplay =
-      input.agent === 'opencode'
-        ? null
-        : resolveCommittedStructuredAgentSessionAdoptionIntent({
-            host,
-            ...input,
-            location,
-            ...(options ? { options } : {})
-          })
+    const committedReplay = resolveCommittedStructuredAgentSessionAdoptionIntent({
+      host,
+      ...input,
+      location,
+      ...(options ? { options } : {})
+    })
     if (committedReplay) {
       return committedReplay
     }
-    const selectedAccount = await resolveAccountHomePath({
+    const selectedAccountHomePath = await resolveAccountHomePath({
       workspacePath,
       launchEnv,
       location
     })
-    const selectedAccountHomePath =
-      typeof selectedAccount === 'string' ? selectedAccount : selectedAccount.path
     // Adopting pins the account home to wherever the conversation actually lives, which is not
     // necessarily the one a fresh create would pick: Codex resolves its rollout under
     // `accountHome.path`, and Claude reads its transcript under `<home>/projects`. Resuming under
@@ -253,13 +228,10 @@ export class OrcaRuntimeWithResolveRecoveredStructuredTuiTranscript extends Orca
       location,
       provider: input.agent,
       agent: input.agent,
-      accountHome:
-        typeof selectedAccount === 'string'
-          ? {
-              variable: input.agent === 'claude' ? 'CLAUDE_CONFIG_DIR' : 'CODEX_HOME',
-              path: adoption ? adoption.accountHomePath : selectedAccountHomePath
-            }
-          : selectedAccount,
+      accountHome: {
+        variable: input.agent === 'claude' ? 'CLAUDE_CONFIG_DIR' : 'CODEX_HOME',
+        path: adoption ? adoption.accountHomePath : selectedAccountHomePath
+      },
       ...(options ? { options } : {}),
       ...(localWorkspaceScope ? { localWorkspaceScope } : {}),
       ...(input.resumeFrom && adoption

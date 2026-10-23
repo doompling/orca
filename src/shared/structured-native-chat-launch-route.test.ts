@@ -4,10 +4,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import {
-  OPENCODE_STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY,
-  STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY
-} from './protocol-version'
+import { STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY } from './protocol-version'
 import {
   agentTabsDefaultToNativeChat,
   prefersStructuredNativeChatByDefault,
@@ -55,30 +52,6 @@ describe('the settings default', () => {
 })
 
 describe('per-launch structured feasibility', () => {
-  it('requires explicit OpenCode support without widening remote or terminal routes', () => {
-    expect(support({ agent: 'opencode' })).toEqual({
-      supported: false,
-      blocker: 'runtime-capability'
-    })
-    expect(
-      support({
-        agent: 'opencode',
-        hostCapabilities: [
-          STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY,
-          OPENCODE_STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY
-        ]
-      })
-    ).toEqual({ supported: true })
-    expect(support({ agent: 'opencode', executionHostId: 'ssh:host' })).toEqual({
-      supported: false,
-      blocker: 'remote-execution-host'
-    })
-    expect(support({ agent: 'opencode', requiresTuiLaunchCommand: true })).toEqual({
-      supported: false,
-      blocker: 'tui-launch-command'
-    })
-  })
-
   it.each(['claude', 'codex'] as const)('supports a local %s launch', (agent) => {
     expect(support({ agent })).toEqual({ supported: true })
   })

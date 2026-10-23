@@ -35,9 +35,6 @@ async function readAdoptedTranscript(
   if (!adopt) {
     return null
   }
-  if (params.provider === 'opencode' || adopt.providerHandle.kind === 'opencode') {
-    throw new Error('structured_agent_session_unsupported')
-  }
   if (!adopt.transcriptPath) {
     throw new Error('agent_session_identity_required')
   }
@@ -84,9 +81,6 @@ async function applyAdoptedTranscript(
   // A new journal contains only its epoch row; replay must preserve subsequent durable writes.
   if (!adopt || attached.journal.cursor().sequence > 1) {
     return
-  }
-  if (params.provider === 'opencode' || adopt.providerHandle.kind === 'opencode') {
-    throw new Error('structured_agent_session_unsupported')
   }
   if (prepared) {
     await attached.journal.replaceEpochItems('legacy_import', record.lease.runtimeFence, prepared)

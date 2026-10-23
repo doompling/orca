@@ -26,7 +26,7 @@ import { cleanupE2EDaemons, closeElectronAppForE2E } from './electron-process-sh
 import { createProject } from './local-project-controls'
 import { defaultEtherReleaseBundle } from './ether-release-bundle'
 
-type ChatSmoke = { agent: 'codex' | 'opencode'; model: string; testInfo: TestInfo }
+type ChatSmoke = { agent: 'codex'; model: string; testInfo: TestInfo }
 
 const sessionOptions = z.object({
   models: z.array(z.object({ id: z.string(), label: z.string() })),
@@ -61,7 +61,7 @@ async function assertReadyChat(page: Page, { agent, model }: ChatSmoke): Promise
   }
   await expect.poll(readOptions, { timeout: 30_000 }).toMatchObject({
     ok: true,
-    result: { current: { model, ...(agent === 'codex' ? { effort: 'low', fastMode: false } : {}) } }
+    result: { current: { model, effort: 'low', fastMode: false } }
   })
   const response = await readOptions()
   if (!response.ok) {
@@ -74,9 +74,7 @@ async function assertReadyChat(page: Page, { agent, model }: ChatSmoke): Promise
   await expect(
     chat.getByRole('button', { name: `Model ${choice.label}`, exact: true })
   ).toBeVisible()
-  if (agent === 'codex') {
-    await expect(chat.getByRole('button', { name: 'Effort Low', exact: true })).toBeVisible()
-  }
+  await expect(chat.getByRole('button', { name: 'Effort Low', exact: true })).toBeVisible()
   await expect(
     chat.getByText(/Chat connection could not be confirmed\.|Chat could not be started\./)
   ).toHaveCount(0)
@@ -92,7 +90,7 @@ async function normalQuit(app: ElectronApplication): Promise<void> {
 
 export async function runPackagedAgentChatSmoke(input: ChatSmoke): Promise<void> {
   const { agent, model, testInfo } = input
-  const label = agent === 'codex' ? 'Codex' : 'OpenCode'
+  const label = 'Codex'
   test.setTimeout(180_000)
   test.skip(
     process.platform !== 'darwin' || process.arch !== 'arm64',
@@ -122,15 +120,6 @@ export async function runPackagedAgentChatSmoke(input: ChatSmoke): Promise<void>
         experimentalStructuredNativeChat: true,
         openAgentTabsInChatByDefault: true,
         agentDefaultArgs: { [agent]: '' },
-        ...(agent === 'opencode' && process.env.ETHER_OPENCODE_TEST_BIN_DIR
-          ? {
-              agentDefaultEnv: {
-                opencode: {
-                  PATH: `${path.resolve(process.env.ETHER_OPENCODE_TEST_BIN_DIR)}${path.delimiter}${process.env.PATH ?? ''}`
-                }
-              }
-            }
-          : {}),
         agentYoloDefaultsMigrated: true,
         agentStatusHooksEnabled: false,
         autoRenameBranchFromWork: false,
@@ -140,7 +129,7 @@ export async function runPackagedAgentChatSmoke(input: ChatSmoke): Promise<void>
         nativeChatSessionOptions: {
           [agent]: {
             model,
-            valuesByModel: { [model]: agent === 'codex' ? { effort: 'low', fastMode: false } : {} }
+            valuesByModel: { [model]: { effort: 'low', fastMode: false } }
           }
         }
       }

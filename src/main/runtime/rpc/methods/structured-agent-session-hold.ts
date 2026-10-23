@@ -34,7 +34,7 @@ export const STRUCTURED_AGENT_SESSION_HOLD_METHODS = [
     params: HoldParams,
     handler: async (params, ctx) => {
       await ensureStructuredHostInstalled(ctx)
-      const host = requireStructuredHost(ctx, params.sessionId)
+      const host = requireStructuredHost(ctx)
       const holderKey = holderKeyFor(ctx, params.holderId)
       const registration = ctx.runtime.registerOwnedSubscriptionCleanup(
         holdCleanupIdFor(params.sessionId, holderKey),
@@ -54,7 +54,7 @@ export const STRUCTURED_AGENT_SESSION_HOLD_METHODS = [
     name: 'agentSession.release',
     params: HoldParams,
     handler: async (params, ctx) => {
-      const host = requireStructuredCleanupHost(ctx, params.sessionId)
+      const host = requireStructuredCleanupHost(ctx)
       const holderKey = holderKeyFor(ctx, params.holderId)
       host.release(params.sessionId, holderKey)
       // Retires the backstop too; its release is a no-op against a holder already gone.

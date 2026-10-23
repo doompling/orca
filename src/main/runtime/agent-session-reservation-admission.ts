@@ -48,10 +48,6 @@ import {
   type LocalWorkspaceLaunchScope
 } from '../../shared/local-projects/agent-launch-scope'
 import { isLocalWorkspaceSessionScope } from '../../shared/local-projects/agent-session-scope'
-import {
-  agentSessionAccountHomesEqual,
-  isAgentSessionAccountHome
-} from '../../shared/agent-session-account-home'
 
 export type AgentSessionReserveRequest = {
   sessionId: string
@@ -150,17 +146,6 @@ export function applyAgentSessionReservation(
   record: AgentSessionRecord
   disposition: Exclude<AgentSessionReserveDisposition, 'replayed'>
 } {
-  if (
-    request.provider === 'opencode' &&
-    (request.runtimeKind !== 'native' ||
-      request.location.executionHostId !== 'local' ||
-      request.location.wslDistro !== null ||
-      request.accountHome.variable !== 'XDG_DATA_HOME' ||
-      !isAgentSessionAccountHome(request.accountHome) ||
-      request.adoptedHandleLink !== undefined)
-  ) {
-    throw new Error('structured_agent_session_unsupported')
-  }
   if (request.launchEnv && !isAgentSessionLaunchEnv(request.launchEnv)) {
     throw new Error('agent_session_launch_env_invalid')
   }
@@ -200,7 +185,8 @@ export function applyAgentSessionReservation(
   if (
     !agentSessionExecutionLocationsEqual(existing.location, request.location) ||
     existing.provider !== request.provider ||
-    !agentSessionAccountHomesEqual(existing.accountHome, request.accountHome) ||
+    existing.accountHome.variable !== request.accountHome.variable ||
+    existing.accountHome.path !== request.accountHome.path ||
     (request.localWorkspaceScope &&
       !localWorkspaceLaunchScopesEqual(existing.localWorkspaceScope, request.localWorkspaceScope))
   ) {

@@ -56,6 +56,9 @@ failure; an old failed tab may replay its failed launch, so verify a new tab.
 
 ### 2. OpenCode editor-rendered chat — complete
 
+> Removed 2026-10-23 in [upstream merge 1](upstream_merge_1/README.md): Ether now uses upstream's
+> ACP OpenCode chat. The notes below are history.
+
 - [x] Inspect and reuse Orca's existing OpenCode/provider integration.
 - [x] Support the normal Workspace launch path with every root in scope and
       independent conversations per Workspace.

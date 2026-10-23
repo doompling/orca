@@ -1,8 +1,5 @@
 import type { AgentSessionRecord } from '../../../shared/agent-session-record'
-import {
-  agentSessionProviderHandleChainHead,
-  agentSessionProviderSessionId
-} from '../../../shared/agent-session-provider-handle'
+import { agentSessionProviderHandleChainHead } from '../../../shared/agent-session-provider-handle'
 import type { AgentProviderSessionMetadata } from '../../../shared/agent-session-resume'
 import type {
   AgentSessionHistoryRequest,
@@ -18,7 +15,7 @@ export function structuredAgentSessionProviderSessionMetadata(
   return head
     ? {
         key: 'session_id',
-        id: agentSessionProviderSessionId(head.handle)
+        id: head.handle.provider === 'claude' ? head.handle.sessionId : head.handle.threadId
       }
     : undefined
 }

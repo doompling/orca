@@ -1,9 +1,5 @@
 // @ts-nocheck -- mechanically split from OrcaRuntimeService; behavior is covered by AST equivalence and characterization tests.
 import { defaultAgentChatLabel } from '../../shared/agent-session-chat-label'
-import {
-  isAgentSessionHandleProvider,
-  type AgentSessionHandleProvider
-} from '../../shared/agent-session-provider-handle'
 import { OrcaRuntimeWithResolveRecoveredStructuredTuiTranscript } from './orca-runtime-resolve-recovered-structured-tui-transcript'
 import { getStructuredAgentSessionHost } from '../native-chat/agent-session-wire/structured-agent-session-registry'
 import { replaceConversationInSnapshot } from './structured-conversation-tab-replacement'
@@ -75,7 +71,7 @@ export class OrcaRuntimeWithRestoreStructuredAgentSessionTabsOnce extends OrcaRu
       await this.replaceStructuredAgentSessionTab(replacement)
     }
     for (const session of host?.listSessionTabs() ?? []) {
-      if (!isAgentSessionHandleProvider(session.agent)) {
+      if (session.agent !== 'codex' && session.agent !== 'claude') {
         continue
       }
       let sessionId = session.sessionId
@@ -95,7 +91,7 @@ export class OrcaRuntimeWithRestoreStructuredAgentSessionTabsOnce extends OrcaRu
   async publishStructuredAgentSessionTab(input: {
     workspaceId: string
     sessionId: string
-    agent: AgentSessionHandleProvider
+    agent: 'claude' | 'codex'
     activate: boolean
     notify?: boolean
     replacesSessionId?: string

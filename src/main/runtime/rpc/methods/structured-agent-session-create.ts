@@ -27,18 +27,6 @@ import type { StructuredAgentSessionCaller } from '../../../native-chat/agent-se
 import type { StructuredAgentSessionResumeSource } from '../../../../shared/structured-agent-session-create'
 import type { OrcaRuntimeService } from '../../orca-runtime'
 import {
-  isAgentSessionHandleProvider,
-  type AgentSessionHandleProvider
-} from '../../../../shared/agent-session-provider-handle'
-import type { z } from 'zod'
-import type { RpcContext } from '../core'
-import type { AttachParams } from './structured-agent-session-schemas'
-import {
-  ensureStructuredHostInstalled,
-  requireStructuredHost,
-  requireStructuredProviderCapability
-} from './structured-agent-session-gate'
-import {
   resolveUncommittedStructuredCreate,
   type StructuredCreateRefused
 } from './structured-agent-session-precommit-refusal'
@@ -47,27 +35,7 @@ export type PreparedStructuredAgentSessionCreate = {
   host: StructuredAgentSessionHost
   attachParams: AgentSessionAttachParams
   /** Null when the caller supplied its own location; only a resolved worktree publishes a tab. */
-  tab: { workspaceId: string; agent: AgentSessionHandleProvider } | null
-}
-
-/** Client-supplied locations still require the host's provider/location admission checks. */
-export async function resolveClientSuppliedAttach(
-  params: z.infer<typeof AttachParams>,
-  ctx: RpcContext
-) {
-  requireStructuredProviderCapability(ctx, params.provider)
-  await ensureStructuredHostInstalled(ctx)
-  const host = requireStructuredHost(ctx)
-  if (
-    !isAgentSessionHandleProvider(params.agent) ||
-    !host.supportsCreate(params.location, params.agent)
-  ) {
-    throw new Error('structured_agent_session_unsupported')
-  }
-  return {
-    host,
-    attachParams: { ...params, agent: params.agent } satisfies AgentSessionAttachParams
-  }
+  tab: { workspaceId: string; agent: 'claude' | 'codex' } | null
 }
 
 /** The pre-commit half. Throws; the caller is expected to run it inside
@@ -78,7 +46,7 @@ export async function prepareStructuredAgentSessionCreateForWorktree(args: {
   ensureHost: () => Promise<StructuredAgentSessionHost>
   envelope: AgentSessionMutationEnvelope
   worktree: string
-  agent: AgentSessionHandleProvider
+  agent: 'claude' | 'codex'
   caller: StructuredAgentSessionCaller
   resumeFrom?: StructuredAgentSessionResumeSource
   /** Replaces the seed options the host resolves from settings. Orchestration passes the
@@ -110,13 +78,13 @@ export async function prepareStructuredAgentSessionCreateForWorktree(args: {
       // they are the session's initial state, not its identity, so a retry that re-resolves them
       // must replay rather than conflict.
       ...(args.options ? { options: args.options } : {}),
-      provider: resolved.provider,
-      agent: resolved.agent,
+      provider: resolved.provider as 'claude' | 'codex',
+      agent: resolved.agent as 'claude' | 'codex',
       envelope: { ...args.envelope, payloadFingerprint: hostFingerprint }
     },
     tab: {
       workspaceId: resolved.location.workspaceId,
-      agent: resolved.agent
+      agent: resolved.agent as 'claude' | 'codex'
     }
   }
 }
@@ -159,7 +127,7 @@ export async function createStructuredAgentSessionForWorktree(args: {
   caller: StructuredAgentSessionCaller
   envelope: AgentSessionMutationEnvelope
   worktree: string
-  agent: AgentSessionHandleProvider
+  agent: 'claude' | 'codex'
   activate: boolean
   options?: Readonly<Record<string, string>>
 }): Promise<AgentSessionMutationResult<AgentSessionAttachResult>> {

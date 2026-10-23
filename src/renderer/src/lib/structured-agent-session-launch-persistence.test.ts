@@ -16,29 +16,26 @@ describe('structured agent launch persistence', () => {
     resetStructuredAgentLaunchPersistenceForTests()
   })
 
-  it.each(['claude', 'codex', 'opencode'])(
-    'normalizes pending %s launches after a renderer reload',
-    (agent) => {
-      localStorage.setItem(
-        'orca:structuredAgentLaunches:v1',
-        JSON.stringify([
-          {
-            sessionId: `${agent}_session`,
-            agent,
-            lifecycle: 'pending',
-            clientOperationId: 'operation-1',
-            payloadFingerprint: 'fingerprint-1',
-            expectedRuntimeFence: null
-          }
-        ])
-      )
+  it('normalizes pending launches after a renderer reload', () => {
+    localStorage.setItem(
+      'orca:structuredAgentLaunches:v1',
+      JSON.stringify([
+        {
+          sessionId: 'codex_session',
+          agent: 'codex',
+          lifecycle: 'pending',
+          clientOperationId: 'operation-1',
+          payloadFingerprint: 'fingerprint-1',
+          expectedRuntimeFence: null
+        }
+      ])
+    )
 
-      expect(readStructuredAgentLaunchRecord(`${agent}_session`)).toMatchObject({
-        lifecycle: 'visibility-unknown',
-        clientOperationId: 'operation-1'
-      })
-    }
-  )
+    expect(readStructuredAgentLaunchRecord('codex_session')).toMatchObject({
+      lifecycle: 'visibility-unknown',
+      clientOperationId: 'operation-1'
+    })
+  })
 
   it('stores only content-free identity and preserves operation identity', () => {
     writeStructuredAgentLaunchRecord({

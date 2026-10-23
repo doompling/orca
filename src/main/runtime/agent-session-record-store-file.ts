@@ -8,7 +8,6 @@
  */
 
 import { createHash } from 'node:crypto'
-import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import {
@@ -29,15 +28,6 @@ import { serializeAgentSessionStoreState } from './agent-session-store-serializa
 export const AGENT_SESSION_STORE_SCHEMA_VERSION = 2 as const
 
 export const AGENT_SESSION_STORE_FILE_NAME = 'agent-sessions.json'
-export const AGENT_SESSION_STORE_DIR_NAME = 'agent-sessions'
-
-export function hasPersistedStructuredAgentSessionStore(
-  stateDirectory: string,
-  fileExists: (path: string) => boolean = existsSync
-): boolean {
-  const filePath = agentSessionStorePath(join(stateDirectory, AGENT_SESSION_STORE_DIR_NAME))
-  return fileExists(filePath) || fileExists(`${filePath}.bak`)
-}
 
 export type RetiredAgentSessionClaimKey = { keyId: string; retiredAt: number }
 

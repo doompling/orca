@@ -20,7 +20,7 @@ export type StructuredAgentSessionCaller = { callerKey: string }
 export type StructuredAgentSessionReveal = {
   sessionId: string
   workspaceId: string
-  agent: AgentSessionRecord['provider']
+  agent: 'claude' | 'codex'
   readable: boolean
 }
 

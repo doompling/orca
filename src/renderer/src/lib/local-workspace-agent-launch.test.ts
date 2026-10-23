@@ -38,26 +38,6 @@ const localProjects: LocalProjectsState = {
 }
 
 describe('Local Workspace agent launch routing', () => {
-  it('admits OpenCode only through native chat without inventing terminal root flags', () => {
-    const launch = prepareLocalWorkspaceAgentLaunch({
-      localProjects,
-      worktreeId: 'folder:workspace',
-      agent: 'opencode',
-      prompt: 'Task',
-      platform: 'darwin',
-      isRemote: false
-    })
-    expect(launch).toMatchObject({
-      kind: 'local',
-      nativeOnly: true,
-      agentArgs: '',
-      scope: { roots: localProjects.projects[0].roots }
-    })
-    expect(allowLocalWorkspaceAgentRoute(launch, 'structured-native-chat')).toBe(true)
-    expect(allowLocalWorkspaceAgentRoute(launch, 'terminal-tui')).toBe(false)
-    expect(allowLocalWorkspaceAgentRoute(launch, 'legacy-native-chat')).toBe(false)
-  })
-
   it.each(['codex', 'claude'] as const)('prepares complete scope for %s terminal mode', (agent) => {
     const launch = prepareLocalWorkspaceAgentLaunch({
       localProjects,

@@ -19,7 +19,6 @@ import type { StructuredAgentSessionMutationContext } from './structured-agent-s
 import type { StructuredAgentSessionCaller } from './structured-agent-session-host-types'
 import type { StructuredAgentSessionHost } from './structured-agent-session-host'
 import { conversationCommandBlocked } from './structured-conversation-command-admission'
-import type { AgentSessionHandleProvider } from '../../../shared/agent-session-provider-handle'
 
 export type ConversationCommandParams = {
   envelope: AgentSessionMutationEnvelope
@@ -29,7 +28,7 @@ export type ConversationReplacement = {
   sourceSessionId: string
   sessionId: string
   workspaceId: string
-  agent: AgentSessionHandleProvider
+  agent: 'claude' | 'codex'
 }
 
 export function runStructuredConversationCommand(
@@ -161,7 +160,6 @@ export function runStructuredConversationCommand(
               agent: record.provider,
               runtimeKind: 'native',
               launchArgs: record.launchArgs,
-              localWorkspaceScope: record.localWorkspaceScope,
               options: effectiveOptions
             }
             attach.envelope.payloadFingerprint = computeAgentSessionPayloadFingerprint({

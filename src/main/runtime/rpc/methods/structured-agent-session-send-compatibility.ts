@@ -7,7 +7,7 @@ export async function sendStructuredAgentSessionForClient(
   params: Parameters<StructuredAgentSessionHost['send']>[1],
   context: RpcContext
 ) {
-  const host = requireStructuredHost(context, params.envelope.sessionId)
+  const host = requireStructuredHost(context)
   const result = await host.send(structuredCallerFor(context), params)
   if (
     !result.ok ||

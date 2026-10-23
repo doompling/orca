@@ -1,7 +1,6 @@
 import {
   AGENT_SESSION_BOUNDARY_RUNTIME_CAPABILITY,
   CLAUDE_STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY,
-  OPENCODE_STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY,
   STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY,
   type RuntimeCapability
 } from '../../../../shared/protocol-version'
@@ -28,10 +27,7 @@ function clientCanRenderStructuredAgentSessionTab(
   }
   return (
     tab.agent === 'codex' ||
-    (tab.agent === 'claude' &&
-      clientCapabilities.includes(CLAUDE_STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY)) ||
-    (tab.agent === 'opencode' &&
-      clientCapabilities.includes(OPENCODE_STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY))
+    clientCapabilities.includes(CLAUDE_STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY)
   )
 }
 
@@ -61,11 +57,6 @@ export function projectSessionTabAgentStatus<TPayload extends SessionTabsPayload
   clientCapabilities: readonly RuntimeCapability[] | undefined,
   structuredNativeChatEnabled: boolean
 ): TPayload {
-  const compatiblePayload =
-    clientKind !== undefined &&
-    !clientCapabilities?.includes(OPENCODE_STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY)
-      ? projectAgentSessionTabsOut(payload, (tab) => tab.agent === 'opencode')
-      : payload
   const structuredVisible = structuredNativeChatProjectionEnabled({
     clientKind,
     clientCapabilities,
@@ -75,15 +66,13 @@ export function projectSessionTabAgentStatus<TPayload extends SessionTabsPayload
   if (clientKind === 'mobile' && structuredNativeChatEnabled === true) {
     // Why: deleting the row left the user hunting for a chat the desktop says exists; the row
     // survives with a title naming the fix. Nothing is removed, so no group/layout repair applies.
-    projected = projectUnsupportedAgentSessionTabTitles(compatiblePayload, {
+    projected = projectUnsupportedAgentSessionTabTitles(payload, {
       clientKind,
       clientCapabilities,
       structuredNativeChatEnabled
     })
   } else {
-    projected = structuredVisible
-      ? compatiblePayload
-      : projectAgentSessionTabsOut(compatiblePayload, () => true)
+    projected = structuredVisible ? payload : projectAgentSessionTabsOut(payload, () => true)
     // Why: a paired client renders only codex structured tabs unless it says otherwise
     // (mobile's resolveMobileNativeChat returns null for every other agent), so an
     // ungated row would list and select into a pane that shows neither chat nor terminal.
@@ -92,7 +81,7 @@ export function projectSessionTabAgentStatus<TPayload extends SessionTabsPayload
       clientKind !== undefined &&
       !clientCapabilities?.includes(CLAUDE_STRUCTURED_AGENT_SESSION_RUNTIME_CAPABILITY)
     ) {
-      projected = projectAgentSessionTabsOut(projected, (tab) => tab.agent === 'claude')
+      projected = projectAgentSessionTabsOut(projected, (tab) => tab.agent !== 'codex')
     }
   }
   // Why: only paired runtimes have legacy `done` completion side effects; mobile must keep its row without changing the exact v2 auth shape.

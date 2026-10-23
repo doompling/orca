@@ -6,10 +6,7 @@
 // nothing: a client that was away during a completion has missed it, by decision.
 
 import { defineStreamingMethod } from '../core'
-import {
-  requireStructuredHost as requireHost,
-  structuredProviderVisibleToClient
-} from './structured-agent-session-gate'
+import { requireStructuredHost as requireHost } from './structured-agent-session-gate'
 import { structuredAgentSessionTurnCompletionSubscriptionId } from './structured-agent-session-subscription-id'
 import { bindStructuredAgentSessionStream } from './structured-agent-session-status-stream'
 
@@ -25,18 +22,7 @@ export const STRUCTURED_AGENT_SESSION_TURN_COMPLETION_METHODS = [
       if (stream.isClosed()) {
         return
       }
-      dispose = host.subscribeTurnCompletions({
-        id: subscriptionId,
-        emit: (event) => {
-          const provider =
-            event.type === 'completion'
-              ? host.deps?.store?.getRecord(event.completion.sessionId)?.provider
-              : undefined
-          if (structuredProviderVisibleToClient(ctx, provider)) {
-            emit(event)
-          }
-        }
-      })
+      dispose = host.subscribeTurnCompletions({ id: subscriptionId, emit })
       if (stream.isClosed()) {
         dispose()
       }

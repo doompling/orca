@@ -187,7 +187,7 @@ async function importTuiHistory(
   const session = host.session(input.sessionId)
   const record = deps.store.getRecord(input.sessionId)
   const head = record?.providerHandleChain.at(-1)
-  if (!record || !head || head.handle.provider === 'opencode') {
+  if (!record || !head) {
     throw new Error('agent_session_identity_required')
   }
   const options = structuredTuiTranscriptImportOptions(record, input.transcriptPath)
@@ -210,9 +210,6 @@ export function structuredTuiTranscriptImportOptions(
   record: AgentSessionRecord,
   transcriptPath?: string
 ): LegacyImportOptions {
-  if (record.provider === 'opencode') {
-    throw new Error('structured_agent_session_unsupported')
-  }
   if (transcriptPath) {
     return { filePath: transcriptPath }
   }

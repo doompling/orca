@@ -5,7 +5,7 @@ import type {
 } from '../../../shared/agent-session-record'
 import type { StructuredAgentSessionAdapter } from './structured-agent-session-adapter'
 
-type RoutedAgent = 'claude' | 'codex' | 'opencode'
+type RoutedAgent = 'claude' | 'codex'
 type SessionRoute = { adapter: StructuredAgentSessionAdapter; state: 'live' | 'stopped' }
 
 export class StructuredAgentSessionAdapterRouter implements StructuredAgentSessionAdapter {
@@ -14,8 +14,7 @@ export class StructuredAgentSessionAdapterRouter implements StructuredAgentSessi
   private closePromise: Promise<void> | null = null
 
   constructor(
-    private readonly adapters: Record<'claude' | 'codex', StructuredAgentSessionAdapter> &
-      Partial<Record<RoutedAgent, StructuredAgentSessionAdapter>>,
+    private readonly adapters: Record<RoutedAgent, StructuredAgentSessionAdapter>,
     private readonly closeAdapters: () => Promise<void>
   ) {}
 
@@ -212,8 +211,6 @@ export class StructuredAgentSessionAdapterRouter implements StructuredAgentSessi
   }
 
   private adapterForAgent(agent: string): StructuredAgentSessionAdapter | null {
-    return agent === 'claude' || agent === 'codex' || agent === 'opencode'
-      ? (this.adapters[agent] ?? null)
-      : null
+    return agent === 'claude' || agent === 'codex' ? this.adapters[agent] : null
   }
 }

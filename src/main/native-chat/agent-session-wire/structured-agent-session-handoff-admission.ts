@@ -28,15 +28,6 @@ export async function admitStructuredHandoffRequest(input: {
   record: AgentSessionRecord
   status?: AgentSessionHandoffStatus
 }): Promise<StructuredHandoffAdmission> {
-  if (input.record.provider === 'opencode') {
-    return {
-      decision: 'refused',
-      refusal: {
-        code: 'structured_agent_session_unsupported',
-        message: 'OpenCode native chat cannot be handed off to a terminal.'
-      }
-    }
-  }
   const action = input.params.action ?? 'start'
   const requestFingerprint = computeAgentSessionPayloadFingerprint({
     method: 'agentSession.requestHandoff',

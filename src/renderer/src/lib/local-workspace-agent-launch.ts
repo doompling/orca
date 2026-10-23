@@ -20,13 +20,7 @@ import type { AgentLaunchRoute } from './agent-launch-routing'
 type LocalWorkspaceAgentLaunch =
   | { kind: 'legacy' }
   | { kind: 'refused'; message: string }
-  | {
-      kind: 'local'
-      scope: LocalWorkspaceLaunchScope
-      agentArgs: string
-      prompt: string
-      nativeOnly?: true
-    }
+  | { kind: 'local'; scope: LocalWorkspaceLaunchScope; agentArgs: string; prompt: string }
 
 export function prepareLocalWorkspaceAgentLaunch(args: {
   localProjects: LocalProjectsState | undefined
@@ -45,24 +39,15 @@ export function prepareLocalWorkspaceAgentLaunch(args: {
   if (!workspace) {
     return { kind: 'legacy' }
   }
-  if (args.isRemote || (!supportsLocalWorkspaceAgent(args.agent) && args.agent !== 'opencode')) {
+  if (args.isRemote || !supportsLocalWorkspaceAgent(args.agent)) {
     return {
       kind: 'refused',
       message:
-        'This Workspace supports Codex and Claude, plus OpenCode built-in chat. Other modes do not yet receive all roots.'
+        'This Workspace supports local Codex and Claude sessions. Other providers do not yet receive all roots.'
     }
   }
   try {
     const scope = captureLocalWorkspaceLaunchScope(workspace, args.initialCwd)
-    if (args.agent === 'opencode') {
-      return {
-        kind: 'local',
-        scope,
-        agentArgs: args.agentArgs ?? '',
-        prompt: args.prompt,
-        nativeOnly: true
-      }
-    }
     return {
       kind: 'local',
       scope,
@@ -89,12 +74,6 @@ export function allowLocalWorkspaceAgentRoute(
 ): boolean {
   if (launch.kind === 'refused') {
     toast.error(launch.message)
-    return false
-  }
-  if (launch.kind === 'local' && launch.nativeOnly && route !== 'structured-native-chat') {
-    toast.error(
-      'OpenCode needs built-in chat to receive every Workspace directory. Enable built-in chat for new agent tabs.'
-    )
     return false
   }
   if (launch.kind === 'local' && route !== 'terminal-tui' && route !== 'structured-native-chat') {

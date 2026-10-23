@@ -8,6 +8,7 @@
 // service is already far past its size budget.
 
 import type { PermissionMode } from '@anthropic-ai/claude-agent-sdk'
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import type { AgentSessionRecord } from '../../shared/agent-session-record'
 import { DISPATCH_DOUBT_PROVIDER_IDLE } from '../native-chat/agent-session-journal/journal-dispatch-doubt-reasons'
@@ -37,8 +38,7 @@ import {
   type ClaudeManagedAccountGateSettings
 } from '../native-chat/claude-structured-managed-account-support'
 import { AgentSessionRecordStore } from './agent-session-record-store'
-import { AGENT_SESSION_STORE_DIR_NAME } from './agent-session-record-store-file'
-export { hasPersistedStructuredAgentSessionStore } from './agent-session-record-store-file'
+import { agentSessionStorePath } from './agent-session-record-store-file'
 import { stopOrphanAgentSessionChildren } from './agent-session-orphan-child-reaper'
 import {
   createStructuredAgentSessionOwnerProbe,
@@ -49,9 +49,18 @@ import { resolveLoginShellEnvironment } from '../startup/login-shell-environment
 import { recordAgentSessionProviderHandle } from './agent-session-provider-handle-transition'
 import type { ClaudeStructuredAuthPolicy } from '../claude-accounts/claude-structured-auth-policy'
 import { createStructuredClaudeRuntimeAdapter } from './structured-claude-runtime-adapter'
-import type { OpenCodeStructuredSessionAdapterDeps } from '../opencode/opencode-structured-session-adapter'
-import { createStructuredOpenCodeRuntimeAdapter } from './structured-opencode-runtime-adapter'
-import type { StructuredAgentSessionLifecycleEvent } from '../native-chat/agent-session-wire/structured-agent-session-adapter'
+
+/** Sibling of the journal tree rather than inside it: one file adjudicates every
+ *  session's lease, while a journal is per session. */
+const RECORD_STORE_DIR_NAME = 'agent-sessions'
+
+export function hasPersistedStructuredAgentSessionStore(
+  stateDirectory: string,
+  fileExists: (path: string) => boolean = existsSync
+): boolean {
+  const filePath = agentSessionStorePath(join(stateDirectory, RECORD_STORE_DIR_NAME))
+  return fileExists(filePath) || fileExists(`${filePath}.bak`)
+}
 
 export type StructuredAgentSessionRuntimeDeps = {
   /** Host state root. The record store and the journal tree both hang off it. */
@@ -68,9 +77,6 @@ export type StructuredAgentSessionRuntimeDeps = {
   /** Provider transports are overridden only to drive the runtime against scripted children. */
   openCodexConnection?: CodexStructuredSessionAdapterDeps['openConnection']
   openClaudeConnection?: ClaudeStructuredSessionAdapterDeps['openConnection']
-  openOpenCodeConnection?: OpenCodeStructuredSessionAdapterDeps['openConnection']
-  resolveOpenCodeCommand?: (environment: NodeJS.ProcessEnv) => string
-  resolveOpenCodeLaunchEnv?: () => Promise<Record<string, string>> | Record<string, string>
   /** Scripted app-servers carry fake pids the real start-time read cannot answer for. */
   readProcessStartTime?: CodexStructuredSessionAdapterDeps['readProcessStartTime']
   resolveLaunchArgs?: (provider: AgentSessionRecord['provider']) => Promise<string[]> | string[]
@@ -186,7 +192,7 @@ async function install(deps: StructuredAgentSessionRuntimeDeps): Promise<Install
     ...deps.resolveCodexOverrides?.()
   })
   const store = await AgentSessionRecordStore.open({
-    directory: join(deps.stateDirectory, AGENT_SESSION_STORE_DIR_NAME),
+    directory: join(deps.stateDirectory, RECORD_STORE_DIR_NAME),
     hostId: deps.hostId
   })
   agentSessionPtyWriteGate.attachRecordLookup((sessionId) => store.getRecord(sessionId))
@@ -217,18 +223,6 @@ async function install(deps: StructuredAgentSessionRuntimeDeps): Promise<Install
           error
         })
       )
-    }
-    const onUnexpectedExit = (event: StructuredAgentSessionLifecycleEvent): void => {
-      if (event.cause !== 'unexpected-exit') {
-        return
-      }
-      recoveryChain = recoveryChain.then(async () => {
-        try {
-          await host?.handleAdapterEvent(event)
-        } catch (error) {
-          deps.onError?.({ scope: `structured-agent-session-exit:${event.sessionId}`, error })
-        }
-      })
     }
     const codex = new CodexStructuredSessionAdapter({
       resolveLaunch: createCodexStructuredLaunchResolver({
@@ -262,7 +256,16 @@ async function install(deps: StructuredAgentSessionRuntimeDeps): Promise<Install
         if (event.type !== 'ended' || !('cause' in event) || event.cause !== 'unexpected-exit') {
           return
         }
-        onUnexpectedExit(event)
+        // Serialize recovery with teardown. Exit callbacks arrive from child
+        // process tasks, so a fire-and-forget callback can otherwise append
+        // after the host has flushed and its journal directory is removed.
+        recoveryChain = recoveryChain.then(async () => {
+          try {
+            await host?.handleAdapterEvent(event)
+          } catch (error) {
+            deps.onError?.({ scope: `structured-agent-session-exit:${event.sessionId}`, error })
+          }
+        })
       }
     })
     const claude = createStructuredClaudeRuntimeAdapter({
@@ -282,26 +285,24 @@ async function install(deps: StructuredAgentSessionRuntimeDeps): Promise<Install
               readClaudeManagedAccountGateSettings(deps.getClaudeManagedAccountGateSettings!)
           }
         : {}),
-      onUnexpectedExit,
+      onUnexpectedExit: (event) => {
+        recoveryChain = recoveryChain.then(async () => {
+          try {
+            await host?.handleAdapterEvent(event)
+          } catch (error) {
+            deps.onError?.({ scope: `structured-agent-session-exit:${event.sessionId}`, error })
+          }
+        })
+      },
       onBackgroundTasksChanged: (sessionId, state) =>
         host?.publishBackgroundTaskState(sessionId, state),
       onDispatchSettledLate,
       ...(deps.openClaudeConnection ? { openClaudeConnection: deps.openClaudeConnection } : {}),
       ...(deps.readProcessStartTime ? { readProcessStartTime: deps.readProcessStartTime } : {})
     })
-    const opencode = createStructuredOpenCodeRuntimeAdapter({
-      ...deps,
-      store,
-      bootEnvironment,
-      onDispatchSettledLate,
-      onUnexpectedExit
+    const adapter = new StructuredAgentSessionAdapterRouter({ codex, claude }, async () => {
+      await Promise.all([codex.closeAll(), claude.closeAll()])
     })
-    const adapter = new StructuredAgentSessionAdapterRouter(
-      { codex, claude, opencode },
-      async () => {
-        await Promise.all([codex.closeAll(), claude.closeAll(), opencode.closeAll()])
-      }
-    )
     host = new StructuredAgentSessionHost({
       store,
       adapter,

@@ -139,14 +139,6 @@ export function agentJournalItemKey(identity: AgentJournalItemIdentity): string 
   if (identity.provider === 'claude') {
     return ['claude', encodePart(identity.sessionId), encodePart(identity.uuid)].join(KEY_DELIMITER)
   }
-  if (identity.provider === 'opencode') {
-    return [
-      'opencode',
-      encodePart(identity.sessionId),
-      encodePart(identity.messageId),
-      ...(identity.partId === undefined ? [] : [encodePart(identity.partId)])
-    ].join(KEY_DELIMITER)
-  }
   if (identity.provider === 'orca') {
     return ['orca', encodePart(identity.clientMessageId)].join(KEY_DELIMITER)
   }
@@ -196,17 +188,6 @@ export function parseAgentJournalItemKey(key: string): AgentJournalItemIdentity 
   if (provider === 'claude' && rest.length === 2) {
     return parsedIdentity(
       { provider, sessionId: rest[0] as string, uuid: rest[1] as string },
-      key,
-      preserveExactKey
-    )
-  }
-  if (provider === 'opencode' && (rest.length === 2 || rest.length === 3)) {
-    const [sessionId, messageId, partId] = rest
-    if (sessionId === undefined || messageId === undefined) {
-      return null
-    }
-    return parsedIdentity(
-      { provider, sessionId, messageId, ...(partId === undefined ? {} : { partId }) },
       key,
       preserveExactKey
     )
