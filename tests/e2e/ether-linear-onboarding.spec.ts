@@ -19,6 +19,7 @@ import {
   installLocalProjectLinearFetch,
   LOCAL_PROJECT_LINEAR_FIXTURE
 } from './helpers/local-project-linear-backend'
+import { defaultEtherReleaseBundle } from './helpers/ether-release-bundle'
 
 async function openTaskSources(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Settings', exact: true }).click()
@@ -46,7 +47,7 @@ async function expectIssues(page: Page): Promise<void> {
 test('packaged Ether exposes Linear before connection and browses without an agent skill', async (// oxlint-disable-next-line no-empty-pattern -- this test owns both isolated packaged launches.
 {}, testInfo) => {
   test.skip(process.platform !== 'darwin' || process.arch !== 'arm64')
-  const bundle = process.env.ETHER_E2E_APP ?? 'dist/ether/mac-arm64/Ether.app'
+  const bundle = process.env.ETHER_E2E_APP ?? defaultEtherReleaseBundle()
   const executablePath = path.join(path.resolve(bundle), 'Contents', 'MacOS', 'Ether')
   test.skip(!existsSync(executablePath), 'Build the local Ether package first')
   const fixture = realpathSync.native(

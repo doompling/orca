@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import { resolve } from 'node:path'
+import { appendFileSync, existsSync, mkdirSync, renameSync, writeFileSync } from 'node:fs'
+import { join, resolve } from 'node:path'
 import { createJiti } from 'jiti'
 import product from '../../src/shared/ether-product.json' with { type: 'json' }
 import { getLocalBuildIdentity } from './build-mac-local.mjs'
@@ -9,6 +10,41 @@ import { verifyEtherSignature } from './verify-ether-signature.mjs'
 
 const repoRoot = resolve(import.meta.dirname, '../..')
 const bundleId = product.appId
+// Why scratch + move: each release keeps its own bundle, so a build never replaces an app (or the
+// terminal daemon it hosts) that is running.
+const BUILD_DIRECTORY = 'dist/ether-build'
+const RELEASES_DIRECTORY = 'dist/ether-releases'
+
+export const RELEASES_README = `# Ether releases
+
+Each folder holds one \`Ether.app\`, named \`<build date>-<commit>\`. \`pnpm build:ether\` adds a
+folder and a row here; it never replaces an existing release.
+
+Releases share the profile in \`~/Library/Application Support/Ether\`, so only one runs on it at a
+time: quit Ether, then open another release. To try a release next to the one you use, give it its
+own profile (it starts empty; see docs/ether-maintenance.md):
+
+    open -n --env ORCA_DEV_USER_DATA_PATH="$HOME/Library/Application Support/Ether-try" dist/ether-releases/<release>/Ether.app
+
+Releases before \`2026-10-23-ae81434245\` can't read the Projects list once a Workspace mark is
+set; clear all marks (⌘; then Backspace on each) before going back to one of them.
+
+| Release | Version | Commit |
+|---|---|---|
+`
+
+/** `<local date>-<10-char commit>`, suffixed when that folder already exists. */
+export function nextEtherReleaseId({ commit, date = new Date(), exists }) {
+  const day = [date.getFullYear(), date.getMonth() + 1, date.getDate()]
+    .map((part) => String(part).padStart(2, '0'))
+    .join('-')
+  const base = `${day}-${commit.slice(0, 10)}`
+  let id = base
+  for (let attempt = 2; exists(id); attempt++) {
+    id = `${base}-${attempt}`
+  }
+  return id
+}
 
 export function createEtherBuildPlan({
   platform = process.platform,
@@ -24,8 +60,7 @@ export function createEtherBuildPlan({
     }
   }
   const signingIdentity = signing.getEtherSigningSelector(environment)
-  const outputDirectory =
-    environment.ETHER_BUILD_STAGING === '1' ? 'dist/ether-staging' : 'dist/ether'
+  const outputDirectory = BUILD_DIRECTORY
   const env = {
     ...environment,
     ORCA_SKIP_DEV_CLI_INSTALL: '1',
@@ -119,10 +154,39 @@ async function buildEther() {
       })
     })
   }
-  const appPath = resolve(repoRoot, plan.outputDirectory, 'mac-arm64', 'Ether.app')
+  const releasesRoot = resolve(repoRoot, RELEASES_DIRECTORY)
+  const releaseId = nextEtherReleaseId({
+    commit: identity.commit,
+    exists: (id) => existsSync(join(releasesRoot, id))
+  })
+  const releaseDirectory = join(releasesRoot, releaseId)
+  mkdirSync(releaseDirectory, { recursive: true })
+  const appPath = join(releaseDirectory, 'Ether.app')
+  renameSync(resolve(repoRoot, plan.outputDirectory, 'mac-arm64', 'Ether.app'), appPath)
   const requirement = await verifyEtherSignature({ appPath, identityHash: signer.hash })
   console.log(`[Ether] Verified signing identity: ${requirement}`)
-  console.log(`[Ether] Built ${appPath}. No app was installed or launched.`)
+  const subject = await runProcess({
+    program: 'git',
+    args: ['log', '-1', '--format=%s'],
+    cwd: repoRoot,
+    timeoutMs: 15_000
+  })
+  recordEtherRelease(releasesRoot, releaseId, identity, subject.stdout.trim())
+  console.log(`[Ether] Built release ${releaseId}: ${appPath}`)
+  console.log('[Ether] No app was installed, replaced, or launched.')
+}
+
+export function etherReleaseRow(releaseId, identity, subject) {
+  const safeSubject = subject.replaceAll('|', '\\|')
+  return `| \`${releaseId}\` | \`${identity.version}\` | ${identity.commit.slice(0, 10)} ${safeSubject} |\n`
+}
+
+function recordEtherRelease(releasesRoot, releaseId, identity, subject) {
+  const readme = join(releasesRoot, 'README.md')
+  if (!existsSync(readme)) {
+    writeFileSync(readme, RELEASES_README)
+  }
+  appendFileSync(readme, etherReleaseRow(releaseId, identity, subject))
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === resolve(import.meta.filename)) {

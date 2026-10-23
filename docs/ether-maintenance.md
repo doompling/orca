@@ -8,7 +8,8 @@ journeys actually passed and any remaining limitations.
 
 - App: `Ether.app`, bundle ID `com.joelkorpela.ether`.
 - Default data: `~/Library/Application Support/Ether`.
-- Build output: `dist/ether/mac-arm64/Ether.app`.
+- Build output: one release per build in `dist/ether-releases/<date>-<commit>/Ether.app`,
+  logged in `dist/ether-releases/README.md`. Builds before 2026-10-23 lived in `dist/ether/`.
 - Updates are manual. Ether does not install an upstream Orca update.
 - The existing `.orca-local-profile` and upstream Orca data are not imported,
   renamed, or deleted. Ether's different app/keychain identity means copying
@@ -18,10 +19,9 @@ Keep Projects pointed at their existing directories. The app-data folder holds
 organization, saved views, and session records; it does **not** contain a backup
 of the code in those directories. Back up source files separately.
 
-After manually installing the bundle, launch Ether normally from Finder. Inspect
-an existing `/Applications/Ether.app` before replacing it; retain the old bundle
-under a different name if a rollback may be needed. The build does not install or
-launch the app, or replace the global `orca-dev` command.
+Launch a release from Finder. Releases are never overwritten, so rolling back means quitting
+Ether and opening an older release folder. The build does not install or launch the app, or
+replace the global `orca-dev` command.
 
 On first launch, Ether does not inherit development preferences. For normal agent
 approvals, uncheck **Yolo / Dangerously skip permissions** on the agent-selection
@@ -87,10 +87,29 @@ release for other machines. Building another architecture requires the upstream
 [release dependency policy](reference/pnpm-install-policy.md), not just changing
 the output filename.
 
-Use `ETHER_BUILD_STAGING=1 pnpm build:ether` to build into
-`dist/ether-staging/mac-arm64/Ether.app` while the current bundle is in use.
-The build never installs or launches that staged app. Quit Ether before manually
-replacing the everyday bundle, and retain the previous bundle for rollback.
+### Releases
+
+Each build is packaged in the scratch folder `dist/ether-build`, verified, and moved to its own
+`dist/ether-releases/<local date>-<commit>/Ether.app` (with `-2`, `-3`… for a rebuild on the same
+day). A row is added to `dist/ether-releases/README.md`. No existing bundle is replaced, so it is
+safe to build while Ether runs; the terminal daemon keeps running from its own bundle path.
+
+Every release opens the same profile, `~/Library/Application Support/Ether`, and the
+single-instance lock lets only one of them own it: opening a second release on that profile just
+focuses the running one. To switch, quit Ether and open the other release.
+
+To try a release next to the one you use, give it a separate absolute profile path. It starts with
+no Projects and its own terminal daemon:
+
+```sh
+open -n --env ORCA_DEV_USER_DATA_PATH="$HOME/Library/Application Support/Ether-try" \
+  dist/ether-releases/<release>/Ether.app
+```
+
+To try it with your Projects, copy only the saved state into that profile before launching
+(`mkdir -p "$HOME/Library/Application Support/Ether-try/profiles/local-default"`, then copy
+`profiles/local-default/orca-data.json`). Don't copy the whole profile folder: it holds the running
+app's single-instance lock and daemon socket. Marks set in the trial profile stay there.
 
 When changing from the old ad-hoc build to certificate signing, macOS may ask
 once for access to **Ether Safe Storage**. Approve the expected Ether app with
@@ -112,7 +131,7 @@ Project, save a file, write through a terminal in the second root, and restore a
 unsaved draft and those permission settings after a normal Quit/reopen:
 
 ```sh
-ETHER_E2E_APP="$PWD/dist/ether/mac-arm64/Ether.app" ORCA_BACKGROUND_LAUNCH=1 SKIP_BUILD=1 pnpm exec playwright test tests/e2e/ether-packaged.spec.ts --config tests/playwright.config.ts --project electron-headless --workers=1
+ETHER_E2E_APP="$PWD/dist/ether-releases/<release>/Ether.app" ORCA_BACKGROUND_LAUNCH=1 SKIP_BUILD=1 pnpm exec playwright test tests/e2e/ether-packaged.spec.ts --config tests/playwright.config.ts --project electron-headless --workers=1
 ```
 
 The check launches that bundle from outside the checkout with a disposable HOME

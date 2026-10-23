@@ -24,6 +24,7 @@ import { getE2ECompletedOnboardingProfile } from './e2e-completed-onboarding-pro
 import { retryTransientMainEvaluate } from './electron-main-evaluate-retry'
 import { cleanupE2EDaemons, closeElectronAppForE2E } from './electron-process-shutdown'
 import { createProject } from './local-project-controls'
+import { defaultEtherReleaseBundle } from './ether-release-bundle'
 
 type ChatSmoke = { agent: 'codex' | 'opencode'; model: string; testInfo: TestInfo }
 
@@ -97,7 +98,7 @@ export async function runPackagedAgentChatSmoke(input: ChatSmoke): Promise<void>
     process.platform !== 'darwin' || process.arch !== 'arm64',
     'Requires the Apple Silicon Ether package'
   )
-  const bundle = process.env.ETHER_E2E_APP ?? 'dist/ether/mac-arm64/Ether.app'
+  const bundle = process.env.ETHER_E2E_APP ?? defaultEtherReleaseBundle()
   expect(bundle.trim(), 'ETHER_E2E_APP must name a bundle').not.toBe('')
   const executablePath = path.join(path.resolve(bundle), 'Contents', 'MacOS', 'Ether')
   expect(existsSync(executablePath), 'Build Ether before opting into the live smoke').toBe(true)

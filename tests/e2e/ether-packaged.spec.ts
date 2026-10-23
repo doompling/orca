@@ -23,6 +23,7 @@ import {
 import { retryTransientMainEvaluate } from './helpers/electron-main-evaluate-retry'
 import { cleanupE2EDaemons, closeElectronAppForE2E } from './helpers/electron-process-shutdown'
 import { appendToReadme, createProject, openRootReadme } from './helpers/local-project-controls'
+import { defaultEtherReleaseBundle } from './helpers/ether-release-bundle'
 
 function packagedExecutable(): string | null {
   const explicitBundle = process.env.ETHER_E2E_APP
@@ -35,7 +36,7 @@ function packagedExecutable(): string | null {
     }
     return null
   }
-  const bundle = path.resolve(explicitBundle ?? 'dist/ether/mac-arm64/Ether.app')
+  const bundle = path.resolve(explicitBundle ?? defaultEtherReleaseBundle())
   const executable = path.join(bundle, 'Contents', 'MacOS', 'Ether')
   if (!existsSync(executable)) {
     if (explicitBundle !== undefined) {
