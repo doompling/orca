@@ -2,6 +2,7 @@ import React from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import type { SearchFileResult, SearchMatch } from '../../../../shared/code-search-types'
 import type { LocalWorkspaceSearchResult } from '@/features/local-projects/local-workspace-content-search'
+import { LocalWorkspaceSearchIncompleteBanner } from '@/features/local-projects/seams/LocalWorkspaceSearchIncompleteBanner'
 import type { SearchRow } from './search-rows'
 import { FileResultRow, MatchResultRow } from './SearchResultItems'
 import { translate } from '@/i18n/i18n'
@@ -9,7 +10,9 @@ import { translate } from '@/i18n/i18n'
 const SEARCH_VIRTUAL_OVERSCAN = 12
 
 type SearchResultsPaneProps = {
+  // Ether seam: local-projects
   results: LocalWorkspaceSearchResult | null
+  error?: string | null
   hasCommittedResults: boolean
   query: string
   loading: boolean
@@ -22,6 +25,7 @@ type SearchResultsPaneProps = {
 export function SearchResultsPane({
   results,
   hasCommittedResults,
+  error,
   query,
   loading,
   rows,
@@ -63,18 +67,12 @@ export function SearchResultsPane({
 
   return (
     <>
-      {results?.workspaceSearchErrors?.length ? (
-        <div role="status" className="px-2 py-1 text-xs text-destructive border-b border-border">
-          <p>Search incomplete</p>
-          {results.workspaceSearchErrors.map((error, index) => (
-            <p key={`${index}:${error}`}>{error}</p>
-          ))}
-        </div>
-      ) : null}
+      {/* Ether seam: local-projects */}
+      <LocalWorkspaceSearchIncompleteBanner errors={results?.workspaceSearchErrors} />
       {/* Why: the summary is rendered outside the virtualizer so it stays
          pinned at the top while the user scrolls through results. */}
-      {results && rows.length > 0 && (
-        <div className="px-2 py-1 text-[10px] text-muted-foreground border-b border-border">
+      {!error && results && (rows.length > 0 || results.truncated) && (
+        <div className="px-2 py-1 text-2xs text-muted-foreground border-b border-border">
           {results.totalMatches}{' '}
           {translate('auto.components.right.sidebar.Search.6aeda362ed', 'result')}
           {results.totalMatches !== 1 ? 's' : ''}{' '}
@@ -88,7 +86,15 @@ export function SearchResultsPane({
       )}
 
       <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto scrollbar-sleek">
-        {rows.length > 0 && (
+        {error && (
+          <div
+            role="alert"
+            className="p-2 text-xs text-destructive whitespace-pre-wrap break-words"
+          >
+            {error}
+          </div>
+        )}
+        {!error && rows.length > 0 && (
           <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
             {virtualizer.getVirtualItems().map((virtualRow) => {
               const row = rows[virtualRow.index]
@@ -122,13 +128,22 @@ export function SearchResultsPane({
           </div>
         )}
 
-        {!hasCommittedResults && query && !loading && (
+        {!error && !hasCommittedResults && query && !loading && (
           <div className="flex items-center justify-center h-32 text-muted-foreground text-xs">
             {translate('auto.components.right.sidebar.Search.d56d140747', 'Press Enter to search')}
           </div>
         )}
 
-        {!query && (
+        {!error && hasCommittedResults && results?.totalMatches === 0 && !loading && (
+          <div className="px-3 py-6 text-xs text-muted-foreground">
+            {translate(
+              'fileSearch.noResults',
+              'No results. Try another search or adjust your filters.'
+            )}
+          </div>
+        )}
+
+        {!error && !query && (
           <div className="flex items-center justify-center h-32 text-muted-foreground text-xs">
             {translate(
               'auto.components.right.sidebar.Search.1abfb25a66',

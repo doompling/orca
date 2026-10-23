@@ -17,6 +17,7 @@ import { BrowserLocalhostWorktreeLabelsSetting } from './BrowserLocalhostWorktre
 import { BrowserClientHostedRemoteSetting } from './BrowserClientHostedRemoteSetting'
 import { BrowserSshWorkspaceRoutingSetting } from './BrowserSshWorkspaceRoutingSetting'
 import { BrowserUserAgentSetting } from './BrowserUserAgentSetting'
+import { BrowserSitePermissionsSetting } from './BrowserSitePermissionsSetting'
 import { SettingsSubsectionHeader } from './SettingsFormControls'
 import { BrowserSessionCookiesSection } from './BrowserSessionCookiesSection'
 import { BrowserNewProfileDialog } from './BrowserNewProfileDialog'
@@ -33,6 +34,7 @@ import {
 import { isMacUserAgent } from '@/components/terminal-pane/pane-helpers'
 import { translate } from '@/i18n/i18n'
 import { resolveAvailableBrowserSessionHostId } from './browser-session-host-selection'
+import { motionSafeScrollBehavior } from '@/hooks/usePrefersReducedMotion'
 export { getBrowserPaneCombinedSearchEntries }
 
 type BrowserPaneProps = {
@@ -102,25 +104,19 @@ export function BrowserPane({
 
   const selectedSearchEngine = browserDefaultSearchEngine ?? 'google'
 
-  const showHomePage = matchesSettingsSearch(searchQuery, [getBrowserPaneSearchEntries()[0]])
-  const showSearchEngine = matchesSettingsSearch(searchQuery, [getBrowserPaneSearchEntries()[1]])
-  const showDefaultZoom = matchesSettingsSearch(searchQuery, [getBrowserPaneSearchEntries()[2]])
-  const showLinkRouting = matchesSettingsSearch(searchQuery, [getBrowserPaneSearchEntries()[3]])
-  const showLinkRoutingModifier = matchesSettingsSearch(searchQuery, [
-    getBrowserPaneSearchEntries()[4]
-  ])
-  const showTerminalLinkActions = matchesSettingsSearch(searchQuery, [
-    getBrowserPaneSearchEntries()[5]
-  ])
-  const showLocalhostLabels = matchesSettingsSearch(searchQuery, [getBrowserPaneSearchEntries()[6]])
-  const showCookies = matchesSettingsSearch(searchQuery, [getBrowserPaneSearchEntries()[7]])
-  const showClientHostedRemote = matchesSettingsSearch(searchQuery, [
-    getBrowserPaneSearchEntries()[8]
-  ])
-  const showSshWorkspaceRouting = matchesSettingsSearch(searchQuery, [
-    getBrowserPaneSearchEntries()[9]
-  ])
-  const showUserAgent = matchesSettingsSearch(searchQuery, [getBrowserPaneSearchEntries()[10]])
+  const browserSearchEntries = getBrowserPaneSearchEntries()
+  const showHomePage = matchesSettingsSearch(searchQuery, [browserSearchEntries[0]])
+  const showSearchEngine = matchesSettingsSearch(searchQuery, [browserSearchEntries[1]])
+  const showDefaultZoom = matchesSettingsSearch(searchQuery, [browserSearchEntries[2]])
+  const showLinkRouting = matchesSettingsSearch(searchQuery, [browserSearchEntries[3]])
+  const showLinkRoutingModifier = matchesSettingsSearch(searchQuery, [browserSearchEntries[4]])
+  const showTerminalLinkActions = matchesSettingsSearch(searchQuery, [browserSearchEntries[5]])
+  const showLocalhostLabels = matchesSettingsSearch(searchQuery, [browserSearchEntries[6]])
+  const showCookies = matchesSettingsSearch(searchQuery, [browserSearchEntries[7]])
+  const showClientHostedRemote = matchesSettingsSearch(searchQuery, [browserSearchEntries[8]])
+  const showSshWorkspaceRouting = matchesSettingsSearch(searchQuery, [browserSearchEntries[9]])
+  const showUserAgent = matchesSettingsSearch(searchQuery, [browserSearchEntries[10]])
+  const showSitePermissions = matchesSettingsSearch(searchQuery, [browserSearchEntries[11]])
   const showBrowserUse = matchesSettingsSearch(searchQuery, getBrowserUsePaneSearchEntries())
   const isMac = isMacUserAgent()
   const linkRoutingDescription = getBrowserLinkRoutingDescription(
@@ -211,7 +207,7 @@ export function BrowserPane({
         if (!el) {
           return
         }
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        el.scrollIntoView({ behavior: motionSafeScrollBehavior(), block: 'start' })
       })
     })
   }
@@ -253,6 +249,8 @@ export function BrowserPane({
       ) : null}
 
       {showUserAgent ? <BrowserUserAgentSetting hostId={settingsFocusedHostId} /> : null}
+
+      {showSitePermissions ? <BrowserSitePermissionsSetting /> : null}
 
       {showLinkRouting ? (
         <BrowserLinkRoutingSetting

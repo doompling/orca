@@ -9,12 +9,6 @@ import { normalizeRuntimePathForComparison } from '../../shared/cross-platform-p
 import { resolveExistingLocalDirectory } from './root-validation'
 import { getGitRepoRoot, isGitRepo } from '../git/repo-detection'
 import { awaitWindowsHostGitEnvironmentReady } from '../git/runner'
-import { resolveRegisteredWorktreePath } from '../ipc/registered-worktree-roots-cache'
-import {
-  getLocalRepoForRegisteredWorktree,
-  getLocalGitOptionsForRepo
-} from '../ipc/local-worktree-runtime-options'
-import type { Repo } from '../../shared/repo-types'
 import type { GitRuntimeOptions } from '../git/git-runtime-options'
 
 export type LocalRootGitArgs = {
@@ -23,18 +17,16 @@ export type LocalRootGitArgs = {
   localRoot?: LocalWorkspaceGitRoot
 }
 
-export async function resolveDesktopGitTarget(
+/**
+ * The Git target for a request naming a local Workspace root, or null for any other request so the
+ * caller's upstream resolution (registered worktree, reachable route, repo options) runs unchanged.
+ */
+export async function resolveLocalRootGitTarget(
   store: Store,
   args: LocalRootGitArgs
-): Promise<{
-  worktreePath: string
-  gitOptions: GitRuntimeOptions
-  repo?: Repo
-}> {
+): Promise<{ worktreePath: string; gitOptions: GitRuntimeOptions } | null> {
   if (!args.localRoot) {
-    const worktreePath = await resolveRegisteredWorktreePath(args.worktreePath, store)
-    const repo = getLocalRepoForRegisteredWorktree(store, args.worktreePath, worktreePath)
-    return { worktreePath, repo, gitOptions: getLocalGitOptionsForRepo(store, repo) }
+    return null
   }
   if (args.connectionId) {
     throw new Error('Local Workspace Git cannot use a remote connection.')

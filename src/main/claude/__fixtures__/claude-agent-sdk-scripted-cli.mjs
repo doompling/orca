@@ -5,18 +5,25 @@
 //
 // Env contract (set by the test):
 //   ORCA_SDK_CONTRACT_SCENARIO_PATH — JSON file
-//     { steps: Step[], controlResponses?: { [subtype]: <response> } } where a Step is
+//     { steps: Step[], controlResponses?: { [subtype]: <response> },
+//       controlResponseLeadingFrames?: { [subtype]: <frame>[] } } where a Step is
 //     { emit: <frame> } | { awaitUserMessage: true } | { stderr: <text> } |
-//     { awaitControlResponse: <request_id> } | { replayLastUserMessage: true } |
-//     { delayMs: <n> } | { exit: <code> }
+//     { awaitControlRequest: <subtype> } | { awaitControlResponse: <request_id> } | { awaitFile: { path, timeoutMs } } |
+//     { replayLastUserMessage: true } | { delayMs: <n> } | { exit: <code> }
 //     sessionIdFromLaunch: true fills emitted frames' session_id from --session-id or --resume.
 //   ORCA_SDK_CONTRACT_REPORT_PATH — where argv/env observations are written
 //   ORCA_SDK_CONTRACT_IGNORE_SIGTERM — trap SIGTERM/SIGINT and outlive stdin close
 //   ORCA_SDK_CONTRACT_IGNORE_CONTROL_REQUESTS — record control requests but never answer
 //   ORCA_SDK_CONTRACT_DESCENDANT — fork an idle grandchild and report its pid
 import { spawn } from 'node:child_process'
-import { readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { createInterface } from 'node:readline'
+import { setTimeout as delay } from 'node:timers/promises'
+
+if (process.argv.includes('--version')) {
+  process.stdout.write('2.1.258 (Claude Code)\n')
+  process.exit(0)
+}
 
 const scenarioPath = process.env.ORCA_SDK_CONTRACT_SCENARIO_PATH
 const reportPath = process.env.ORCA_SDK_CONTRACT_REPORT_PATH
@@ -25,6 +32,12 @@ const report = {
   argv: process.argv.slice(1),
   execPath: process.execPath,
   cwd: process.cwd(),
+  env: Object.fromEntries(
+    Object.entries(process.env).filter(
+      ([key]) =>
+        key.startsWith('ORCA_') || ['HOME', 'CODEX_HOME', 'CLAUDE_CONFIG_DIR'].includes(key)
+    )
+  ),
   controlRequests: [],
   controlResponses: [],
   userMessages: [],
@@ -88,6 +101,12 @@ const waitFor = (kind, requestId) => {
     return Promise.resolve()
   }
   if (
+    kind === 'control_request' &&
+    report.controlRequests.some((frame) => frame.request?.subtype === requestId)
+  ) {
+    return Promise.resolve()
+  }
+  if (
     kind === 'control_response' &&
     report.controlResponses.some((frame) => frame.response?.request_id === requestId)
   ) {
@@ -105,11 +124,12 @@ createInterface({ input: process.stdin }).on('line', (line) => {
   }
   if (frame.type === 'control_request') {
     report.controlRequests.push(frame)
+    settle('control_request', frame.request?.subtype)
     writeReport()
     if (process.env.ORCA_SDK_CONTRACT_IGNORE_CONTROL_REQUESTS) {
       return
     }
-    emit({
+    const response = {
       type: 'control_response',
       response: {
         subtype: 'success',
@@ -119,7 +139,10 @@ createInterface({ input: process.stdin }).on('line', (line) => {
           models: []
         }
       }
-    })
+    }
+    // Frames the CLI wrote just before its answer, in the same write: one read chunk.
+    const leading = scenario.controlResponseLeadingFrames?.[frame.request?.subtype] ?? []
+    process.stdout.write([...leading, response].map((line) => `${JSON.stringify(line)}\n`).join(''))
     return
   }
   if (frame.type === 'control_response') {
@@ -137,7 +160,10 @@ createInterface({ input: process.stdin }).on('line', (line) => {
 
 // Never outlive a wedged test: the readline subscription would otherwise hold
 // this process open forever if the SDK side stops driving the scenario.
-setTimeout(() => process.exit(3), 20_000).unref()
+setTimeout(
+  () => process.exit(3),
+  Number(process.env.ORCA_SDK_CONTRACT_TIMEOUT_MS ?? 20_000)
+).unref()
 
 for (const step of scenario.steps) {
   if (step.emit) {
@@ -156,8 +182,18 @@ for (const step of scenario.steps) {
       throw new Error('Cannot replay a user message the scripted CLI has not received')
     }
     emit({ ...message, isReplay: true })
+  } else if (step.awaitControlRequest !== undefined) {
+    await waitFor('control_request', step.awaitControlRequest)
   } else if (step.awaitControlResponse !== undefined) {
     await waitFor('control_response', step.awaitControlResponse)
+  } else if (step.awaitFile) {
+    const deadline = Date.now() + step.awaitFile.timeoutMs
+    while (!existsSync(step.awaitFile.path)) {
+      if (Date.now() >= deadline) {
+        throw new Error(`Timed out waiting for test acknowledgement: ${step.awaitFile.path}`)
+      }
+      await delay(10)
+    }
   } else if (step.delayMs) {
     await new Promise((resolve) => setTimeout(resolve, step.delayMs))
   } else if (step.exit !== undefined) {

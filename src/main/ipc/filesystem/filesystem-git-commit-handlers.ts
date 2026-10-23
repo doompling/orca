@@ -1,11 +1,12 @@
 import { ipcMain } from 'electron'
 import { commitChanges } from '../../git/status'
-import {
-  getSshGitProvider,
-  SSH_GIT_PROVIDER_UNAVAILABLE_MESSAGE
-} from '../../providers/ssh-git-dispatch'
-import { resolveDesktopGitTarget, type LocalRootGitArgs } from '../../local-projects/git-target'
+import { resolveRegisteredWorktreePath } from '../registered-worktree-roots-cache'
+import { getLocalGitOptionsForRegisteredWorktree } from '../local-worktree-runtime-options'
 import type { FilesystemHandlerContext } from './filesystem-handler-context'
+// Ether seam: git
+import { resolveLocalRootGitTarget, type LocalRootGitArgs } from '../../local-projects/git-target'
+import { requireReachableGitRoute } from '../../providers/execution-host-provider-dispatch'
+import { getConnectionExecutionHostId } from '../../../shared/execution-host'
 
 export function registerFilesystemGitCommitHandlers(context: FilesystemHandlerContext): void {
   const { store } = context
@@ -19,14 +20,16 @@ export function registerFilesystemGitCommitHandlers(context: FilesystemHandlerCo
       if (typeof args.message !== 'string' || args.message.trim().length === 0) {
         throw new Error('Commit message is required')
       }
-      if (args.connectionId && !args.localRoot) {
-        const provider = getSshGitProvider(args.connectionId)
-        if (!provider) {
-          throw new Error(SSH_GIT_PROVIDER_UNAVAILABLE_MESSAGE)
-        }
-        return provider.commit(args.worktreePath, args.message)
+      // Ether seam: git
+      const localRoot = await resolveLocalRootGitTarget(store, args)
+      if (!localRoot) {
+        requireReachableGitRoute(getConnectionExecutionHostId(args.connectionId))
       }
-      const { worktreePath, gitOptions } = await resolveDesktopGitTarget(store, args)
+      const worktreePath =
+        localRoot?.worktreePath ?? (await resolveRegisteredWorktreePath(args.worktreePath, store))
+      const gitOptions =
+        localRoot?.gitOptions ??
+        getLocalGitOptionsForRegisteredWorktree(store, args.worktreePath, worktreePath)
       return commitChanges(worktreePath, args.message, {
         ...gitOptions,
         admissionTier: 'interactive'

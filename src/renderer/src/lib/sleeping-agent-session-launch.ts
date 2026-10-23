@@ -2,21 +2,19 @@ import { toast } from 'sonner'
 import { useAppStore } from '@/store'
 import { buildAgentResumeStartupPlan } from '@/lib/tui-agent-startup'
 import { tuiAgentToAgentKind } from '@/lib/telemetry'
-import { reconcileTabOrder } from '@/components/tab-bar/reconcile-order'
+import { persistAgentLaunchTabOrder } from '@/lib/launch-agent-tab-order'
 import {
+  resolveSshHostReportedPlatform,
   resolveAgentResumeLaunchTarget,
   type AgentResumeLaunchTarget
 } from '@/lib/agent-resume-launch-target'
 import { getExecutionHostIdForWorktree } from '@/lib/worktree-runtime-owner'
+import { runtimeEnvironmentIdUnlessTwin } from '@/lib/resolve-owner'
 import { getLocalProjectExecutionRuntimeContext } from '@/lib/local-preflight-context'
-import {
-  resolveTuiAgentLaunchArgs,
-  resolveTuiAgentLaunchEnv
-} from '../../../shared/tui-agent-launch-defaults'
+import { resolveResumeLaunchRecipe } from '../../../shared/tui-agent-launch-defaults'
 import type { SleepingAgentSessionRecord } from '../../../shared/agent-session-resume'
 import { translate } from '@/i18n/i18n'
-import { assertLocalWorkspaceLaunchScopeOwner } from '../../../shared/local-projects/agent-launch-scope'
-import { resolveLocalWorkspaceKey } from '../../../shared/local-projects/workspace-resolution'
+import { localWorkspaceResumeHasRoots } from '@/features/local-projects/seams/launch-seam'
 
 export type ResumeSleepingAgentSessionsOptions = {
   suppressNavigation?: boolean
@@ -35,31 +33,19 @@ function getResumeLaunchTarget(worktreeId: string): AgentResumeLaunchTarget {
   const worktree = state.getKnownWorktreeById(worktreeId)
   const repo = worktree ? state.repos.find((entry) => entry.id === worktree.repoId) : null
   // The resume tab is created without a shell override, so the global Windows shell wins.
+  const executionHostId = getExecutionHostIdForWorktree(state, worktreeId)
   return resolveAgentResumeLaunchTarget({
     projectRuntime: getLocalProjectExecutionRuntimeContext(state, worktreeId),
     connectionId: repo?.connectionId,
-    executionHostId: getExecutionHostIdForWorktree(state, worktreeId),
+    executionHostId,
     worktreePath: worktree?.path,
-    terminalWindowsShell: state.settings?.terminalWindowsShell
+    terminalWindowsShell: state.settings?.terminalWindowsShell,
+    remotePlatform: resolveSshHostReportedPlatform(
+      state,
+      executionHostId,
+      runtimeEnvironmentIdUnlessTwin(state, worktreeId)
+    )
   })
-}
-
-function appendTabToWorktreeOrder(worktreeId: string, tabId: string): void {
-  const state = useAppStore.getState()
-  const termIds = (state.tabsByWorktree[worktreeId] ?? []).map((tab) => tab.id)
-  const editorIds = state.openFiles
-    .filter((file) => file.worktreeId === worktreeId)
-    .map((f) => f.id)
-  const browserIds = (state.browserTabsByWorktree?.[worktreeId] ?? []).map((tab) => tab.id)
-  const base = reconcileTabOrder(
-    state.tabBarOrderByWorktree[worktreeId],
-    termIds,
-    editorIds,
-    browserIds
-  )
-  const order = base.filter((id) => id !== tabId)
-  order.push(tabId)
-  state.setTabBarOrder(worktreeId, order)
 }
 
 // Why: mobile-driven wake runs on the desktop host renderer, so it must create
@@ -70,41 +56,19 @@ export function launchSleepingAgentSession(
 ): boolean {
   const state = useAppStore.getState()
   const launchConfig = record.launchConfig
+  // Ether seam: agent-launch
   if (
-    state.localProjects &&
-    resolveLocalWorkspaceKey(state.localProjects, record.worktreeId) &&
-    !launchConfig?.localWorkspaceScope
+    !localWorkspaceResumeHasRoots(state, record.worktreeId, launchConfig, record.connectionId)
   ) {
     toast.error('This saved agent has no complete Workspace roots. Start a new agent session.')
     return false
-  }
-  if (launchConfig?.localWorkspaceScope) {
-    assertLocalWorkspaceLaunchScopeOwner(
-      launchConfig.localWorkspaceScope,
-      record.worktreeId,
-      record.connectionId
-    )
   }
   const resumeTarget = getResumeLaunchTarget(record.worktreeId)
   const startupPlan = buildAgentResumeStartupPlan({
     agent: record.agent,
     providerSession: record.providerSession,
     cmdOverrides: state.settings?.agentCmdOverrides ?? {},
-    agentArgs:
-      launchConfig !== undefined
-        ? launchConfig.agentArgs
-        : resolveTuiAgentLaunchArgs(record.agent, state.settings?.agentDefaultArgs),
-    agentEnv:
-      launchConfig !== undefined
-        ? launchConfig.agentEnv
-        : resolveTuiAgentLaunchEnv(record.agent, state.settings?.agentDefaultEnv),
-    ...(launchConfig?.agentCommand ? { agentCommand: launchConfig.agentCommand } : {}),
-    ...(launchConfig?.ompResumeFilePath
-      ? { ompResumeFilePath: launchConfig.ompResumeFilePath }
-      : {}),
-    ...(launchConfig?.localWorkspaceScope
-      ? { localWorkspaceScope: launchConfig.localWorkspaceScope }
-      : {}),
+    ...resolveResumeLaunchRecipe(launchConfig),
     platform: resumeTarget.platform,
     shell: resumeTarget.shell
   })
@@ -120,6 +84,7 @@ export function launchSleepingAgentSession(
 
   const tab = state.createTab(record.worktreeId, undefined, undefined, {
     launchAgent: record.agent,
+    // Ether seam: agent-launch
     ...(launchConfig?.localWorkspaceScope
       ? { startupCwd: launchConfig.localWorkspaceScope.cwd }
       : {}),
@@ -149,9 +114,9 @@ export function launchSleepingAgentSession(
   })
   state.clearSleepingAgentSession(record.paneKey)
   if (!options?.suppressNavigation) {
-    state.setActiveTabType('terminal')
+    state.setActiveTabType('terminal', record.worktreeId)
   }
-  appendTabToWorktreeOrder(record.worktreeId, tab.id)
+  persistAgentLaunchTabOrder(record.worktreeId, tab.id)
   options?.onSessionLaunched?.(tab.id)
   return true
 }

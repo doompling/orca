@@ -287,10 +287,3 @@ function commitLocalProjects(owner: LocalProjectsPersistence, value: LocalProjec
     throw error
   }
 }
-
-export function installLocalProjectsPersistenceContext(
-  target: LocalProjectsPersistence,
-  source: LocalProjectsPersistence
-): void {
-  Object.defineProperty(target, localProjectsContext, { value: source[localProjectsContext] })
-}

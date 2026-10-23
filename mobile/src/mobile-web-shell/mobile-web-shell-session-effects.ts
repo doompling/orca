@@ -26,8 +26,7 @@ export async function openCache(
   hostKey: string
 ): Promise<CachedGeneration | null> {
   try {
-    // Here and nowhere earlier: with the flag off no code path reaches this hook, so a store build
-    // never sweeps a cache it never wrote.
+    // Here and nowhere earlier: only a mounted shell sweeps, so nothing sweeps a cache it never wrote.
     await store.sweepStagedGenerations()
     const active = await store.readActiveGeneration(hostKey)
     return active === null
@@ -40,7 +39,9 @@ export async function openCache(
           compat: {
             schemaVersion: active.manifest.schemaVersion,
             runtimeProtocolVersion: active.manifest.runtimeProtocolVersion,
-            minCompatibleRuntimeProtocolVersion: active.manifest.minCompatibleRuntimeProtocolVersion
+            minCompatibleRuntimeProtocolVersion:
+              active.manifest.minCompatibleRuntimeProtocolVersion,
+            pageVersion: active.manifest.pageVersion
           }
         }
   } catch {
@@ -78,10 +79,10 @@ export async function readManifest(
         schemaVersion: manifest.schemaVersion,
         runtimeProtocolVersion: manifest.runtimeProtocolVersion,
         minCompatibleRuntimeProtocolVersion: manifest.minCompatibleRuntimeProtocolVersion,
+        pageVersion: manifest.pageVersion,
         totalBytes: manifest.totalBytes,
         totalAssets: manifest.assets.length,
-        routes: manifest.routes,
-        wire: manifest
+        routes: manifest.routes
       }
     })
   } catch (error) {
@@ -109,10 +110,13 @@ export async function download(args: {
   // Past the fetch, a throw is the store's: the bytes had already verified.
   let fetchedWhole = false
   try {
+    // A cache that cannot be opened is one with nothing to reuse, not a failed download.
+    const reusable = await store.openReusableAssets(hostKey).catch(() => undefined)
     const fetched = await fetchMobileWebBundle({
       client,
       signal: controller.signal,
-      onProgress: (progress) => send({ type: 'fetch-progress', flow, ...progress })
+      onProgress: (progress) => send({ type: 'fetch-progress', flow, ...progress }),
+      reusable
     })
     // The bytes are in; the session they were for may not be. The fetch throws on an abort it sees,
     // but an abort landing between its last read and this line would otherwise still write a

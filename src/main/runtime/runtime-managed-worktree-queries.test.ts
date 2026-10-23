@@ -12,8 +12,17 @@ const { pruneLineageMock, pruneMetadataMock } = vi.hoisted(() => ({
 vi.mock('../worktree-lineage-pruning', () => ({
   pruneLineageForMissingRepoWorktrees: pruneLineageMock
 }))
-vi.mock('../ipc/worktrees/listing/authoritative-local-worktree-metadata-pruning', () => ({
-  pruneMetadataMissingFromAuthoritativeLocalScan: pruneMetadataMock
+vi.mock(
+  '../ipc/worktrees/listing/authoritative-local-worktree-metadata-pruning',
+  async (importOriginal) => ({
+    ...(await importOriginal<Record<string, unknown>>()),
+    pruneMetadataMissingFromAuthoritativeLocalScan: pruneMetadataMock
+  })
+)
+const { hiddenHostIds } = vi.hoisted(() => ({ hiddenHostIds: new Set<string>() }))
+vi.mock('./runtime-visible-catalog', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  runtimeHiddenHostIds: () => hiddenHostIds
 }))
 vi.mock('../project-runtime-git-options', async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
@@ -27,6 +36,7 @@ import {
   getLocalWorktreeScanGeneration,
   resetLocalWorktreeScanGenerationsForTests
 } from '../local-worktree-scan-generation'
+import type { HostWorktreeTarget } from '../../shared/worktree/host-qualified-identity'
 
 const settings = {
   workspaceDir: '/worktrees',
@@ -80,6 +90,33 @@ function queries(
 }
 
 describe('RuntimeManagedWorktreeQueries.listDetected', () => {
+  it('stamps a scanned listing with the generation its scan began at', async () => {
+    resetLocalWorktreeScanGenerationsForTests()
+    const repo = folderRepo({ kind: 'git', path: '/source/git-app' })
+    const store = {
+      getRepos: () => [repo],
+      getRepo: () => repo,
+      getAllWorktreeMeta: () => ({}),
+      getWorktreeMeta: () => undefined,
+      setWorktreeMeta: vi.fn(),
+      getAllWorktreeLineage: () => ({}),
+      getSettings: () => settings
+    } as unknown as RuntimeStore
+    const atScanStart = getLocalWorktreeScanGeneration(repo.id)
+    const scanRepo = vi.fn(async () => {
+      // A mutation lands after the scan settles; the listing still names the catalog it scanned.
+      return { ok: true as const, worktrees: [] }
+    })
+
+    const listing = await queries(store, { scanRepo }).listDetected(repo)
+    bumpLocalWorktreeScanGeneration(repo.id)
+
+    expect(listing.authoritative).toBe(true)
+    expect(listing.catalogVersion?.sequence).toBe(atScanStart)
+    expect(listing.catalogVersion?.epoch).toEqual(expect.any(String))
+    expect(getLocalWorktreeScanGeneration(repo.id)).toBeGreaterThan(atScanStart)
+  })
+
   it("does not project another host's folder metadata", async () => {
     const local = folderRepo()
     const remote = folderRepo({ connectionId: 'build-box', displayName: 'Remote app' })
@@ -107,12 +144,13 @@ describe('RuntimeManagedWorktreeQueries.listDetected', () => {
 
   it('omits host-owned source defaults for clients that do not support them', async () => {
     const repo = folderRepo({ path: '/source/app' })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: a partial store mock; the code under test reads only the members it defines.
     const store = {
       getRepos: () => [repo],
       getRepo: () => repo,
       getAllWorktreeMeta: () => ({}),
       getWorktreeMeta: () => undefined,
-      setWorktreeMeta: vi.fn((_id, updates) => metadata(updates)),
+      setWorktreeMeta: vi.fn((_target: HostWorktreeTarget, updates) => metadata(updates)),
       getAllWorktreeLineage: () => ({}),
       getSettings: () => ({
         ...settings,
@@ -166,6 +204,17 @@ describe('RuntimeManagedWorktreeQueries.list host scope', () => {
       hostIds: [],
       omittedHostIds: ['ssh:conn-1']
     })
+  })
+
+  // A selector still resolves a converted host's retained repo; its host must not leak back out.
+  it('never names a hidden host, even for a selector that resolves to its repo', async () => {
+    hiddenHostIds.add('ssh:conn-1')
+    try {
+      const result = await queries(sshStore()).list('repo-ssh', 50)
+      expect(result.hostScope?.omittedHostIds).toEqual([])
+    } finally {
+      hiddenHostIds.clear()
+    }
   })
 
   it('does not report the scoped host as omitted once it contributes rows', async () => {
@@ -308,6 +357,8 @@ describe('RuntimeManagedWorktreeQueries.listDetected overtaken scan', () => {
     const expectations: unknown[] = []
     const generations: number[] = []
     const store = gitStore({
+      pruneSessionlessMissingLocalWorktreeMetadataForRepo: vi.fn(() => []),
+      getProfileStorageDirectory: () => '/profile',
       captureNativeLocalWorktreeMetadataScanExpectation: vi.fn(() => {
         const expectation = { repo, metadata: [] }
         expectations.push(expectation)

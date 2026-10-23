@@ -1,20 +1,19 @@
 import type { AiVaultSession, AiVaultSessionPreviewMessage } from '../../shared/ai-vault-types'
-import {
-  addPreviewMessage,
-  createAccumulator,
-  finalizeSession,
-  updateTimeline
-} from './session-scanner-accumulator'
+import { createAccumulator, finalizeSession, updateTimeline } from './session-scanner-accumulator'
+import { addPreviewMessage } from './session-scanner-messages'
 import {
   normalizeFullFirstUserPromptText,
   shouldCaptureFullFirstUserPrompt
 } from './session-scanner-first-user-prompt'
 import { readOpenCodeDatabase } from './session-scanner-opencode-sqlite-open'
+import { readPartDataRow, readSessionRow } from './session-scanner-opencode-sqlite-rows'
 import {
   canCountOpenCodeMessages,
   canReadOpenCodeMessageParts
 } from './session-scanner-opencode-sqlite-schema'
 import { normalizeTitleText } from './session-scanner-values'
+import { zcodeVisibleMessageFilter } from './session-scanner-zcode-visibility'
+import { zcodeTranscriptOrder } from './session-scanner-zcode-order'
 import type SyncDatabase from '../sqlite/sync-database'
 import { columnExists, tableExists } from '../opencode-usage/schema-helpers'
 
@@ -33,22 +32,6 @@ const OPENCODE_SQLITE_PREVIEW_LIMIT = 5
 const OPENCODE_SQLITE_PREVIEW_MESSAGE_WINDOW = 100
 // Bounds a pathological single message; a real typed prompt is a handful of parts.
 const FIRST_USER_PROMPT_PART_LIMIT = 512
-
-type SessionRow = {
-  id: string
-  title: string | null
-  directory: string | null
-  time_created: number
-  time_updated: number
-  model_json: string | null
-  agent: string | null
-  tokens_input: number
-  tokens_output: number
-  tokens_reasoning: number
-  tokens_cache_read: number
-  cost: number
-  message_count: number
-}
 
 type PreviewRow = {
   role: string | null
@@ -74,10 +57,11 @@ function sessionNumberColumnSelect(db: SyncDatabase, columnName: string): string
   return columnExists(db, 'session', columnName) ? `s.${columnName}` : '0'
 }
 
-function buildSessionQuery(db: SyncDatabase): string {
+function buildSessionQuery(db: SyncDatabase, agent: 'opencode' | 'zcode'): string {
   const messageCountSubquery = canCountOpenCodeMessages(db)
     ? `(SELECT COUNT(*) FROM message m
         WHERE m.session_id = s.id
+          ${zcodeVisibleMessageFilter(agent)}
           AND json_extract(m.data, '$.role') IN ('user','assistant'))`
     : '0'
   return `SELECT s.id,
@@ -150,7 +134,11 @@ export function extractPartText(partData: string): string | null {
   }
 }
 
-function readFirstUserPromptFromOpenCodeDb(db: SyncDatabase, sessionId: string): string | null {
+function readFirstUserPromptFromOpenCodeDb(
+  db: SyncDatabase,
+  sessionId: string,
+  agent: 'opencode' | 'zcode'
+): string | null {
   if (!canReadOpenCodeMessageParts(db)) {
     return null
   }
@@ -168,16 +156,19 @@ function readFirstUserPromptFromOpenCodeDb(db: SyncDatabase, sessionId: string):
                  FROM message m
                  JOIN part fp ON fp.message_id = m.id
                  WHERE m.session_id = ?
+                   ${zcodeVisibleMessageFilter(agent)}
                    AND json_extract(m.data, '$.role') = 'user'
                    AND json_extract(fp.data, '$.type') = 'text'
-                 ORDER BY m.time_created ASC, m.id ASC
+                 ORDER BY ${zcodeTranscriptOrder(db, agent, 'message', 'm', 'ASC')}
                  LIMIT 1
                )
            AND json_extract(p.data, '$.type') = 'text'
-         ORDER BY p.time_created ASC, p.rowid ASC
+         ORDER BY ${zcodeTranscriptOrder(db, agent, 'part', 'p', 'ASC')}
          LIMIT ${FIRST_USER_PROMPT_PART_LIMIT}`
       )
-      .all(sessionId) as { part_data: string }[]
+      .all(sessionId)
+      .map(readPartDataRow)
+      .filter((row): row is { part_data: string } => row !== null)
 
     const parts: string[] = []
     for (const row of rows) {
@@ -195,7 +186,7 @@ function readFirstUserPromptFromOpenCodeDb(db: SyncDatabase, sessionId: string):
   }
 }
 
-function buildPreviewQuery(db: SyncDatabase): string | null {
+function buildPreviewQuery(db: SyncDatabase, agent: 'opencode' | 'zcode'): string | null {
   if (!canReadOpenCodeMessageParts(db)) {
     return null
   }
@@ -204,14 +195,19 @@ function buildPreviewQuery(db: SyncDatabase): string | null {
                  p.time_created,
                  json_extract(m.data, '$.summary.title') AS summary_title,
                  json_extract(m.data, '$.summary.body') AS summary_body
-          FROM (SELECT id, data FROM message
-                WHERE session_id = ?
-                ORDER BY time_created DESC, id DESC
+          FROM (SELECT ${agent === 'zcode' ? 'm.rowid AS rowid, m.*' : 'm.id, m.data'} FROM message m
+                WHERE m.session_id = ?
+                ${zcodeVisibleMessageFilter(agent)}
+                ORDER BY ${zcodeTranscriptOrder(db, agent, 'message', 'm', 'DESC')}
                 LIMIT ${OPENCODE_SQLITE_PREVIEW_MESSAGE_WINDOW}) m
           JOIN part p ON p.message_id = m.id
           WHERE json_extract(m.data, '$.role') IN ('user','assistant')
             AND json_extract(p.data, '$.type') = 'text'
-          ORDER BY p.time_created DESC
+          ORDER BY ${
+            agent === 'zcode'
+              ? `${zcodeTranscriptOrder(db, agent, 'message', 'm', 'DESC')}, ${zcodeTranscriptOrder(db, agent, 'part', 'p', 'DESC')}`
+              : 'p.time_created DESC'
+          }
           LIMIT ?`
 }
 
@@ -231,6 +227,7 @@ export async function parseOpenCodeSqliteSession(args: {
   dbPath: string
   sessionId: string
   platform: NodeJS.Platform
+  agent?: 'opencode' | 'zcode'
 }): Promise<AiVaultSession | null> {
   return readOpenCodeDatabase({
     dbPath: args.dbPath,
@@ -245,12 +242,14 @@ export function readOpenCodeSqliteSession(args: {
   dbPath: string
   sessionId: string
   platform: NodeJS.Platform
+  agent?: 'opencode' | 'zcode'
 }): AiVaultSession | null {
   const { db, dbPath, sessionId, platform } = args
   if (!canReadOpenCodeSessions(db)) {
     return null
   }
-  const row = db.prepare(buildSessionQuery(db)).get(sessionId) as SessionRow | undefined
+  const agent = args.agent ?? 'opencode'
+  const row = readSessionRow(db.prepare(buildSessionQuery(db, agent)).get(sessionId))
   if (!row || row.id !== sessionId) {
     return null
   }
@@ -262,7 +261,7 @@ export function readOpenCodeSqliteSession(args: {
   // Why: discovery uses a synthetic db#session path only for parser routing.
   // The UI's log open/reveal actions need a real filesystem path.
   const accumulator = createAccumulator({
-    agent: 'opencode',
+    agent: args.agent ?? 'opencode',
     file: {
       path: dbPath,
       mtimeMs,
@@ -279,7 +278,7 @@ export function readOpenCodeSqliteSession(args: {
   updateTimeline(accumulator, row.time_created)
   updateTimeline(accumulator, row.time_updated)
 
-  const previewSql = buildPreviewQuery(db)
+  const previewSql = buildPreviewQuery(db, agent)
   if (previewSql) {
     // Why: SQL already dropped anything older than the newest-N window, so the
     // accumulator never shifts and cannot detect the truncation itself. Ask for
@@ -307,9 +306,7 @@ export function readOpenCodeSqliteSession(args: {
       addPreviewMessage(accumulator, {
         role: mapPreviewRole(previewRow.role),
         text,
-        timestamp: previewRow.time_created,
-        // Preview window is newest-N; first-prompt is loaded separately below.
-        seedFirstUserPrompt: false
+        timestamp: previewRow.time_created
       })
       if (previewRow.role === 'user' && !accumulator.title) {
         accumulator.title =
@@ -322,7 +319,7 @@ export function readOpenCodeSqliteSession(args: {
   // Why: list preview only joins the newest messages. On-demand copy needs the
   // session's earliest real user text part, not a later turn still in the window.
   if (shouldCaptureFullFirstUserPrompt()) {
-    accumulator.firstUserPrompt = readFirstUserPromptFromOpenCodeDb(db, sessionId)
+    accumulator.firstUserPrompt = readFirstUserPromptFromOpenCodeDb(db, sessionId, agent)
   }
 
   return finalizeSession(accumulator, platform)

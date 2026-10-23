@@ -10,7 +10,6 @@ import type { RuntimeStore } from '../runtime/runtime-store-contract'
 
 type Store = Pick<RuntimeStore, 'resolveLocalWorkspace'>
 type Runtime = Pick<OrcaRuntimeService, 'acquireWorktreeTerminalMutation'>
-type PtyRuntime = Pick<OrcaRuntimeService, 'acquireWorktreeTerminalSpawn'>
 type PtyLaunch = {
   worktreeId?: string
   connectionId?: string | null
@@ -47,19 +46,22 @@ function assertFreshScope(
   }
 }
 
-export async function acquireLocalWorkspacePtyLaunch(
+/**
+ * Runs under upstream's worktree spawn lock, which the caller already holds (`release`): the launch
+ * must still match its Workspace's current roots. Releases the lock before refusing.
+ */
+export function assertLocalWorkspacePtyLaunchUnderLock(
   store: Store | undefined,
-  runtime: PtyRuntime | undefined,
-  args: PtyLaunch
-): Promise<(() => void) | undefined> {
+  args: PtyLaunch,
+  release: (() => void) | undefined
+): void {
   if (!resolveWorkspace(store, args.worktreeId)) {
-    return undefined
+    return
   }
-  if (!runtime || !args.worktreeId || args.connectionId) {
-    throw new Error('Local Workspace execution owner is unavailable.')
-  }
-  const release = await runtime.acquireWorktreeTerminalSpawn(args.worktreeId)
   try {
+    if (!release || !args.worktreeId || args.connectionId) {
+      throw new Error('Local Workspace execution owner is unavailable.')
+    }
     const current = resolveWorkspace(store, args.worktreeId)
     if (!current) {
       throw new Error('Local Workspace no longer exists.')
@@ -74,9 +76,8 @@ export async function acquireLocalWorkspacePtyLaunch(
         throw new Error('The requested terminal directory is no longer inside this Workspace.')
       }
     }
-    return release
   } catch (error) {
-    release()
+    release?.()
     throw error
   }
 }

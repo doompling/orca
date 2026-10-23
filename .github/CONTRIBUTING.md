@@ -16,74 +16,55 @@ Thanks for contributing to Orca.
 
 ## Local Setup
 
-Use **Node.js 24.21.0** from [`.node-version`](../.node-version) and **pnpm 12.0.0**
-from [`package.json`](../package.json). A configured nodenv installation selects the
-pinned Node version automatically in this checkout.
-Native dependencies need Python and a C/C++ build toolchain. On macOS, install Xcode
-Command Line Tools (`xcode-select --install`); the full build also compiles Swift helpers.
-The separate `pnpm run verify:computer-native` check needs full Xcode on macOS for XCTest;
-Command Line Tools are sufficient to build and run the app.
+Install Node 24, pnpm, and the Bun version in [`config/.bun-version`](../config/.bun-version).
+`pnpm test` runs Vitest on Bun, with Node workers for runtime contracts such as SQLite,
+native PTYs, socket liveness, and V8 memory behavior. `pnpm test:node` runs the same suites
+entirely on Node. Builds and dependency installation still use Node and pnpm.
 
 ```bash
-pnpm install --frozen-lockfile
+pnpm install
 pnpm dev
 ```
 
-`pnpm dev` runs Electron with live renderer updates and prints its CDP debugging URL.
-The complete build also includes the CLI, SSH relay, browser client, mobile web bundle,
-and native helpers. Install the separate mobile workspace dependencies before building:
+To reduce main-process rebuild CPU and memory when you do not need its source maps,
+set `ORCA_DEV_MAIN_SOURCEMAPS=0` before `pnpm dev`. In Bash/zsh:
 
 ```bash
-pnpm --dir mobile install --frozen-lockfile
-pnpm build
-pnpm start
+ORCA_DEV_MAIN_SOURCEMAPS=0 pnpm dev
 ```
 
-`pnpm start` previews the built app. Ordinary `pnpm dev` needs only the root install;
-the separate `cloud/` workspace is optional unless you are working on cloud services.
+In PowerShell, use `$env:ORCA_DEV_MAIN_SOURCEMAPS='0'` before `pnpm dev`.
+Remove the variable when debugging the main process with source maps. Renderer and
+preload settings are unaffected; production builds always keep their hidden main maps.
 
-Development uses an `orca-dev` profile, separate from the packaged app. To isolate a
-development session further, set `ORCA_DEV_USER_DATA_PATH` to an absolute directory.
-Agents must set `ORCA_BACKGROUND_LAUNCH=1` when launching apps or tests, use CDP for
-rendered checks, and keep visible-window or native-focus tests on an isolated display or CI.
+Local installs use pnpm's global virtual store: each package version is one slot
+under `~/pnpm/store` that every worktree links to, instead of a full `node_modules` per worktree.
+An existing worktree converts on its next `pnpm install`, and an older branch without the setting
+converts back the same way. CI always uses the normal layout. On Windows, pnpm links with
+junctions when you lack the symlink privilege, so no administrator rights or Developer Mode are
+needed. Things to know:
 
-Run focused checks as you work:
-
-```bash
-pnpm tc
-pnpm run check:code-quality:changed
-ORCA_BACKGROUND_LAUNCH=1 pnpm test path/to/file.test.ts
-```
-
-The environment-variable syntax above is for POSIX shells; in PowerShell, set
-`$env:ORCA_BACKGROUND_LAUNCH = '1'` before the command. `pnpm test` prepares native modules
-for Node, while `pnpm dev`, `pnpm start`, and the E2E scripts prepare them for Electron.
-Stop the app before switching between tests and app runs in the same checkout.
+- Keep `~/node_modules` (and any other `node_modules` above the store) out of your home
+  directory. Node resolves upward from the store slot, so a stray one there supplies
+  dependencies the package never declared and hides missing-dependency bugs; `pnpm install` warns
+  when it finds one.
+- Native addons are never rebuilt in place in a shared slot: each CPU gets its own build
+  beside it (see [`native-build-entry.cjs`](../config/scripts/native-build-entry.cjs)), so
+  cross-arch packaging is safe for other worktrees.
+- `ORCA_PNPM_GLOBAL_VIRTUAL_STORE=0` opts out. Keep it set
+  in your shell: `pnpm run` re-checks the install and relinks a worktree whose layout no longer
+  matches.
 
 Ordinary installs include native optional dependencies for the current OS and CPU only.
 Before a cross-architecture build (including `pnpm build:mac`, which produces both x64 and
 arm64 artifacts by default), run `pnpm install:release` to add the other CPU's variants.
-See [the install policy](../docs/reference/pnpm-install-policy.md).
 
-### Where to Work
-
-| Area                                 | Entry points                                            |
-| ------------------------------------ | ------------------------------------------------------- |
-| Electron app and services            | `src/main/index.ts`, `src/main/startup/`                |
-| React interface                      | `src/renderer/src/main.tsx`, `src/renderer/src/App.tsx` |
-| Desktop API bridge                   | `src/preload/index.ts`, `src/preload/api/`              |
-| CLI, SSH relay, and shared contracts | `src/cli/`, `src/relay/`, `src/shared/`                 |
-
-Follow [`docs/STYLEGUIDE.md`](../docs/STYLEGUIDE.md) for interface changes.
-
-### Before Distributing a Fork
-
-Choose the fork's name and identity, then update package metadata in
-[`package.json`](../package.json) and the app ID, product name, signing configuration,
-and publish destination in [`config/electron-builder.config.cjs`](../config/electron-builder.config.cjs).
-Review the upstream URLs in [`src/main/updater/`](../src/main/updater/) and release
-workflows in [`.github/workflows/`](./workflows/); changing the packaging destination alone
-does not change every update feed. Local development does not require release credentials.
+Linux `pnpm build`, `pnpm build:native`, and Linux packaging require a running Docker
+daemon to build the clipboard helper against Ubuntu 20.04 rather than the host's
+newer libraries. A verified cached helper can be reused without Docker. For native
+Wayland development, run `pnpm build:native` before `pnpm dev` to make text copying
+available. See the [clipboard build guide](../native/wayland-clipboard/README.md#building-and-testing).
+macOS and Windows builds do not use this helper or require Docker for it.
 
 ## Branch Naming
 
@@ -108,6 +89,15 @@ pnpm test
 pnpm build
 ```
 
+For repeated local typechecks, use `pnpm tc` (or `pnpm tc:node`, `pnpm tc:web`,
+and `pnpm tc:cli`). These run `bun check` from the pinned `bun` devDependency —
+about a third of tsc's CPU and an eighth of its memory, so several agents can
+typecheck at once. Pass `--compiler=native` to use tsc and its incremental
+cache instead. CI uses `pnpm typecheck:ci`, the same Bun check with CI's
+concurrency. Shared tests are checked by the
+Node project; shared production code is checked in all three environments.
+Run `pnpm tc:node` after editing shared tests, or `pnpm tc` to check everything.
+
 Add high-quality tests for behavior changes and bug fixes. Prefer tests that would actually catch a regression, not shallow coverage that only exercises the happy path.
 
 If your change affects UI or interaction behavior, verify it on the platforms it could impact.
@@ -122,9 +112,10 @@ CI enforces this for `src/preload/` and `src/shared/`.
 
 Each pull request should follow [`.github/pull_request_template.md`](./pull_request_template.md). In particular:
 
+- if you are an outside contributor, link the issue your PR addresses
 - open with an ELI5 of the change (plain language paragraph; the PR title is the one-liner)
 - explain what changed and why, and stay focused on a single topic when possible
-- for any UI or interaction change, attach **before and after** screenshots (or short videos); if there is no visual change, say `No visual change` and why
+- for any UI or interaction change, attach **before and after** screenshots (or short videos); if there is no visual or interaction change, write `N/A` and briefly explain why
 - include high-quality tests when behavior changes or bug fixes warrant them
 - include a brief code review summary from your AI coding agent that explicitly checks cross-platform compatibility, SSH/remote/local compatibility, supported agent and integration compatibility, performance risk, UI quality when applicable, and basic security risk
 - mention any platform-specific, remote/SSH-specific, agent-specific, integration-specific, or git-provider-specific behavior and testing notes
@@ -165,7 +156,7 @@ All stable kinds (`patch`, `minor`, `major`) are computed off the latest _stable
 - If the latest RC tag exists but is still draft-only or missing its GitHub Release, the workflow resumes that tag only when it was built from the current release ref. Otherwise the next RC number is cut.
 - RC numbering also considers release commits on `main`, so deleting a stale tag does not let a later cut reuse the same RC number.
 - Off-main releases (when `ref` is not the tip of `main`) only push the tag. `main` is never mutated from a non-main ref, so you can safely release an older commit without polluting history.
-- When `ref` is the tip of `main`, the version-bump commit is fast-forwarded onto `main` so local `package.json` stays in sync with what's shipped.
+- When `ref` is the tip of `main`, the workflow tries to fast-forward the version-bump commit onto `main`. If main requires pull requests, it leaves main unchanged and pushes only the release tag. Other push errors still stop the cut.
 
 **Common scenarios:**
 

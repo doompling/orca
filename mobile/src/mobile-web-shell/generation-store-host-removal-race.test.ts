@@ -48,6 +48,7 @@ function bundle(): MobileWebBundleFetchResult {
       assets
     },
     assets: new Map([['index.html', new Uint8Array(4).fill(7)]]),
+    reused: [],
     totalBytes: 4,
     elapsedMs: 1
   }
@@ -103,7 +104,7 @@ async function seedHosts(store: GenerationStore): Promise<void> {
 }
 
 function indexedHostKeys(fileSystem: FakeGenerationFileSystem): string[] {
-  return Object.keys(JSON.parse(fileSystem.text(INDEX) ?? '{}')).sort()
+  return [...JSON.parse(fileSystem.text(INDEX) ?? '[]')].sort()
 }
 
 type Sides = { session: () => GenerationStore; removeHost: (hostId: string) => Promise<void> }

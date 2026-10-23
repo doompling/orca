@@ -1,28 +1,53 @@
-import { statSync } from 'node:fs'
+import { stat } from 'node:fs/promises'
 import type { Store } from '../../../persistence'
 import { parseWorkspaceKey } from '../../../../shared/workspace-scope'
 import { isWslUncPath } from '../../../../shared/wsl-paths'
 import {
-  resolveTerminalStartupCwd,
   resolveTerminalStartupCwdForWorkspace,
   type TerminalStartupCwdMissingDirFallback
 } from '../../../../shared/terminal-startup-cwd'
 import {
   assertFolderWorkspacePathUsable,
-  getFolderWorkspacePathStatus,
-  getFolderWorkspacePathStatusForPath
+  getFolderWorkspacePathStatus
 } from '../../../project-groups/folder-workspace-path-status'
-import { getSshFilesystemProvider } from '../../../providers/ssh-filesystem-dispatch'
-import type { SleepingAgentLaunchConfig } from '../../../../shared/agent-session-resume'
-import { assertLocalWorkspaceLaunchScopeOwner } from '../../../../shared/local-projects/agent-launch-scope'
-import { assertLegacyAgentEntrypointSupportsWorkspace } from '../../../../shared/local-projects/agent-entrypoint'
+import {
+  isWslMoveWorkspaceBlocked,
+  WslMoveProjectFencedError
+} from '../../../persistence/moving-wsl-projects/wsl-move-scope-guard'
+import { listLiveDaemonPtyIds } from '../../../daemon/daemon-provider-state'
+// Ether seam: pty-spawn
+import {
+  localWorkspacePtyPathCheck,
+  localWorkspacePtyStartupCwd,
+  type FolderWorkspacePtyLaunchContext
+} from '../../../local-projects/seams/pty-spawn-seam'
 
-export type FolderWorkspacePtyLaunchContext = {
-  launchConfig?: SleepingAgentLaunchConfig
-  connectionId?: string | null
-  cwd?: string
-  launchAgent?: string
-  resumeProviderSession?: unknown
+export type { FolderWorkspacePtyLaunchContext }
+
+/**
+ * A new PTY needs a workspace no WSL move is taking, and a folder that still exists. Reattaching to
+ * a session the daemon still runs is not a new PTY: a reload mid-move must not orphan a live pane.
+ */
+export function assertWorkspaceAcceptsNewPty(
+  store: Store | undefined,
+  worktreeId: string | undefined,
+  sessionId?: string,
+  launch?: FolderWorkspacePtyLaunchContext
+): Promise<void> | void {
+  if (isWslMoveWorkspaceBlocked(store, worktreeId)) {
+    return assertReattachesLiveSession(sessionId).then(() =>
+      assertFolderWorkspacePtyPathUsable(store, worktreeId, launch)
+    )
+  }
+  return assertFolderWorkspacePtyPathUsable(store, worktreeId, launch)
+}
+
+async function assertReattachesLiveSession(sessionId: string | undefined): Promise<void> {
+  // An unanswered census is never proof the session lives, so it refuses.
+  const live = sessionId ? await listLiveDaemonPtyIds() : null
+  if (!sessionId || !live?.includes(sessionId)) {
+    throw new WslMoveProjectFencedError()
+  }
 }
 
 export function assertFolderWorkspacePtyPathUsable(
@@ -30,56 +55,31 @@ export function assertFolderWorkspacePtyPathUsable(
   worktreeId: string | undefined,
   launch?: FolderWorkspacePtyLaunchContext
 ): Promise<void> | void {
-  const scope = launch?.launchConfig?.localWorkspaceScope
-  if (scope) {
-    assertLocalWorkspaceLaunchScopeOwner(scope, worktreeId, launch.connectionId)
-    if (launch.cwd !== scope.cwd) {
-      throw new Error('The agent cwd does not match its saved Workspace roots.')
-    }
-    return Promise.all(
-      [...new Set([...scope.roots.map((root) => root.path), scope.cwd])].map(async (path) => {
-        const status = await getFolderWorkspacePathStatusForPath(
-          { folderPath: path, repos: [], projectGroups: [] },
-          { getSshFilesystemProvider }
-        )
-        assertFolderWorkspacePathUsable(status)
-      })
-    ).then(() => undefined)
+  // Ether seam: pty-spawn
+  const localCheck = localWorkspacePtyPathCheck(store, worktreeId, launch)
+  if (localCheck) {
+    return localCheck
   }
   const workspaceScope = typeof worktreeId === 'string' ? parseWorkspaceKey(worktreeId) : null
   if (!store || workspaceScope?.type !== 'folder') {
     return
   }
-  if (launch?.launchConfig || launch?.launchAgent || launch?.resumeProviderSession) {
-    assertLegacyAgentEntrypointSupportsWorkspace(
-      store.resolveLocalWorkspace?.(workspaceScope.folderWorkspaceId)
-    )
-  }
-  return getFolderWorkspacePathStatus(
-    store,
-    { scope: 'folder-workspace', folderWorkspaceId: workspaceScope.folderWorkspaceId },
-    { getSshFilesystemProvider }
-  ).then(assertFolderWorkspacePathUsable)
+  return getFolderWorkspacePathStatus(store, {
+    scope: 'folder-workspace',
+    folderWorkspaceId: workspaceScope.folderWorkspaceId
+  }).then(assertFolderWorkspacePathUsable)
 }
 
 export function resolvePtySpawnStartupCwd(
-  store:
-    | (Pick<Store, 'getFolderWorkspace'> & Partial<Pick<Store, 'resolveLocalWorkspace'>>)
-    | undefined,
+  store: Store | undefined,
   worktreeId: string | undefined,
   cwd: string | undefined,
   missingDirFallback?: TerminalStartupCwdMissingDirFallback
 ): string | undefined {
-  const scope = worktreeId ? parseWorkspaceKey(worktreeId) : null
-  const localWorkspace =
-    scope?.type === 'folder' ? store?.resolveLocalWorkspace?.(scope.folderWorkspaceId) : null
-  if (localWorkspace) {
-    const root = localWorkspace.roots.find((entry) => entry.id === localWorkspace.defaultRootId)
-    if (!root) {
-      throw new Error('Local Workspace default root is unavailable.')
-    }
-    // A missing selected root must not silently launch in a different root.
-    return resolveTerminalStartupCwd(root.path, cwd?.trim() ? cwd : '.')
+  // Ether seam: pty-spawn
+  const localCwd = localWorkspacePtyStartupCwd(store, worktreeId, cwd)
+  if (localCwd !== null) {
+    return localCwd
   }
   return resolveTerminalStartupCwdForWorkspace({
     workspaceId: worktreeId,
@@ -90,13 +90,14 @@ export function resolvePtySpawnStartupCwd(
   })
 }
 
-export function localStartupCwdDirectoryExists(path: string): boolean {
-  // Why: Win32 statSync on \\wsl.localhost 9P shares can falsely report ENOENT; defer to the provider's WSL-aware validation.
+export async function localStartupCwdDirectoryExists(path: string): Promise<boolean> {
+  // Why: Win32 stat on \\wsl.localhost 9P shares can falsely report ENOENT; defer to the provider's WSL-aware validation.
   if (isWslUncPath(path)) {
     return true
   }
+  // Why async: a statSync on a dead network mount would freeze the whole main process.
   try {
-    return statSync(path).isDirectory()
+    return (await stat(path)).isDirectory()
   } catch {
     return false
   }

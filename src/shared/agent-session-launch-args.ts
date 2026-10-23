@@ -1,7 +1,10 @@
+import type { AgentSessionLaunchArgs } from './agent-session-record'
+
 const MAX_LAUNCH_ARGS = 256
 const MAX_LAUNCH_ARGS_BYTES = 16 * 1024
 
-export function isAgentSessionLaunchArgs(value: unknown): value is string[] {
+/** Arguments pinned on a record's first reservation, bounded before they are persisted. */
+export function isAgentSessionLaunchArgs(value: unknown): value is AgentSessionLaunchArgs {
   return (
     Array.isArray(value) &&
     value.length <= MAX_LAUNCH_ARGS &&

@@ -1,15 +1,15 @@
 import { useAppStore } from '@/store'
 import { createBrowserUuid } from '@/lib/browser-uuid'
 import { buildAgentResumeStartupPlan } from '@/lib/tui-agent-startup'
-import { resolveAgentResumeLaunchTarget } from '@/lib/agent-resume-launch-target'
+import {
+  resolveSshHostReportedPlatform,
+  resolveAgentResumeLaunchTarget
+} from '@/lib/agent-resume-launch-target'
 import {
   agentResumeOriginNamesAnotherExecutionHost,
   sleepingRecordNamesAnotherExecutionHost
 } from '@/lib/sleeping-record-execution-host-scope'
-import {
-  resolveTuiAgentLaunchArgs,
-  resolveTuiAgentLaunchEnv
-} from '../../../../../shared/tui-agent-launch-defaults'
+import { resolveResumeLaunchRecipe } from '../../../../../shared/tui-agent-launch-defaults'
 import {
   agentProviderSessionsEqual,
   isResumableTuiAgent,
@@ -19,8 +19,7 @@ import {
 import type { ColdRestoreAgentResumeStartup } from './fresh-spawn-types'
 
 import type { ConnectPanePtySession } from './connect-pane-pty-session'
-import { assertLocalWorkspaceLaunchScopeOwner } from '../../../../../shared/local-projects/agent-launch-scope'
-import { resolveLocalWorkspaceKey } from '../../../../../shared/local-projects/workspace-resolution'
+import { localWorkspaceResumeHasRoots } from '@/features/local-projects/seams/launch-seam'
 
 export type ColdRestoreResumeSession = Pick<
   ConnectPanePtySession,
@@ -87,49 +86,38 @@ export function bindBuildColdRestoreAgentResumeStartup(
     const launchConfig =
       (useLiveEntry && entry ? state.getAgentLaunchConfigForStatusEntry(entry) : undefined) ??
       matchingSleepingLaunchConfig
+    // Ether seam: agent-launch
     if (
-      state.localProjects &&
-      resolveLocalWorkspaceKey(state.localProjects, session.deps.worktreeId) &&
-      !launchConfig?.localWorkspaceScope
-    ) {
-      return null
-    }
-    if (launchConfig?.localWorkspaceScope) {
-      assertLocalWorkspaceLaunchScopeOwner(
-        launchConfig.localWorkspaceScope,
+      !localWorkspaceResumeHasRoots(
+        state,
         session.deps.worktreeId,
+        launchConfig,
         session.connectionId
       )
+    ) {
+      return null
     }
     // Why: the resume line is typed into this pane's live shell, so its quoting must
     // follow the tab's effective Windows shell, not the win32 PowerShell default.
     const resumeTarget = resolveAgentResumeLaunchTarget({
       projectRuntime: session.projectRuntime,
-      connectionId: session.connectionId,
+      connectionId: null,
       executionHostId: session.executionHostId,
       worktreePath: session.worktree?.path,
       terminalWindowsShell: state.settings?.terminalWindowsShell,
-      tabShellOverride: session.shellOverride
+      tabShellOverride: session.shellOverride,
+      // Why the transport's runtime: the pane's own connection names the SSH target's owner.
+      remotePlatform: resolveSshHostReportedPlatform(
+        state,
+        session.executionHostId,
+        session.transport.getRuntimeEnvironmentId?.() ?? null
+      )
     })
     const startupPlan = buildAgentResumeStartupPlan({
       agent,
       providerSession,
       cmdOverrides: state.settings?.agentCmdOverrides ?? {},
-      agentArgs:
-        launchConfig !== undefined
-          ? launchConfig.agentArgs
-          : resolveTuiAgentLaunchArgs(agent, state.settings?.agentDefaultArgs),
-      agentEnv:
-        launchConfig !== undefined
-          ? launchConfig.agentEnv
-          : resolveTuiAgentLaunchEnv(agent, state.settings?.agentDefaultEnv),
-      ...(launchConfig?.agentCommand ? { agentCommand: launchConfig.agentCommand } : {}),
-      ...(launchConfig?.ompResumeFilePath
-        ? { ompResumeFilePath: launchConfig.ompResumeFilePath }
-        : {}),
-      ...(launchConfig?.localWorkspaceScope
-        ? { localWorkspaceScope: launchConfig.localWorkspaceScope }
-        : {}),
+      ...resolveResumeLaunchRecipe(launchConfig),
       platform: resumeTarget.platform,
       shell: resumeTarget.shell
     })

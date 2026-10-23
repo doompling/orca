@@ -3,31 +3,36 @@ import { abortSignalReason, throwIfSignalAborted } from '../../shared/abort-sign
 // ── Concurrency limiter — max 4 parallel Linear API calls ────────────
 const MAX_CONCURRENT = 4
 let running = 0
-const queue: (() => void)[] = []
+type QueuedLinearRequest = {
+  resolve: () => void
+  signal?: AbortSignal
+  onAbort: () => void
+}
+const queue: QueuedLinearRequest[] = []
 
 export function acquire(signal?: AbortSignal): Promise<void> {
-  throwIfSignalAborted(signal)
+  if (signal?.aborted) {
+    return Promise.reject(signal.reason)
+  }
   if (running < MAX_CONCURRENT) {
     running++
     return Promise.resolve()
   }
   return new Promise((resolve, reject) => {
-    const grant = () => {
-      signal?.removeEventListener('abort', onAbort)
-      running++
-      resolve()
-    }
-    const onAbort = () => {
-      const index = queue.indexOf(grant)
-      if (index !== -1) {
+    const entry: QueuedLinearRequest = {
+      resolve,
+      signal,
+      onAbort: () => {
+        const index = queue.indexOf(entry)
+        if (index === -1) {
+          return
+        }
         queue.splice(index, 1)
-      }
-      if (signal) {
-        reject(abortSignalReason(signal))
+        reject(signal?.reason)
       }
     }
-    queue.push(grant)
-    signal?.addEventListener('abort', onAbort, { once: true })
+    signal?.addEventListener('abort', entry.onAbort, { once: true })
+    queue.push(entry)
   })
 }
 
@@ -35,6 +40,8 @@ export function release(): void {
   running--
   const next = queue.shift()
   if (next) {
-    next()
+    next.signal?.removeEventListener('abort', next.onAbort)
+    running++
+    next.resolve()
   }
 }

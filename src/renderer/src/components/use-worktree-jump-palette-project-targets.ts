@@ -25,7 +25,7 @@ type WorktreeJumpPaletteProjectTargetsInput = WorktreeJumpPaletteStoreState &
 export function useWorktreeJumpPaletteProjectTargets({
   settingsSections,
   pluginCommands,
-  allWorktrees,
+  workspaces,
   repos,
   worktreesByRepo,
   detectedWorktreesByRepo,
@@ -55,7 +55,7 @@ export function useWorktreeJumpPaletteProjectTargets({
   )
   const renderableProjectRepoIds = useMemo(() => {
     const ids = new Set<string>()
-    for (const worktree of allWorktrees) {
+    for (const worktree of workspaces) {
       if (!worktree.isArchived) {
         ids.add(worktree.repoId)
       }
@@ -77,7 +77,7 @@ export function useWorktreeJumpPaletteProjectTargets({
     }
     return ids
   }, [
-    allWorktrees,
+    workspaces,
     detectedWorktreesByRepo,
     pendingWorktreeCreations,
     repos,

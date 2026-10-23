@@ -92,18 +92,20 @@ export function SidebarHeaderActions({
   const localProjects = hasLocalProjectsApi()
   return (
     <div className="flex shrink-0 items-center gap-1" data-sidebar-header-actions="">
-      {/* Why both hidden in the agents view: it lists activity, not projects. */}
+      {/* Why only options swap: the activity view portals its own options button into this slot
+          (SidebarHeader), and keeping Add project means no header button shifts between views. */}
       {agentsViewActive ? null : (
         <>
+          {/* Ether seam: sidebar — local Projects have no board options or worktree creation. */}
           {!localProjects && (
             <SidebarWorkspaceOptionsMenu
               preserveWorkspaceBoardOpen
               onMenuOpenChange={onWorkspaceBoardMenuOpenChange}
             />
           )}
-          <AddProjectButton preserveWorkspaceBoardOpen />
         </>
       )}
+      <AddProjectButton preserveWorkspaceBoardOpen />
       {!localProjects && <NewWorkspaceButton preserveWorkspaceBoardOpen />}
     </div>
   )

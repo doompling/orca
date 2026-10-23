@@ -7,7 +7,8 @@ import type { ResolvedLocalWorkspace } from '../../../../shared/local-projects/t
 import { mapWithConcurrency } from '../../../../shared/map-with-concurrency'
 import { normalizeSearchFileMatchCount } from '../../../../shared/search-match-count'
 import { folderWorkspaceKey } from '../../../../shared/workspace-scope'
-import { searchRuntimeFiles, statRuntimePath } from '@/runtime/runtime-file-client'
+import { searchRuntimeFiles } from '@/runtime/runtime-file-search-client'
+import { statRuntimePath } from '@/runtime/runtime-file-metadata-client'
 
 export type LocalWorkspaceSearchFile = SearchFileResult & { workspaceRootLabel?: string }
 export type LocalWorkspaceSearchResult = SearchResult & { workspaceSearchErrors?: string[] }
@@ -18,8 +19,10 @@ const SEARCH_CONCURRENCY = 2
 export async function searchLocalWorkspaceContents(
   workspace: ResolvedLocalWorkspace,
   options: Omit<SearchOptions, 'rootPath'>,
-  isCurrent: () => boolean
+  isCurrent: () => boolean,
+  signal?: AbortSignal
 ): Promise<LocalWorkspaceSearchResult> {
+  const live = (): boolean => isCurrent() && !signal?.aborted
   const maxResults = Math.max(
     1,
     Math.min(options.maxResults ?? MAX_SEARCH_RESULTS, MAX_SEARCH_RESULTS)
@@ -31,26 +34,26 @@ export async function searchLocalWorkspaceContents(
     SEARCH_CONCURRENCY,
     async (root, index) => {
       const limit = Math.max(1, baseLimit + (index < extra ? 1 : 0))
-      if (!isCurrent()) {
+      if (!live()) {
         return { root, result: null, error: null }
       }
       try {
         const context = {
-          settings: { activeRuntimeEnvironmentId: null },
+          target: { kind: 'local' } as const,
           worktreeId: folderWorkspaceKey(workspace.workspaceId),
           worktreePath: root.path
         }
         if (!(await statRuntimePath(context, root.path)).isDirectory) {
           throw new Error('Workspace root is not a directory.')
         }
-        if (!isCurrent()) {
+        if (!live()) {
           return { root, result: null, error: null }
         }
-        const result = await searchRuntimeFiles(context, {
-          ...options,
-          rootPath: root.path,
-          maxResults: limit
-        })
+        const result = await searchRuntimeFiles(
+          context,
+          { ...options, rootPath: root.path, maxResults: limit },
+          signal
+        )
         return { root, result, error: null }
       } catch (error) {
         return {

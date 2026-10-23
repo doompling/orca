@@ -1,27 +1,28 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { OpenFile } from '@/store/slices/editor'
-import type { LocalProjectsState } from '../../../../shared/local-projects/types'
-import { createTestStore } from '@/store/slices/store-test-helpers'
 
 const toastMock = vi.hoisted(() => vi.fn())
 const readRuntimeFileContentMock = vi.hoisted(() => vi.fn())
 vi.mock('sonner', () => ({
   toast: toastMock
 }))
-vi.mock('@/store', () => ({
-  useAppStore: {
-    getState: vi.fn()
+vi.mock('@/store', () => {
+  const getState = vi.fn()
+  return {
+    useAppStore: Object.assign((select: (state: unknown) => unknown) => select(getState()), {
+      getState
+    })
   }
-}))
-vi.mock('@/runtime/runtime-file-client', () => ({
+})
+vi.mock('@/runtime/runtime-file-read-client', () => ({
   readRuntimeFileContent: readRuntimeFileContentMock
 }))
-vi.mock('@/runtime/runtime-rpc-client', () => ({
-  settingsForRuntimeOwner: () => null
-}))
+
 vi.mock('@/lib/connection-context', () => ({
-  getConnectionIdForFile: () => undefined
+  // Why: the floating workspace is always client-local; other owners are still loading.
+  getConnectionIdForFile: (worktreeId: string) =>
+    worktreeId === 'global-floating-terminal' ? null : undefined
 }))
 
 import {
@@ -29,19 +30,19 @@ import {
   keepTabEditsOverExternalChange,
   reloadTabContentFromDisk
 } from './ExternalFileChangeBanner'
-import { getDiskBaselineSignature } from './diff-content-signature'
+import { getDiskBaselineSignature } from '../../../../shared/disk-baseline-signature'
 import { useAppStore } from '@/store'
+import { createTestStore } from '@/store/slices/store-test-helpers'
 
-const file: OpenFile = {
+const file = {
   id: 'file-1',
   filePath: '/repo/notes.md',
   relativePath: 'notes.md',
   worktreeId: 'wt-1',
   mode: 'edit',
-  language: 'markdown',
   isDirty: true,
   externalMutation: 'changed'
-}
+} as OpenFile
 
 describe('ExternalFileChangeBanner', () => {
   const clearEditorDraft = vi.fn()
@@ -49,26 +50,17 @@ describe('ExternalFileChangeBanner', () => {
   const setExternalMutation = vi.fn()
   const setEditorDraft = vi.fn()
   const setLastKnownDiskSignature = vi.fn()
-  const clearPendingDiskBaselineVerification = vi.fn()
 
-  function mockStoreState(
-    editorDrafts: Record<string, string>,
-    openFiles: OpenFile[] = [file],
-    localProjects?: LocalProjectsState
-  ) {
-    const state = createTestStore().getState()
+  function mockStoreState(editorDrafts: Record<string, string>, openFiles: OpenFile[] = [file]) {
     vi.mocked(useAppStore.getState).mockReturnValue({
-      ...state,
+      ...createTestStore().getState(),
       clearEditorDraft,
       markFileDirty,
       setExternalMutation,
       setEditorDraft,
       setLastKnownDiskSignature,
-      clearPendingDiskBaselineVerification,
-      localProjects: localProjects ?? state.localProjects,
       editorDrafts,
-      openFiles,
-      settings: state.settings
+      openFiles
     })
   }
 
@@ -78,13 +70,14 @@ describe('ExternalFileChangeBanner', () => {
     mockStoreState({})
   })
 
-  it('renders the overwrite warning, all three actions, and an alert role', () => {
+  it('renders the overwrite warning, all four actions, and an alert role', () => {
     const html = renderToStaticMarkup(
       <ExternalFileChangeBanner file={file} currentContent="buffer" reloadContent={vi.fn()} />
     )
     expect(html).toContain('role="alert"')
     expect(html).toContain('changed on disk')
-    expect(html).toContain('Saving will overwrite')
+    expect(html).toContain('Overwrite replaces')
+    expect(html).toContain('>Overwrite<')
     expect(html).toContain('Compare')
     expect(html).toContain('Reload from Disk')
     expect(html).toContain('Keep My Edits')
@@ -241,67 +234,20 @@ describe('ExternalFileChangeBanner', () => {
     expect(setLastKnownDiskSignature).not.toHaveBeenCalled()
   })
 
-  it('keeps local Workspace saves blocked until Keep My Edits verifies the disk version', async () => {
-    const localFile = { ...file, worktreeId: 'folder:workspace', lastKnownDiskSignature: 'old' }
-    mockStoreState({ [file.id]: 'draft' }, [localFile], localProjectState())
-    let resolveRead!: (result: { content: string; isBinary: boolean }) => void
-    readRuntimeFileContentMock.mockReturnValue(
-      new Promise((resolve) => {
-        resolveRead = resolve
-      })
-    )
+  it.each([
+    [
+      'a floating-workspace tab, as the file the user named',
+      'global-floating-terminal',
+      'user-file'
+    ],
+    ['a project tab, inside its root', 'wt-1', undefined]
+  ])('keep-my-edits reads %s', async (_label, worktreeId, kind) => {
+    const tab: OpenFile = { ...file, worktreeId }
+    mockStoreState({}, [tab])
 
-    const keeping = keepTabEditsOverExternalChange(localFile)
-    expect(setExternalMutation).not.toHaveBeenCalled()
-    resolveRead({ content: 'accepted disk version', isBinary: false })
-    await keeping
+    keepTabEditsOverExternalChange(tab)
+    await Promise.resolve()
 
-    expect(setLastKnownDiskSignature).toHaveBeenCalledWith(
-      file.id,
-      getDiskBaselineSignature('accepted disk version')
-    )
-    expect(setExternalMutation).toHaveBeenCalledWith(file.id, null)
-    expect(setLastKnownDiskSignature.mock.invocationCallOrder[0]).toBeLessThan(
-      setExternalMutation.mock.invocationCallOrder[0]
-    )
-    expect(clearEditorDraft).not.toHaveBeenCalled()
-  })
-
-  it('retains the local conflict and draft if Keep My Edits cannot read disk', async () => {
-    const localFile = { ...file, worktreeId: 'folder:workspace' }
-    mockStoreState({ [file.id]: 'draft' }, [localFile], localProjectState())
-    readRuntimeFileContentMock.mockRejectedValue(new Error('missing folder'))
-    await keepTabEditsOverExternalChange(localFile)
-    expect(setExternalMutation).not.toHaveBeenCalled()
-    expect(clearEditorDraft).not.toHaveBeenCalled()
-    expect(toastMock).toHaveBeenCalledWith(expect.stringContaining('Your draft is unchanged'))
+    expect(readRuntimeFileContentMock.mock.calls[0]?.[0]?.access?.kind).toBe(kind)
   })
 })
-
-function localProjectState(): LocalProjectsState {
-  return {
-    version: 1,
-    projects: [
-      {
-        id: 'project',
-        name: 'Application',
-        roots: [{ id: 'root', label: 'App', path: '/repo' }],
-        defaultRootId: 'root',
-        isArchived: false,
-        createdAt: 1,
-        updatedAt: 1
-      }
-    ],
-    workspaces: [
-      {
-        id: 'workspace',
-        projectId: 'project',
-        name: 'Main',
-        checkoutOverridesByRootId: {},
-        isArchived: false,
-        createdAt: 1,
-        updatedAt: 1
-      }
-    ]
-  }
-}

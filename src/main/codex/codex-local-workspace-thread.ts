@@ -17,13 +17,19 @@ const configReply = z.object({
   })
 })
 
+/** Config and instructions a local Workspace thread adds on top of upstream's thread settings. */
+export type LocalWorkspaceCodexThreadOverrides = {
+  config: Record<string, unknown>
+  developerInstructions?: string
+}
+
 export async function localWorkspaceCodexThreadOverrides(
   connection: Pick<CodexAppServerConnection, 'request'>,
   scope: LocalWorkspaceLaunchScope | undefined,
-  timeoutMs: number | undefined
-): Promise<Record<string, unknown>> {
+  timeoutMs: number | null | undefined
+): Promise<LocalWorkspaceCodexThreadOverrides> {
   if (!scope) {
-    return {}
+    return { config: {} }
   }
   const reply = configReply.safeParse(
     await connection.request('config/read', { includeLayers: false, cwd: scope.cwd }, { timeoutMs })
@@ -82,4 +88,18 @@ export function assertCodexLocalWorkspaceThreadScope(
   ) {
     throw new Error('Codex did not grant access to every Workspace directory; no task was started.')
   }
+}
+
+/** Upstream's thread config plus ours; a key both set (writable roots) keeps every entry. */
+export function mergeLocalWorkspaceCodexConfig(
+  base: Record<string, unknown> | undefined,
+  overrides: Record<string, unknown>
+): Record<string, unknown> {
+  const merged: Record<string, unknown> = { ...base }
+  for (const [key, value] of Object.entries(overrides)) {
+    const existing = merged[key]
+    merged[key] =
+      Array.isArray(existing) && Array.isArray(value) ? [...new Set([...existing, ...value])] : value
+  }
+  return merged
 }

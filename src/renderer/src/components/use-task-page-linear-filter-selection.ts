@@ -12,13 +12,14 @@ import {
   shouldClearTeamDerivedFacets,
   teamDerivedFacetsForPrimaryTeamChange,
   isLinearIssueSearchActive
-} from '@/components/task-page-linear-issue-request'
+} from '@/components/task-page/linear/task-page-linear-issue-request'
 import { folderWorkspaceToWorktree } from '../../../shared/folder-workspace-worktree'
 import { buildLinearIssueWorkspaceAttachmentIndex } from '@/lib/linear-issue-workspace-attachment'
 import {
   collectLinkedLinearIssueRefsFromWorktrees,
   linkedLinearIssueRefsSignature
-} from '@/components/task-page-linear-in-orca-issues'
+} from '@/components/task-page/linear/task-page-linear-in-orca-issues'
+// Ether seam: linear
 import { localWorkspaceLinearTaskRefs } from '@/features/local-projects/local-workspace-linear-task-refs'
 import { getProviderRuntimeContextKey } from '@/lib/provider-runtime-context'
 export function useTaskPageLinearFilterSelection(model: TaskPageLinearListSelectionPreludeModel) {
