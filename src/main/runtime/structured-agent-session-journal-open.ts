@@ -4,6 +4,8 @@ import { JournalHostDatabase } from '../native-chat/agent-session-journal/journa
 import { journalOpenRefusalError } from '../native-chat/agent-session-journal/journal-open-failure'
 import { recordStructuredAgentSessionHostInstallRefusal } from './structured-agent-session-host-refusal'
 import type { StructuredAgentSessionLogger } from '../native-chat/agent-session-wire/structured-agent-session-logger'
+// Ether seam: chat-history-import
+import { importEtherLegacyChatHistory } from '../native-chat/ether-legacy-chat-import/legacy-chat-history-import'
 
 // Every chat request retries a failed open, so each distinct failure is logged once, with its stack.
 let lastLoggedOpenFailure: string | null = null
@@ -31,6 +33,8 @@ export function openStructuredAgentSessionJournalDatabase(args: {
 }): JournalHostDatabase {
   try {
     const opened = JournalHostDatabase.open(args.stateDirectory)
+    // Ether seam: chat-history-import — before the record store loads its rows.
+    importEtherLegacyChatHistory(opened, args.logger)
     recordStructuredAgentSessionHostInstallRefusal(null)
     lastLoggedOpenFailure = null
     return opened
