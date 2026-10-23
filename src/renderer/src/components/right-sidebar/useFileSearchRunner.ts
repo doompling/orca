@@ -127,6 +127,7 @@ export function useFileSearchRunner({
         const controller = new AbortController()
         searchControllerRef.current = controller
         try {
+          const state = useAppStore.getState()
           const connectionId = getConnectionId(activeWorktreeId) ?? undefined
           const activeSearchState = state.fileSearchStateByWorktree[activeWorktreeId]
           if (
@@ -147,8 +148,10 @@ export function useFileSearchRunner({
           }
           // Ether seam: local-projects — a multi-root Workspace searches every root.
           const search =
-            localWorkspaceFileSearch(activeWorktreeId, () => latestSearchIdRef.current === searchId) ??
-            searchRuntimeFiles
+            localWorkspaceFileSearch(
+              activeWorktreeId,
+              () => latestSearchIdRef.current === searchId
+            ) ?? searchRuntimeFiles
           const results = await search(
             {
               target: runtimeTargetForOwnerEnvironment(runtimeEnvironmentId),

@@ -30,7 +30,8 @@ import {
 } from './linear-project-models'
 import { readCollection, readConcreteCollection } from './linear-project-collection-read'
 import { readIssueConnectionPages } from './linear-project-issue-queries'
-import { withLinearReadDeadline } from './linear-read-deadline'
+// Ether seam: linear — stalled reads time out with a retryable error.
+import { deadlineBoundLinearRead } from './linear-read-deadline'
 
 export async function listCustomViews(
   model: LinearCustomViewModel,
@@ -75,31 +76,31 @@ export async function getCustomView(
   const key = `getCustomView:${concreteWorkspaceId}:${model}:${id}`
   return coalesce(
     key,
-    () =>
-      withLinearReadDeadline(async (signal) => {
-        const entries = getClients(concreteWorkspaceId, signal)
-        const entry = entries[0]
-        if (!entry) {
-          return null
+    // Ether seam: linear
+    deadlineBoundLinearRead(async (signal) => {
+      const entries = getClients(concreteWorkspaceId, signal)
+      const entry = entries[0]
+      if (!entry) {
+        return null
+      }
+      await acquire(signal)
+      try {
+        const result = await entry.client.client.rawRequest<
+          CustomViewConnectionResponse,
+          LinearRawVariables
+        >(CUSTOM_VIEW_QUERY, { id })
+        const view = result.data?.customView
+        const mapped = view ? mapCustomViewForWorkspace(entry, view) : null
+        return mapped?.model === model ? mapped : null
+      } catch (error) {
+        if (isAuthError(error)) {
+          clearToken(entry.workspace.id)
         }
-        await acquire(signal)
-        try {
-          const result = await entry.client.client.rawRequest<
-            CustomViewConnectionResponse,
-            LinearRawVariables
-          >(CUSTOM_VIEW_QUERY, { id })
-          const view = result.data?.customView
-          const mapped = view ? mapCustomViewForWorkspace(entry, view) : null
-          return mapped?.model === model ? mapped : null
-        } catch (error) {
-          if (isAuthError(error)) {
-            clearToken(entry.workspace.id)
-          }
-          throw error
-        } finally {
-          release()
-        }
-      }),
+        throw error
+      } finally {
+        release()
+      }
+    }),
     force
   )
 }

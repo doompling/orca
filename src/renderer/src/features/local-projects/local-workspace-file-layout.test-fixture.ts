@@ -63,7 +63,7 @@ export function fileLayoutFixture() {
       worktreeId: sourceKey,
       groupId: 'left',
       contentType: 'terminal',
-      structuredSessionId: 'do-not-copy-provider-session'
+      agentSessionAgent: 'codex'
     })
   )
   const store = createTestStore()

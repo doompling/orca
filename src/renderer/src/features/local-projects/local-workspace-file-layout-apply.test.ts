@@ -3,7 +3,7 @@ import { registerPendingEditorFlush } from '@/components/editor/editor-pending-f
 import { makeOpenFile, makeTabGroup, makeUnifiedTab } from '@/store/slices/store-test-helpers'
 import { captureLocalWorkspaceFileLayout } from './local-workspace-file-layout'
 import { applyLocalWorkspaceFileLayout } from './local-workspace-file-layout-apply'
-import { fileLayoutFixture } from './local-workspace-file-layout.test-fixtures'
+import { fileLayoutFixture } from './local-workspace-file-layout.test-fixture'
 
 const notice = vi.hoisted(() => vi.fn())
 vi.mock('sonner', () => ({ toast: { info: notice, error: vi.fn() } }))
@@ -106,10 +106,11 @@ describe('copying files through the existing editor/group owners', () => {
     expect(state.activeFileId).toBe(before.activeFileId)
     expect(state.editorDrafts).toEqual({})
     expect(state.tabsByWorktree).toBe(before.tabsByWorktree)
+    // Disk signatures may match the source: views of one physical file share an editor buffer.
     expect(
       state.openFiles
         .filter((file) => file.worktreeId === targetKey)
-        .every((file) => !file.isDirty && !file.lastKnownDiskSignature && !file.localRoot)
+        .every((file) => !file.isDirty && !file.localRoot)
     ).toBe(true)
     expect(state.unifiedTabsByWorktree[sourceKey]).toBe(before.unifiedTabsByWorktree[sourceKey])
     expect(state.groupsByWorktree[sourceKey]).toBe(before.groupsByWorktree[sourceKey])

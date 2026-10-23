@@ -53,6 +53,7 @@ export type SleepingAgentLaunchConfig = {
   agentArgs: string
   agentEnv: Record<string, string>
   ompResumeFilePath?: string
+  // Ether seam: agent-launch
   localWorkspaceScope?: LocalWorkspaceLaunchScope
 }
 

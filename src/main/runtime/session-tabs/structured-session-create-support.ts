@@ -31,6 +31,8 @@ import {
   isFloatingWorkspaceSelector
 } from '../../../shared/floating-workspace-worktree'
 import { parseWorkspaceKey } from '../../../shared/workspace-scope'
+// Ether seam: local-projects
+import { captureStructuredLocalWorkspaceScope } from '../../local-projects/structured-agent-scope'
 import type { AgentSessionAccountHome } from '../../../shared/agent-session-account-home'
 import type { StructuredAgentId } from '../../../shared/agent-session-provider-handle'
 
@@ -207,6 +209,8 @@ export abstract class OrcaRuntimeWithGetStructuredAgentSessionCreateSupport exte
     const launchEnv = this.structuredAgentLaunchEnv(input.agent, settings)
     const options = this.structuredAgentSessionLaunchSeedOptions(input.agent)
     const location = await this.resolveStructuredAgentSessionLocation(input.worktree)
+    // Ether seam: local-projects — freeze every root into the new chat's record.
+    const localWorkspaceScope = captureStructuredLocalWorkspaceScope(this.requireStore(), location)
     const definition = this.requireRegisteredStructuredAgent(input.agent)
     const host = getStructuredAgentSessionHost()
     const committedReplay = resolveCommittedStructuredAgentSessionAdoptionIntent({
@@ -266,6 +270,7 @@ export abstract class OrcaRuntimeWithGetStructuredAgentSessionCreateSupport exte
       agent: input.agent,
       accountHome: adoption ? adoption.accountHome : selectedAccountHome,
       ...(options ? { options } : {}),
+      ...(localWorkspaceScope ? { localWorkspaceScope } : {}),
       ...(input.resumeFrom && adoption
         ? {
             adopt: structuredAgentSessionAdoptAttach({

@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { OpenFile } from '../../store/slices/editor'
-import type { LocalProjectRoot } from '../../../../shared/local-projects/types'
 
 const reactHookRuntime = vi.hoisted(() => ({
   states: [] as unknown[],
@@ -21,11 +20,6 @@ const appStoreMocks = vi.hoisted(() => ({
 }))
 
 const renameFileOnDiskMock = vi.hoisted(() => vi.fn())
-const localRootMock = vi.hoisted(() => vi.fn<() => LocalProjectRoot | null>(() => null))
-
-vi.mock('@/features/local-projects/use-local-workspace-editor-root', () => ({
-  useLocalWorkspaceEditorRoot: localRootMock
-}))
 
 vi.mock('react', async () => {
   const actual = await vi.importActual<typeof import('react')>('react') // eslint-disable-line @typescript-eslint/consistent-type-imports -- vi.importActual requires inline import()
@@ -401,7 +395,6 @@ describe('EditorFileTab rename menu', () => {
     reactHookRuntime.states = []
     reactHookRuntime.index = 0
     vi.clearAllMocks()
-    localRootMock.mockReturnValue(null)
     vi.resetModules()
     vi.stubGlobal('navigator', { userAgent: 'Mac' })
     vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
@@ -409,17 +402,6 @@ describe('EditorFileTab rename menu', () => {
       return 1
     })
     vi.stubGlobal('cancelAnimationFrame', vi.fn())
-  })
-
-  it('qualifies filenames with their owning root without changing rename paths', async () => {
-    localRootMock.mockReturnValue({ id: 'b', label: 'App B', path: '/repo' })
-    const file = baseFile()
-    const element = expandNode((await renderEditorFileTab(file)).element)
-    expect(findSpanByText(element, 'App B / untitled-5.md')).toBeDefined()
-    selectRenameFromMenu(element)
-    const renamed = expandNode((await renderEditorFileTab(file)).element)
-    expect(findElementsByType(renamed, 'input')[0].props.defaultValue).toBe('untitled-5.md')
-    expect(file.relativePath).toBe('untitled-5.md')
   })
 
   it('turns the tab filename into an inline input from the Rename context-menu item', async () => {

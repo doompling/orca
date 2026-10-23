@@ -17,6 +17,7 @@ import { inlineAgentDraftFitsPlatform } from './agent-draft-platform-limit'
 import type { TuiAgent } from './tui-agent'
 import type { SessionOptionValue } from './native-chat-session-options'
 import { resolveAgentLaunchCommand } from './tui-agent-launch-command'
+// Ether seam: agent-launch
 import type { LocalWorkspaceLaunchScope } from './local-projects/agent-launch-scope'
 import { appliedSessionOptionProps, buildFlagPromptStartupPlan } from './flag-prompt-startup'
 
@@ -98,6 +99,7 @@ export function buildAgentStartupPlan(args: {
   const quotedPrompt = quoteStartupArg(trimmedPrompt, shell)
 
   if (config.promptInjectionMode === 'argv') {
+    // Ether seam: agent-launch — Claude's variadic --add-dir needs `--` before the prompt.
     const separator =
       config.argvPromptSeparator ?? (args.localWorkspaceScope && agent === 'claude' ? '--' : '')
     const promptSeparator = separator ? ` ${separator}` : ''

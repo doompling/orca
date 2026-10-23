@@ -179,6 +179,7 @@ describe('LinearAgentSkillPane', () => {
     const markup = renderToStaticMarkup(<LinearAgentSkillPane />)
 
     expect(markup).toContain('Setup checklist')
+    // Ether seam: linear — the pane renders the fork's optional-skill guide.
     expect(markup).toContain('Optional: Linear agent skill')
     expect(markup).toContain('2. Show Linear in Tasks')
     expect(mocks.panelProps.at(-1)).toEqual(
@@ -189,7 +190,7 @@ describe('LinearAgentSkillPane', () => {
     expect(markup).toContain('Example prompts')
     expect(markup).toContain('Good to know')
     expect(markup).toContain('Start from a Linear issue')
-    expect(markup).toContain('>Ready<')
+    expect(markup).toContain('>Ready<') // Ether seam: linear
     // Skill lives inside the checklist; notes stay after examples.
     expect(markup.indexOf('Example prompts')).toBeLessThan(markup.indexOf('Good to know'))
     const examples = getLinearUsageExamples()
@@ -201,6 +202,7 @@ describe('LinearAgentSkillPane', () => {
     }
   })
 
+  // Ether seam: linear — the pane renders the fork's optional-skill guide.
   it('keeps browsing ready when an optional skill scan is unverifiable', () => {
     mocks.skillInstalled = false
     mocks.skillUnverifiable = true
@@ -211,6 +213,7 @@ describe('LinearAgentSkillPane', () => {
     expect(markup).not.toContain('2 of 3 ready')
   })
 
+  // Ether seam: linear — the pane renders the fork's optional-skill guide.
   it('shows ready browsing and the optional installer when the skill is missing', () => {
     mocks.skillInstalled = false
     const markup = renderToStaticMarkup(<LinearAgentSkillPane />)

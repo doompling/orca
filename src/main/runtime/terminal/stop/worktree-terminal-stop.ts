@@ -329,7 +329,8 @@ export abstract class OrcaRuntimeWithStopTerminalsForWorktree extends OrcaRuntim
     }
   }
 
-  protected async acquireWorktreeTerminalMutation(
+  // Ether seam: chat-scope — the local Workspace scope lock and edit guard take this lock.
+  async acquireWorktreeTerminalMutation(
     worktreeId: string,
     kind: WorktreeTerminalMutationKind,
     deadline?: number

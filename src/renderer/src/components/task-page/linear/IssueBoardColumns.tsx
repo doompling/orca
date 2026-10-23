@@ -9,6 +9,7 @@ import { translate } from '@/i18n/i18n'
 import { FolderOpen, ArrowRight, ExternalLink } from 'lucide-react'
 import { LinearStateCell } from '../../task-page-linear-issue-model'
 import { formatRelativeTime } from '../../task-page-source-context'
+// Ether seam: linear
 import { LocalIssueWorkspaceActions } from '@/features/local-projects/LocalIssueWorkspaceActions'
 export function TaskPageLinearIssueBoardColumns({
   model
@@ -32,6 +33,7 @@ export function TaskPageLinearIssueBoardColumns({
     handleLinearBoardCardDragStart,
     handleLinearBoardDragOver,
     handleLinearBoardDrop,
+    // Ether seam: linear
     handleUseLinearItem,
     handleOpenOrUseLinearItem
   } = model
@@ -113,6 +115,7 @@ export function TaskPageLinearIssueBoardColumns({
                       </h3>
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
+                      {/* Ether seam: linear — local Workspace links wrap the Start/Open action. */}
                       <LocalIssueWorkspaceActions
                         issue={issue}
                         sourceContext={linearTaskSourceContext}

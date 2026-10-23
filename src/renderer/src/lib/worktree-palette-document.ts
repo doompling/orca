@@ -128,6 +128,7 @@ function buildEvidence(
     comment,
     buildWorktreeAutomationEvidence(worktree),
     buildWorktreeLinkedTaskEvidence(worktree),
+    // Ether seam: linear
     ...buildLocalWorkspaceLinearEvidence(worktree),
     buildWorktreeReviewEvidence(resolveReviewSource(worktree, repo, sources)),
     buildWorktreeIssueEvidence({

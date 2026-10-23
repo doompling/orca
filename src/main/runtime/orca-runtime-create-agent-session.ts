@@ -114,7 +114,8 @@ export abstract class OrcaRuntimeWithCreateAgentSession extends OrcaRuntimeWithG
       // Why: reserve the client operation before any async preflight so concurrent retries cannot
       // both observe an empty ledger and reach the execution owner independently.
       const workspace = await this.resolveTerminalWorkspaceLaunchScope(request.worktree)
-      assertRuntimeAgentEntrypointSupportsWorkspace(this.store, workspace.id)
+      // Ether seam: agent-launch
+      assertRuntimeAgentEntrypointSupportsWorkspace(this.store ?? undefined, workspace.id)
       if (
         !(await this.executionOwnerSupportsAgentSessionOperation(
           workspace,

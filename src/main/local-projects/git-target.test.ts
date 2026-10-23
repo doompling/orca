@@ -2,9 +2,10 @@ import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSy
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { Store } from '../persistence/loading-store/store'
+import type { Store } from '../persistence/loading-store/store'
+import { openLocalProjectsTestStore } from './local-projects-store.test-support'
 import { gitExecFileSync } from '../git/runner'
-import { resolveDesktopGitTarget } from './git-target'
+import { resolveLocalRootGitTarget } from './git-target'
 import { createFilesystemHandlerContext } from '../ipc/filesystem/filesystem-handler-context'
 import { createSenderScopedRequestCancellations } from '../ipc/sender-scoped-request-cancellation'
 import { registerFilesystemGitStatusHandlers } from '../ipc/filesystem/filesystem-git-status-handlers'
@@ -57,7 +58,7 @@ async function fixture() {
     gitExecFileSync(['commit', '-m', 'Initial'], { cwd: path })
     writeFileSync(join(path, 'same.txt'), `changed in ${path}\n`)
   }
-  const store = new Store({ dataFile: join(directory, 'profile.json') })
+  const store = openLocalProjectsTestStore(directory)
   stores.push(store)
   const { workspace } = await store.createLocalProject({
     name: 'Both',
@@ -138,7 +139,7 @@ describe('native Workspace root Git admission and existing IPC operations', () =
       invoke('commit', { ...target(0), connectionId: 'remote', message: 'No' })
     ).rejects.toThrow('remote connection')
     await expect(
-      resolveDesktopGitTarget(store, {
+      resolveLocalRootGitTarget(store, {
         ...target(0),
         localRoot: { workspaceId: 'missing', rootId: '0' }
       })
@@ -154,7 +155,7 @@ describe('native Workspace root Git admission and existing IPC operations', () =
       roots: [{ id: 'sub', path: subdirectory }]
     })
     await expect(
-      resolveDesktopGitTarget(store, {
+      resolveLocalRootGitTarget(store, {
         worktreePath: subdirectory,
         localRoot: { workspaceId: workspace.id, rootId: 'sub' }
       })
@@ -166,11 +167,18 @@ describe('native Workspace root Git admission and existing IPC operations', () =
     const lookup = vi.spyOn(store, 'getRepos').mockImplementation(() => {
       throw new Error('Legacy owner must not be consulted')
     })
-    await expect(resolveDesktopGitTarget(store, target(1))).resolves.toEqual({
+    await expect(resolveLocalRootGitTarget(store, target(1))).resolves.toEqual({
       worktreePath: paths[1],
       gitOptions: {}
     })
     expect(lookup).not.toHaveBeenCalled()
     lookup.mockRestore()
+  })
+})
+
+describe('resolveLocalRootGitTarget without a local root', () => {
+  it('leaves the request to the caller’s upstream resolution', async () => {
+    const { store } = await fixture()
+    await expect(resolveLocalRootGitTarget(store, { worktreePath: '/repo' })).resolves.toBeNull()
   })
 })

@@ -14,6 +14,7 @@ import {
 import type { LocalProject, LocalProjectRoot } from '../../../../shared/local-projects/types'
 import { localProjectRootScope } from '../../../../shared/local-projects/scope-update'
 import { LocalProjectRootFields } from './LocalProjectRootFields'
+import { translate } from '@/i18n/i18n'
 
 export function LocalProjectDialog({
   project,
@@ -78,17 +79,39 @@ export function LocalProjectDialog({
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{original ? 'Edit Project roots' : 'New Project'}</DialogTitle>
+          <DialogTitle>
+            {original
+              ? translate(
+                  'auto.features.local.projects.LocalProjectDialog.284599def7',
+                  'Edit Project roots'
+                )
+              : translate(
+                  'auto.features.local.projects.LocalProjectDialog.3d057c670f',
+                  'New Project'
+                )}
+          </DialogTitle>
           <DialogDescription>
             {original
-              ? `Directories for ${original.name}. Clean tabs outside the new directories will close. Files stay where they are.`
-              : 'Choose the existing directories that belong together. Files stay where they are.'}
+              ? translate(
+                  'auto.features.local.projects.LocalProjectDialog.7b73a0bcfc',
+                  'Directories for {{value0}}. Clean tabs outside the new directories will close. Files stay where they are.',
+                  { value0: original.name }
+                )
+              : translate(
+                  'auto.features.local.projects.LocalProjectDialog.fea2007f79',
+                  'Choose the existing directories that belong together. Files stay where they are.'
+                )}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
           {!original && (
             <div className="space-y-2">
-              <Label htmlFor="local-project-name">Project name</Label>
+              <Label htmlFor="local-project-name">
+                {translate(
+                  'auto.features.local.projects.LocalProjectDialog.b2ee617f70',
+                  'Project name'
+                )}
+              </Label>
               <Input
                 id="local-project-name"
                 value={name}
@@ -109,10 +132,10 @@ export function LocalProjectDialog({
           />
           {original && (
             <p className="text-xs text-muted-foreground">
-              Changing directories or the default requires all affected Workspaces to have no
-              unsaved edits or running sessions. Labels and order can change at any time. Removing a
-              directory also removes its Workspace checkout choices; a removed Workspace default
-              will inherit the selected Project default.
+              {translate(
+                'auto.features.local.projects.LocalProjectDialog.93549fc86f',
+                'Changing directories or the default requires all affected Workspaces to have no unsaved edits or running sessions. Labels and order can change at any time. Removing a directory also removes its Workspace checkout choices; a removed Workspace default will inherit the selected Project default.'
+              )}
             </p>
           )}
           {error && (
@@ -122,7 +145,7 @@ export function LocalProjectDialog({
           )}
           <DialogFooter>
             <Button type="button" variant="ghost" disabled={busy} onClick={close}>
-              Cancel
+              {translate('auto.features.local.projects.LocalProjectDialog.3ebb5d7a4e', 'Cancel')}
             </Button>
             <Button
               type="submit"
@@ -136,11 +159,23 @@ export function LocalProjectDialog({
             >
               {busy
                 ? original
-                  ? 'Saving…'
-                  : 'Creating…'
+                  ? translate(
+                      'auto.features.local.projects.LocalProjectDialog.e7c430ff61',
+                      'Saving…'
+                    )
+                  : translate(
+                      'auto.features.local.projects.LocalProjectDialog.d943359ab7',
+                      'Creating…'
+                    )
                 : original
-                  ? 'Save roots'
-                  : 'Create Project'}
+                  ? translate(
+                      'auto.features.local.projects.LocalProjectDialog.103291f36d',
+                      'Save roots'
+                    )
+                  : translate(
+                      'auto.features.local.projects.LocalProjectDialog.f76ce54b0c',
+                      'Create Project'
+                    )}
             </Button>
           </DialogFooter>
         </form>

@@ -29,6 +29,7 @@ import {
 } from './app-root-surface-settings'
 import type { FloatingWorkspacePanelState } from './use-floating-workspace-panel'
 import type { OnboardingGate } from './use-onboarding-and-feature-tips'
+// Ether seam: local-projects
 import { hasLocalProjectsApi } from '@/features/local-projects/local-projects-availability'
 import { LocalProjectDialog } from '@/features/local-projects/LocalProjectDialog'
 import { LocalWorkspaceDialog } from '@/features/local-projects/LocalWorkspaceDialog'
@@ -184,10 +185,12 @@ export function AppRootSurfaces(props: {
       {/* Why: keep in the entry bundle so a stale/corrupt lazy chunk can't strand users at Create. */}
       {activeModal === 'new-workspace-composer' ? (
         <ModalBoundary boundaryId="modal.new-workspace-composer" resetKey>
+          {/* Ether seam: local-projects */}
           {hasLocalProjectsApi() ? <LocalWorkspaceDialog /> : <NewWorkspaceComposerModal />}
         </ModalBoundary>
       ) : null}
       <Suspense fallback={null}>
+        {/* Ether seam: local-projects */}
         {hasLocalProjectsApi() && activeModal === 'add-repo' ? (
           <ModalBoundary boundaryId="modal.local-project" resetKey>
             <LocalProjectDialog />

@@ -82,6 +82,7 @@ export type PreloadApi = {
   projects: ProjectsApi
   projectGroups: ProjectGroupsApi
   folderWorkspaces: FolderWorkspacesApi
+  // Ether seam: local-projects
   localProjects: LocalProjectsApi
   sparsePresets: SparsePresetsApi
   worktrees: WorktreeApi

@@ -13,6 +13,7 @@ import {
   onLocalWorkspaceMarksListRequest,
   toggleLocalWorkspaceMark
 } from './local-workspace-sidebar-actions'
+import { translate } from '@/i18n/i18n'
 
 function matches(actionId: KeybindingActionId, event: KeyboardEvent): boolean {
   const state = useAppStore.getState()
@@ -74,7 +75,11 @@ export function LocalWorkspaceShortcuts(): React.JSX.Element {
       <LocalWorkspaceMarksDialog open={marksOpen} onOpenChange={setMarksOpen} />
       <Dialog open={linearWorkspaceId !== null} onOpenChange={(open) => !open && closeLinear()}>
         <DialogContent className="sm:max-w-md">
-          <DialogTitle className="sr-only">Linear issues for {linearWorkspaceName}</DialogTitle>
+          <DialogTitle className="sr-only">
+            {translate('localProjects.shortcuts.linearTitle', 'Linear issues for {{name}}', {
+              name: linearWorkspaceName ?? ''
+            })}
+          </DialogTitle>
           {linearWorkspaceId ? (
             <LocalWorkspaceLinearIssuesContent
               key={`${profileId}:${linearWorkspaceId}`}

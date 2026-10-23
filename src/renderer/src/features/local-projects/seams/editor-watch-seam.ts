@@ -13,7 +13,9 @@ export function localWorkspaceWatchPaths(
   if (!localProjects || owner !== null || connectionId) {
     return null
   }
-  return resolveLocalWorkspaceKey(localProjects, workspaceId)?.roots.map((root) => root.path) ?? null
+  return (
+    resolveLocalWorkspaceKey(localProjects, workspaceId)?.roots.map((root) => root.path) ?? null
+  )
 }
 
 /**

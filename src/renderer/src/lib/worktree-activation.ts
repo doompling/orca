@@ -119,7 +119,10 @@ export function activateAndRevealFolderWorkspace(
   const workspaceKey = folderWorkspaceKey(folderWorkspaceId)
   // Ether seam: local-projects
   void rememberLocalWorkspaceNavigation(useAppStore.getState(), workspaceKey).catch((error) =>
-    toast.error('Could not remember this Workspace.', { description: String(error) })
+    toast.error(
+      translate('auto.lib.worktree.activation.68993c4bad', 'Could not remember this Workspace.'),
+      { description: String(error) }
+    )
   )
   const providesInitialSurface = activationProvidesInitialSurface(opts)
   const seedUserDefaultSurface = activationSeedsUserDefaultSurface(opts)

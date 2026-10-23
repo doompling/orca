@@ -1,5 +1,5 @@
-import { linearSearchIssues, linearStatus } from '@/runtime/runtime-linear-client'
-import { linearGetIssue } from '@/runtime/runtime-linear-issue-mutations'
+import { linearSearchIssuesForTarget, linearStatusForTarget } from '@/runtime/runtime-linear-client'
+import { getLocalLinearIssue } from './local-linear-issue-lookup'
 import {
   isLinearIssueUrlResolutionMatch,
   parseLinearIssueInput,
@@ -9,7 +9,8 @@ import type { LinearIssue } from '../../../../shared/linear/issue-types'
 import type { LinearWorkspace } from '../../../../shared/linear/workspace-types'
 import type { LocalWorkspaceLinearIssue } from '../../../../shared/local-projects/linear-issues'
 
-export const LOCAL_WORKSPACE_LINEAR_SETTINGS = { activeRuntimeEnvironmentId: null }
+// Local Workspace Linear reads always run on this host.
+export const LOCAL_WORKSPACE_LINEAR_TARGET = { kind: 'local' } as const
 export const LOCAL_WORKSPACE_LINEAR_SEARCH_LIMIT = 20
 
 export async function readLocalWorkspaceLinearIssues(
@@ -35,11 +36,7 @@ export async function readLocalWorkspaceLinearIssues(
         'This issue URL belongs to another Linear account. Choose that account first.'
       )
     }
-    const issue = await linearGetIssue(
-      LOCAL_WORKSPACE_LINEAR_SETTINGS,
-      parsed.identifier,
-      account.id
-    )
+    const issue = await getLocalLinearIssue(parsed.identifier, account.id)
     if (!issue) {
       throw new Error(
         'Could not load this issue in the selected Linear account. Check the identifier and connection.'
@@ -54,8 +51,8 @@ export async function readLocalWorkspaceLinearIssues(
     }
     return { issues: [issue], error: null }
   }
-  const issues = await linearSearchIssues(
-    LOCAL_WORKSPACE_LINEAR_SETTINGS,
+  const issues = await linearSearchIssuesForTarget(
+    LOCAL_WORKSPACE_LINEAR_TARGET,
     term,
     LOCAL_WORKSPACE_LINEAR_SEARCH_LIMIT,
     account.id
@@ -71,7 +68,7 @@ export async function readLocalWorkspaceLinearIssues(
 export async function requireLocalWorkspaceLinearAccount(
   link: LocalWorkspaceLinearIssue
 ): Promise<LinearWorkspace> {
-  const status = await linearStatus(LOCAL_WORKSPACE_LINEAR_SETTINGS)
+  const status = await linearStatusForTarget(LOCAL_WORKSPACE_LINEAR_TARGET)
   const account = status.workspaces?.find((entry) => entry.id === link.linearWorkspaceId)
   if (
     !status.connected ||
@@ -91,11 +88,7 @@ export async function readLocalWorkspaceLinkedIssue(
   link: LocalWorkspaceLinearIssue
 ): Promise<LinearIssue> {
   await requireLocalWorkspaceLinearAccount(link)
-  const issue = await linearGetIssue(
-    LOCAL_WORKSPACE_LINEAR_SETTINGS,
-    link.issueId,
-    link.linearWorkspaceId
-  )
+  const issue = await getLocalLinearIssue(link.issueId, link.linearWorkspaceId)
   if (!issue || issue.id !== link.issueId || issue.workspaceId !== link.linearWorkspaceId) {
     throw new Error(
       'Could not load this linked issue from its original Linear account. Saved details are unchanged.'

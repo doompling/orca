@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { commitRuntimeGit } from '@/runtime/runtime-git-sync-client'
+import { getRuntimeGitStatus } from '@/runtime/runtime-git-status-client'
 import {
-  commitRuntimeGit,
-  getRuntimeGitStatus,
   stageRuntimeGitPath,
   unstageRuntimeGitPath
-} from '@/runtime/runtime-git-client'
+} from '@/runtime/runtime-git-working-tree-client'
 import type { GitStatusResult } from '../../../../shared/git-status-types'
 import type { LocalProjectRoot } from '../../../../shared/local-projects/types'
 import type { RuntimeGitContext } from '@/runtime/runtime-git-client-context'
@@ -12,7 +12,7 @@ import type { RuntimeGitContext } from '@/runtime/runtime-git-client-context'
 export function useLocalRootGit(workspaceId: string, root: LocalProjectRoot) {
   const context = useMemo<RuntimeGitContext>(
     () => ({
-      settings: { activeRuntimeEnvironmentId: null },
+      target: { kind: 'local' },
       worktreeId: `folder:${workspaceId}`,
       worktreePath: root.path,
       localRoot: { workspaceId, rootId: root.id }

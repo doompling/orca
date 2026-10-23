@@ -26,6 +26,7 @@ import { translate } from '@/i18n/i18n'
 import type { LinearIssue } from '../../../shared/linear/issue-types'
 import type { TaskSourceContext } from '../../../shared/task-source-context'
 import { copyLinearIssueText } from './linear-issue-clipboard'
+// Ether seam: linear
 import { LocalIssueWorkspaceActions } from '@/features/local-projects/LocalIssueWorkspaceActions'
 
 export function LinearIssueWorkspaceHeader({
@@ -37,6 +38,7 @@ export function LinearIssueWorkspaceHeader({
   onClose,
   onOpenOrUseIssue,
   onUseIssue,
+  // Ether seam: linear
   attachedWorkspaceLabel,
   sourceContext
 }: {
@@ -48,6 +50,7 @@ export function LinearIssueWorkspaceHeader({
   onClose: () => void
   onOpenOrUseIssue: () => void
   onUseIssue: () => void
+  // Ether seam: linear
   attachedWorkspaceLabel?: string | null
   sourceContext?: TaskSourceContext | null
 }): React.JSX.Element {
@@ -121,6 +124,7 @@ export function LinearIssueWorkspaceHeader({
             {translate('auto.components.LinearIssueWorkspace.openOnLinear', 'Open on Linear')}
           </TooltipContent>
         </Tooltip>
+        {/* Ether seam: linear — local Workspace links wrap the workspace action. */}
         <LocalIssueWorkspaceActions
           issue={issue}
           sourceContext={sourceContext}

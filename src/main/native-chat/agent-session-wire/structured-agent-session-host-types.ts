@@ -1,4 +1,3 @@
-import type { AcquireWorkspaceScope } from '../../local-projects/seams/chat-scope-seam'
 import type { StructuredAgentSessionStatusObserverOptions } from './structured-agent-session-status-observation'
 import type { SubmissionRejectionFact } from '../../../shared/agent-session-failure'
 import type { AgentSessionOwnerProbe } from '../../../shared/agent-session-lease-adjudication'
@@ -137,8 +136,6 @@ export type StructuredAgentSessionHostDeps = {
   /** The host's one chat journal database. */
   journalDatabase: JournalHostDatabase
   claimKeyId: string
-  // Ether seam: chat-scope
-  acquireWorkspaceScope?: AcquireWorkspaceScope
   probeOwner?: (record: AgentSessionRecord) => Promise<AgentSessionOwnerProbe>
   probeOwners?: (
     records: readonly AgentSessionRecord[]

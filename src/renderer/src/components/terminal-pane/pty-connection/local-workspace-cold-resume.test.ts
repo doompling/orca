@@ -3,10 +3,8 @@ import type { SleepingAgentSessionRecord } from '../../../../../shared/agent-ses
 import { captureLocalWorkspaceLaunchScope } from '../../../../../shared/local-projects/agent-launch-scope'
 import { localWorkspaceAgentArguments } from '../../../../../shared/local-projects/agent-root-arguments'
 import { buildAgentStartupPlan } from '../../../../../shared/tui-agent-startup'
-import {
-  bindBuildColdRestoreAgentResumeStartup,
-  type ColdRestoreResumeSession
-} from './cold-restore-resume-startup'
+import { bindBuildColdRestoreAgentResumeStartup } from './cold-restore-resume-startup'
+import type { ConnectPanePtySession } from './connect-pane-pty-session'
 
 const store = {
   settings: { agentCmdOverrides: {}, agentDefaultArgs: {}, agentDefaultEnv: {} },
@@ -19,7 +17,8 @@ vi.mock('@/lib/sleeping-record-execution-host-scope', () => ({
   sleepingRecordNamesAnotherExecutionHost: () => false
 }))
 vi.mock('@/lib/agent-resume-launch-target', () => ({
-  resolveAgentResumeLaunchTarget: () => ({ platform: 'darwin', shell: 'posix' })
+  resolveAgentResumeLaunchTarget: () => ({ platform: 'darwin', shell: 'posix' }),
+  resolveSshHostReportedPlatform: () => undefined
 }))
 
 function savedRecord(): SleepingAgentSessionRecord {
@@ -59,7 +58,8 @@ describe('Local Workspace cold resume', () => {
 
   it('keeps the original provider session, complete roots and cwd rather than current pane path', () => {
     const record = savedRecord()
-    const session: ColdRestoreResumeSession = {
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: cold-restore resume reads only these session fields.
+    const session = {
       buildColdRestoreAgentResumeStartup: () => null,
       pendingStartupCommand: null,
       cacheKey: record.paneKey,
@@ -69,8 +69,9 @@ describe('Local Workspace cold resume', () => {
       connectionId: undefined,
       worktree: undefined,
       shellOverride: undefined,
+      transport: {},
       deps: { worktreeId: record.worktreeId }
-    }
+    } as unknown as ConnectPanePtySession
     bindBuildColdRestoreAgentResumeStartup(session)
     const startup = session.buildColdRestoreAgentResumeStartup()
     expect(startup?.launchConfig.localWorkspaceScope).toEqual(

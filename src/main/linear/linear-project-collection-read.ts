@@ -6,7 +6,8 @@ import type {
 import { acquire, release } from './linear-request-concurrency'
 import { clearToken } from './linear-token-store'
 import { getClients, isAuthError, type LinearClientForWorkspace } from './client'
-import { withLinearReadDeadline } from './linear-read-deadline'
+// Ether seam: linear — stalled reads time out with a retryable error.
+import { deadlineBoundLinearRead } from './linear-read-deadline'
 import {
   coalesce,
   normalizeConcreteWorkspaceId,
@@ -22,44 +23,45 @@ export async function readCollection<T>(
 ): Promise<LinearCollectionResult<T>> {
   return coalesce(
     key,
-    () =>
-      withLinearReadDeadline(async (signal) => {
-        const entries = getClients(workspaceId, signal)
-        if (entries.length === 0) {
-          return { items: [] }
-        }
+    // Ether seam: linear
+    deadlineBoundLinearRead(async (signal) => {
+      const entries = getClients(workspaceId, signal)
+      if (entries.length === 0) {
+        return { items: [] }
+      }
 
-        const results = await Promise.all(
-          entries.map(async (entry) => {
+      const results = await Promise.all(
+        entries.map(async (entry) => {
+          try {
+            // Ether seam: linear — a read aborted while queued is that workspace's error.
+            await acquire(signal)
             try {
-              await acquire(signal)
-              try {
-                return await load(entry)
-              } finally {
-                release()
-              }
-            } catch (error) {
-              if (isAuthError(error)) {
-                clearToken(entry.workspace.id)
-              } else {
-                console.warn('[linear] project/view read failed:', error)
-              }
-              if (shouldFailWholeRequest(workspaceId)) {
-                throw error
-              }
-              return { items: [], errors: [workspaceError(entry, error)] }
+              return await load(entry)
+            } finally {
+              release()
             }
-          })
-        )
+          } catch (error) {
+            if (isAuthError(error)) {
+              clearToken(entry.workspace.id)
+            } else {
+              console.warn('[linear] project/view read failed:', error)
+            }
+            if (shouldFailWholeRequest(workspaceId)) {
+              throw error
+            }
+            return { items: [], errors: [workspaceError(entry, error)] }
+          }
+        })
+      )
 
-        return {
-          items: results.flatMap((result) => result.items),
-          errors: results.flatMap((result) => result.errors ?? []).length
-            ? results.flatMap((result) => result.errors ?? [])
-            : undefined,
-          hasMore: results.some((result) => result.hasMore)
-        }
-      }),
+      return {
+        items: results.flatMap((result) => result.items),
+        errors: results.flatMap((result) => result.errors ?? []).length
+          ? results.flatMap((result) => result.errors ?? [])
+          : undefined,
+        hasMore: results.some((result) => result.hasMore)
+      }
+    }),
     force
   )
 }

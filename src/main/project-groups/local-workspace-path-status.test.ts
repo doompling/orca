@@ -20,7 +20,6 @@ function workspace(path: string): ResolvedLocalWorkspace {
 describe('Local Workspace native path status', () => {
   it('uses the declared native root without inferring an overlapping SSH owner', async () => {
     const root = await mkdtemp(join(tmpdir(), 'orca-local-workspace-'))
-    const getSshFilesystemProvider = vi.fn(() => undefined)
     const getRepos = vi.fn(() => [
       {
         id: 'remote-repo',
@@ -35,12 +34,10 @@ describe('Local Workspace native path status', () => {
       await expect(
         getFolderWorkspacePathStatus(
           { getRepos, resolveLocalWorkspace: () => workspace(root) },
-          { scope: 'folder-workspace', folderWorkspaceId: 'workspace' },
-          { getSshFilesystemProvider }
+          { scope: 'folder-workspace', folderWorkspaceId: 'workspace' }
         )
       ).resolves.toEqual({ path: root, exists: true })
       expect(getRepos).not.toHaveBeenCalled()
-      expect(getSshFilesystemProvider).not.toHaveBeenCalled()
     } finally {
       await rm(root, { recursive: true, force: true })
     }
@@ -54,8 +51,7 @@ describe('Local Workspace native path status', () => {
       await expect(
         getFolderWorkspacePathStatus(
           { getRepos: () => [], resolveLocalWorkspace: () => resolved },
-          { scope: 'folder-workspace', folderWorkspaceId: 'workspace' },
-          { getSshFilesystemProvider: () => undefined }
+          { scope: 'folder-workspace', folderWorkspaceId: 'workspace' }
         )
       ).resolves.toEqual({ path: join(root, 'missing-first'), exists: false, reason: 'missing' })
     } finally {
@@ -69,8 +65,7 @@ describe('Local Workspace native path status', () => {
     await expect(
       getFolderWorkspacePathStatus(
         { getRepos: () => [], resolveLocalWorkspace: () => resolved },
-        { scope: 'folder-workspace', folderWorkspaceId: 'workspace' },
-        { getSshFilesystemProvider: () => undefined }
+        { scope: 'folder-workspace', folderWorkspaceId: 'workspace' }
       )
     ).rejects.toThrow('Local Workspace default root is unavailable.')
   })

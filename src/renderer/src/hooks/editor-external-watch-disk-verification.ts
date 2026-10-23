@@ -139,11 +139,7 @@ export function scheduleEditorChangedOnDiskMark(
     return
   }
   const absolutePath = joinPath(notification.worktreePath, notification.relativePath)
-  const recentSelfWrite = getRecentSelfWrite(
-    absolutePath,
-    target.runtimeEnvironmentId,
-    target.worktreeId
-  )
+  const recentSelfWrite = getRecentSelfWrite(absolutePath, target.runtimeEnvironmentId)
   // Why: the fs event may be the echo of Orca's own save — verify disk really differs from our last write before showing a "changed on disk" banner.
   if (!recentSelfWrite || recentSelfWrite.content === null) {
     markTabsChangedOnDisk(fileIds, target.connectionId)
@@ -310,13 +306,13 @@ export function scheduleSelfWriteAwareEditorExternalReload(
         (result.isBinary || result.content !== recentSelfWrite.content) &&
         hasCleanExternalReloadTarget(notification)
       ) {
-        clearSelfWrite(file.filePath, runtimeEnvironmentId, file.worktreeId)
+        clearSelfWrite(file.filePath, runtimeEnvironmentId)
         scheduleDebouncedEditorExternalReload(notification)
       }
     })
     .catch(() => {
       if (hasCleanExternalReloadTarget(notification)) {
-        clearSelfWrite(file.filePath, runtimeEnvironmentId, file.worktreeId)
+        clearSelfWrite(file.filePath, runtimeEnvironmentId)
         scheduleDebouncedEditorExternalReload(notification)
       }
     })

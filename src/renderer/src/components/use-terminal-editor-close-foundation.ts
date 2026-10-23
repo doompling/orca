@@ -8,6 +8,7 @@ import type { TerminalWorkspaceProjectionController } from './use-terminal-works
 import { runWithWindowCloseCheckpointScope } from './window-close-request-coordinator'
 import { showShutdownCheckpointFailureToast } from '@/lib/shutdown-checkpoint-failure-toast'
 import { useAppStore } from '../store'
+// Ether seam: editor
 import { canRestoreLocalWorkspaceDraftAfterClose } from '@/features/local-projects/local-workspace-draft-close'
 import { requestEditorHotExitBackup } from '../../../shared/renderer-restart-preparation'
 import {
@@ -16,7 +17,7 @@ import {
 } from '../../../shared/renderer-shutdown-events'
 
 export function useTerminalEditorCloseFoundation(
-  controller: Pick<TerminalWorkspaceProjectionController, 'openFiles'>
+  controller: TerminalWorkspaceProjectionController
 ) {
   const { openFiles } = controller
   const [saveDialogFileId, setSaveDialogFileId] = useState<string | null>(null)

@@ -14,6 +14,7 @@ import {
 import type { LinearIssue } from '../../../../shared/linear/issue-types'
 import type { TaskSourceContext } from '../../../../shared/task-source-context'
 import { useLocalLinearIssueWorkspaces } from './use-local-linear-issue-workspaces'
+import { translate } from '@/i18n/i18n'
 
 export function LocalIssueWorkspaceActions({
   issue,
@@ -61,18 +62,42 @@ export function LocalIssueWorkspaceActions({
         <Button
           variant="outline"
           size="xs"
-          aria-label={`Workspaces for ${issue.identifier}`}
+          aria-label={translate(
+            'auto.features.local.projects.LocalIssueWorkspaceActions.aec92e896e',
+            'Workspaces for {{value0}}',
+            { value0: issue.identifier }
+          )}
           onClick={(event) => event.stopPropagation()}
         >
           <FolderOpen />
-          {attached.length ? `Workspaces (${attached.length})` : 'Attach Workspace'}
+          {attached.length
+            ? translate(
+                'auto.features.local.projects.LocalIssueWorkspaceActions.af9b835edb',
+                'Workspaces ({{value0}})',
+                { value0: attached.length }
+              )
+            : translate(
+                'auto.features.local.projects.LocalIssueWorkspaceActions.5602f7513d',
+                'Attach Workspace'
+              )}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" onClick={(event) => event.stopPropagation()}>
         <Command>
-          <CommandInput placeholder="Search Workspaces…" disabled={busy} />
+          <CommandInput
+            placeholder={translate(
+              'auto.features.local.projects.LocalIssueWorkspaceActions.4671128302',
+              'Search Workspaces…'
+            )}
+            disabled={busy}
+          />
           <CommandList>
-            <CommandEmpty>No matching Workspaces.</CommandEmpty>
+            <CommandEmpty>
+              {translate(
+                'auto.features.local.projects.LocalIssueWorkspaceActions.84ba0284ba',
+                'No matching Workspaces.'
+              )}
+            </CommandEmpty>
             {attached.length > 0 && (
               <CommandGroup heading="Open linked Workspace">
                 {attached.map(({ workspace, label }) => (
@@ -125,7 +150,10 @@ export function LocalIssueWorkspaceActions({
                   }}
                 >
                   <Plus />
-                  New Workspace for issue
+                  {translate(
+                    'auto.features.local.projects.LocalIssueWorkspaceActions.670dd517dc',
+                    'New Workspace for issue'
+                  )}
                 </CommandItem>
               </CommandGroup>
             )}

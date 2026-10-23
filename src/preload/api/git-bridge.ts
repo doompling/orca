@@ -5,6 +5,7 @@ import type { GitPushTarget } from '../../shared/worktree/types'
 import type { GitStageWorktreeScope } from '../../shared/git-stage-worktree-scope'
 import type { GitHistoryOptions, GitHistoryResult } from '../../shared/git-history'
 import type { PreloadApi } from '../api-types'
+// Ether seam: git — `localRoot` routes a local Workspace root's Git calls.
 import type { LocalWorkspaceGitRoot } from '../../shared/local-projects/git-root'
 
 export const gitApi = {

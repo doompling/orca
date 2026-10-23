@@ -1,5 +1,6 @@
 import React from 'react'
 import { SourceControlPanel } from './source-control/panel/panel'
+// Ether seam: local-projects
 import { useActiveLocalWorkspace } from '@/features/local-projects/use-active-local-workspace'
 import { LocalWorkspaceSourceControl } from '@/features/local-projects/LocalWorkspaceSourceControl'
 
@@ -57,6 +58,7 @@ export {
 } from './source-control/ai/text-generation-defaults'
 
 function SourceControlInner(): React.JSX.Element {
+  // Ether seam: local-projects — per-root Source Control for a local Workspace.
   const workspace = useActiveLocalWorkspace()
   if (workspace) {
     return <LocalWorkspaceSourceControl workspace={workspace} />

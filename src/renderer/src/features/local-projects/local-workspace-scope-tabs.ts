@@ -1,6 +1,7 @@
 import type { AppState } from '@/store/types'
 import type { OpenFile } from '@/store/slices/editor'
-import { flushPendingEditorChange } from '@/components/editor/editor-pending-flush'
+import { flushPendingEditorBuffer } from '@/components/editor/editor-pending-flush'
+import type { EditorBufferViewIndex } from '@/store/slices/editor/buffers/editor-buffer-views'
 import { normalizeRuntimePathForComparison } from '../../../../shared/cross-platform-path'
 import type { LocalProjectsState } from '../../../../shared/local-projects/types'
 import { resolveLocalWorkspaceKey } from '../../../../shared/local-projects/workspace-resolution'
@@ -35,7 +36,8 @@ function isObsoleteScopeTab(
   )
 }
 
-type ScopeTabState = Pick<AppState, 'openFiles' | 'editorDrafts' | 'clearUntitled' | 'closeFile'>
+type ScopeTabState = Pick<AppState, 'openFiles' | 'editorDrafts' | 'clearUntitled' | 'closeFile'> &
+  EditorBufferViewIndex
 
 export function closeObsoleteLocalWorkspaceTabs(
   previous: LocalProjectsState,
@@ -47,7 +49,7 @@ export function closeObsoleteLocalWorkspaceTabs(
     .openFiles.filter((file) => isObsoleteScopeTab(file, previous, current))
     .map((file) => file.id)
   for (const fileId of obsoleteIds) {
-    flushPendingEditorChange(fileId)
+    flushPendingEditorBuffer(get(), fileId)
     const state = get()
     const file = state.openFiles.find((entry) => entry.id === fileId)
     if (!file || !isObsoleteScopeTab(file, previous, current)) {

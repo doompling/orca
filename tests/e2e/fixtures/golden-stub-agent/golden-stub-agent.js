@@ -12,6 +12,7 @@ if (process.argv[2] === 'app-server') {
 const ESC = '\x1b'
 const keyboardProtocolMode = process.argv.includes('--keyboard-protocol')
 const keyboardProtocolAgent = process.argv.includes('--grok') ? 'Grok' : 'Codex'
+// Ether seam: local-projects e2e — prints cwd/argv for tests/e2e/helpers/golden-stub-agent-launch-capture.ts.
 const launchCapture = process.argv.includes('--golden-capture-launch')
   ? [
       'GOLDEN_STUB_LAUNCH_BEGIN',

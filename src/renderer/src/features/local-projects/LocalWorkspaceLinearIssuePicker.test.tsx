@@ -1,21 +1,25 @@
 // @vitest-environment happy-dom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { linearListIssues, linearSearchIssues, linearStatus } from '@/runtime/runtime-linear-client'
-import { linearGetIssue } from '@/runtime/runtime-linear-issue-mutations'
+import {
+  linearListIssues,
+  linearSearchIssuesForTarget,
+  linearStatusForTarget
+} from '@/runtime/runtime-linear-client'
+import { getLocalLinearIssue } from './local-linear-issue-lookup'
 import { LocalWorkspaceLinearIssuePicker } from './LocalWorkspaceLinearIssuePicker'
 import { localLinearIssue, localLinearStatus } from './workspace-linear-picker-test-fixtures'
 
 vi.mock('@/runtime/runtime-linear-client', () => ({
-  linearStatus: vi.fn(),
-  linearSearchIssues: vi.fn(),
+  linearStatusForTarget: vi.fn(),
+  linearSearchIssuesForTarget: vi.fn(),
   linearListIssues: vi.fn()
 }))
-vi.mock('@/runtime/runtime-linear-issue-mutations', () => ({ linearGetIssue: vi.fn() }))
+vi.mock('./local-linear-issue-lookup', () => ({ getLocalLinearIssue: vi.fn() }))
 beforeEach(() => {
   vi.useFakeTimers()
-  vi.mocked(linearStatus).mockResolvedValue(localLinearStatus())
-  vi.mocked(linearSearchIssues).mockResolvedValue([localLinearIssue()])
+  vi.mocked(linearStatusForTarget).mockResolvedValue(localLinearStatus())
+  vi.mocked(linearSearchIssuesForTarget).mockResolvedValue([localLinearIssue()])
 })
 afterEach(() => {
   cleanup()
@@ -52,8 +56,8 @@ describe('search-only Workspace Linear issue picker', () => {
     await act(() => vi.advanceTimersByTimeAsync(300))
     expectSearchHint()
     expect(linearListIssues).not.toHaveBeenCalled()
-    expect(linearSearchIssues).not.toHaveBeenCalled()
-    expect(linearGetIssue).not.toHaveBeenCalled()
+    expect(linearSearchIssuesForTarget).not.toHaveBeenCalled()
+    expect(getLocalLinearIssue).not.toHaveBeenCalled()
   })
 
   it('does not load issues when refreshing access before a search', async () => {
@@ -61,10 +65,10 @@ describe('search-only Workspace Linear issue picker', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Refresh issues' }))
     await act(() => vi.advanceTimersByTimeAsync(300))
     expectSearchHint()
-    expect(linearStatus).toHaveBeenCalledTimes(2)
+    expect(linearStatusForTarget).toHaveBeenCalledTimes(2)
     expect(linearListIssues).not.toHaveBeenCalled()
-    expect(linearSearchIssues).not.toHaveBeenCalled()
-    expect(linearGetIssue).not.toHaveBeenCalled()
+    expect(linearSearchIssuesForTarget).not.toHaveBeenCalled()
+    expect(getLocalLinearIssue).not.toHaveBeenCalled()
   })
 
   it('shows explicit search results and removes them immediately when cleared', async () => {
@@ -77,12 +81,12 @@ describe('search-only Workspace Linear issue picker', () => {
     expectSearchHint()
     await act(() => vi.advanceTimersByTimeAsync(300))
     expectSearchHint()
-    expect(linearSearchIssues).toHaveBeenCalledOnce()
+    expect(linearSearchIssuesForTarget).toHaveBeenCalledOnce()
     expect(linearListIssues).not.toHaveBeenCalled()
   })
 
   it('shows no-results feedback only after a qualifying search completes', async () => {
-    vi.mocked(linearSearchIssues).mockResolvedValue([])
+    vi.mocked(linearSearchIssuesForTarget).mockResolvedValue([])
     const input = await renderPicker()
     expectSearchHint()
     fireEvent.change(input, { target: { value: 'absent' } })

@@ -15,6 +15,7 @@ import {
   type LocalSidebarRow
 } from './local-sidebar-model'
 import { openLocalWorkspace } from './local-workspace-sidebar-actions'
+import { translate } from '@/i18n/i18n'
 
 // Same cap treatment as the Search shortcut chip in SidebarNav.
 const MARK_KEY_CAP_CLASS_NAME =
@@ -72,7 +73,10 @@ export const LocalSidebarWorkspaceRow = React.memo(function LocalSidebarWorkspac
                 ) : row.isUnread ? (
                   <span
                     className="size-1.5 rounded-full bg-worktree-sidebar-foreground"
-                    title="New activity"
+                    title={translate(
+                      'auto.features.local.projects.LocalSidebarWorkspaceRow.f42a4b95d7',
+                      'New activity'
+                    )}
                   />
                 ) : null}
               </span>
@@ -85,12 +89,31 @@ export const LocalSidebarWorkspaceRow = React.memo(function LocalSidebarWorkspac
               >
                 {workspace.name}
               </span>
-              {archived ? <span className="sr-only"> (Archived)</span> : null}
-              {row.isUnread && !archived ? <span className="sr-only">, new activity</span> : null}
+              {archived ? (
+                <span className="sr-only">
+                  {' '}
+                  {translate(
+                    'auto.features.local.projects.LocalSidebarWorkspaceRow.06d2bd0718',
+                    '(Archived)'
+                  )}
+                </span>
+              ) : null}
+              {row.isUnread && !archived ? (
+                <span className="sr-only">
+                  {translate(
+                    'auto.features.local.projects.LocalSidebarWorkspaceRow.50284216f0',
+                    ', new activity'
+                  )}
+                </span>
+              ) : null}
               {overrides.map(({ root, path }) => (
                 <span
                   key={root.id}
-                  title={`${root.label} uses ${path}`}
+                  title={translate(
+                    'auto.features.local.projects.LocalSidebarWorkspaceRow.202ad7ce04',
+                    '{{value0}} uses {{value1}}',
+                    { value0: root.label, value1: path }
+                  )}
                   className="flex max-w-[40%] min-w-0 shrink-[4] items-center gap-0.5 font-mono text-[11px] text-muted-foreground"
                 >
                   <GitBranch className="size-3 shrink-0" />
@@ -116,7 +139,11 @@ export const LocalSidebarWorkspaceRow = React.memo(function LocalSidebarWorkspac
               {hiddenCount > 0 ? (
                 <span
                   className="flex shrink-0 items-center gap-0.5 text-[11px] text-muted-foreground"
-                  title={`${hiddenCount} idle agent${hiddenCount === 1 ? '' : 's'}`}
+                  title={translate(
+                    'auto.features.local.projects.LocalSidebarWorkspaceRow.6e73f35c99',
+                    '{{value0}} idle agent{{value1}}',
+                    { value0: hiddenCount, value1: hiddenCount === 1 ? '' : 's' }
+                  )}
                 >
                   <Bot className="size-3" />
                   {hiddenCount}

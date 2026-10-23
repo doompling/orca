@@ -22,11 +22,7 @@ function assertStructuredSessionsExited(worktreeIds: readonly string[]): void {
     }
     return
   }
-  if (
-    host.deps.store.readOnly ||
-    host.deps.store.recoveredFromBackup ||
-    host.deps.store.hasUnreadableRecords
-  ) {
+  if (host.deps.store.readOnly || host.deps.store.hasUnreadableRecords) {
     throw new Error('Agent session state is unverifiable; Workspace roots have not changed.')
   }
   for (const record of host.deps.store.listRecords()) {

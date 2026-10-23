@@ -4,11 +4,11 @@ import {
   localLinearIssueAttachments,
   localLinearWorkspaceTargets
 } from './local-workspace-linear-attachments'
-import { localWorkspaceLinearTaskRefs } from './local-workspace-linear-task-refs'
 import {
-  linkedLinearIssueRefsSignature,
+  localWorkspaceLinearTaskRefs,
   readLinkedLinearIssueRef
-} from '@/components/task-page-linear-in-orca-issues'
+} from './local-workspace-linear-task-refs'
+import { linkedLinearIssueRefsSignature } from '@/components/task-page/linear/task-page-linear-in-orca-issues'
 import {
   localLinearAccount,
   localLinearCatalog,

@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { LocalProjectRoot } from '../../../../shared/local-projects/types'
 import type { CreateLocalRootWorktreeResult } from '../../../../shared/local-projects/worktree-creation'
+import { translate } from '@/i18n/i18n'
 
 export function LocalRootWorktreeCreation({
   projectId,
@@ -73,18 +74,32 @@ export function LocalRootWorktreeCreation({
         aria-expanded={expanded}
         onClick={() => setExpanded(!expanded)}
       >
-        Create new worktree for {root.label}
+        {translate('localProjects.worktreeCreation.toggle', 'Create new worktree for {{label}}', {
+          label: root.label
+        })}
       </Button>
       {expanded && (
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground">
-            Creates a new branch from this Project checkout&apos;s current committed HEAD:{' '}
-            {root.path}. It does not start from a Workspace alternate or copy uncommitted edits. No
-            Orca setup or agent is started.
+            {translate(
+              'auto.features.local.projects.LocalRootWorktreeCreation.7db5cec376',
+              "Creates a new branch from this Project checkout's current committed HEAD:"
+            )}{' '}
+            {root.path}
+            {translate(
+              'auto.features.local.projects.LocalRootWorktreeCreation.787c2285d5',
+              '. It does not start from a Workspace alternate or copy uncommitted edits. No Orca setup or agent is started.'
+            )}
           </p>
           {!created && (
             <>
-              <Label htmlFor={`local-new-branch-${root.id}`}>{root.label} new branch</Label>
+              <Label htmlFor={`local-new-branch-${root.id}`}>
+                {root.label}{' '}
+                {translate(
+                  'auto.features.local.projects.LocalRootWorktreeCreation.4f7b921cbf',
+                  'new branch'
+                )}
+              </Label>
               <Input
                 id={`local-new-branch-${root.id}`}
                 value={branchName}
@@ -92,7 +107,11 @@ export function LocalRootWorktreeCreation({
                 onChange={(event) => setBranchName(event.target.value)}
               />
               <Label htmlFor={`local-new-path-${root.id}`}>
-                {root.label} new worktree directory
+                {root.label}{' '}
+                {translate(
+                  'auto.features.local.projects.LocalRootWorktreeCreation.baf9dd60b9',
+                  'new worktree directory'
+                )}
               </Label>
               <Input
                 id={`local-new-path-${root.id}`}
@@ -101,8 +120,10 @@ export function LocalRootWorktreeCreation({
                 onChange={(event) => setPath(event.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                Use an absolute path that does not exist, inside an existing local directory.
-                Creating a worktree does not save the Workspace. Cancelling later leaves it on disk.
+                {translate(
+                  'auto.features.local.projects.LocalRootWorktreeCreation.bdd267726d',
+                  'Use an absolute path that does not exist, inside an existing local directory. Creating a worktree does not save the Workspace. Cancelling later leaves it on disk.'
+                )}
               </p>
               <Button
                 type="button"
@@ -111,7 +132,15 @@ export function LocalRootWorktreeCreation({
                 disabled={disabled || !branchName.trim() || !path.trim()}
                 onClick={() => void create()}
               >
-                {busy ? 'Creating worktree…' : 'Create worktree'}
+                {busy
+                  ? translate(
+                      'auto.features.local.projects.LocalRootWorktreeCreation.62769c7775',
+                      'Creating worktree…'
+                    )
+                  : translate(
+                      'auto.features.local.projects.LocalRootWorktreeCreation.b91a580eab',
+                      'Create worktree'
+                    )}
               </Button>
             </>
           )}
@@ -119,9 +148,11 @@ export function LocalRootWorktreeCreation({
       )}
       {created && (
         <p role="status" className="text-xs text-muted-foreground">
-          Created branch {created.branchName} at {created.path}. Save the Workspace to use it.
-          Cancelling or a failed save leaves this worktree intact; select its path as an existing
-          worktree to use it later.
+          {translate(
+            'localProjects.worktreeCreation.created',
+            'Created branch {{branch}} at {{path}}. Save the Workspace to use it. Cancelling or a failed save leaves this worktree intact; select its path as an existing worktree to use it later.',
+            { branch: created.branchName, path: created.path }
+          )}
         </p>
       )}
       {error && (

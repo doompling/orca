@@ -5,6 +5,7 @@ import type { LocalProjectRoot } from '../../../../shared/local-projects/types'
 import { resolveLocalWorkspaceKey } from '../../../../shared/local-projects/workspace-resolution'
 import { useLocalRootGit } from './use-local-root-git'
 import { LocalWorkspaceCheckoutDialog } from './LocalWorkspaceCheckoutDialog'
+import { translate } from '@/i18n/i18n'
 
 function RootChip({
   workspaceId,
@@ -23,7 +24,11 @@ function RootChip({
     <button
       type="button"
       onClick={onEdit}
-      aria-label={`${root.label}${status?.branch ? ` on ${status.branch}` : ''}. Edit Workspace checkouts`}
+      aria-label={translate(
+        'auto.features.local.projects.LocalSidebarScopeFooter.e5719d3e1d',
+        '{{value0}}{{value1}}. Edit Workspace checkouts',
+        { value0: root.label, value1: status?.branch ? ` on ${status.branch}` : '' }
+      )}
       title={`${root.path}${overridden ? '\nSeparate checkout for this Workspace' : ''}${dirty ? '\nUncommitted changes' : ''}`}
       className="inline-flex h-5 max-w-full min-w-0 items-center gap-1 rounded-full border border-worktree-sidebar-border px-1.5 font-mono text-[11px] text-muted-foreground outline-none hover:bg-worktree-sidebar-accent hover:text-worktree-sidebar-foreground focus-visible:ring-2 focus-visible:ring-worktree-sidebar-ring data-[overridden=true]:border-dashed"
       data-overridden={overridden}
@@ -56,7 +61,10 @@ export function LocalSidebarScopeFooter(): React.JSX.Element | null {
   return (
     <div
       className="shrink-0 space-y-1 border-t border-worktree-sidebar-border px-3 py-2"
-      aria-label="Open Workspace directories"
+      aria-label={translate(
+        'auto.features.local.projects.LocalSidebarScopeFooter.7c3d3f2b87',
+        'Open Workspace directories'
+      )}
     >
       <div className="flex min-w-0 items-baseline gap-1.5 text-xs">
         <span className="truncate font-medium">{workspace.name}</span>

@@ -17,6 +17,7 @@ import {
   shouldShowSkillsButton
 } from '@/components/sidebar/SidebarNav'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
+import { translate } from '@/i18n/i18n'
 
 const AgentDashboardSidebarEntry = lazyWithRetry(
   () => import('@/components/sidebar/AgentDashboardSidebarEntry')
@@ -58,7 +59,7 @@ export const LocalSidebarNav = React.memo(function LocalSidebarNav() {
   if (settings?.showTasksButton !== false) {
     icons.push({
       key: 'tasks',
-      label: 'Tasks',
+      label: translate('auto.features.local.projects.LocalSidebarNav.1a20bc0a52', 'Tasks'),
       icon: List,
       active: activeView === 'tasks',
       onOpen: () => openTaskPage(),
@@ -69,7 +70,7 @@ export const LocalSidebarNav = React.memo(function LocalSidebarNav() {
   if (shouldShowArtifactsButton(settings)) {
     icons.push({
       key: 'artifacts',
-      label: 'Artifacts',
+      label: translate('auto.features.local.projects.LocalSidebarNav.fc33db74d1', 'Artifacts'),
       icon: Files,
       active: activeView === 'artifacts',
       onOpen: openArtifactsPage,
@@ -79,7 +80,7 @@ export const LocalSidebarNav = React.memo(function LocalSidebarNav() {
   if (shouldShowSkillsButton(settings)) {
     icons.push({
       key: 'skills',
-      label: 'Skills',
+      label: translate('auto.features.local.projects.LocalSidebarNav.4360dd50cf', 'Skills'),
       icon: BookOpen,
       active: activeView === 'skills',
       onOpen: openSkillsPage,
@@ -89,7 +90,7 @@ export const LocalSidebarNav = React.memo(function LocalSidebarNav() {
   if (shouldShowAutomationsButton(settings)) {
     icons.push({
       key: 'automations',
-      label: 'Automations',
+      label: translate('auto.features.local.projects.LocalSidebarNav.80845a6916', 'Automations'),
       icon: CalendarClock,
       active: activeView === 'automations',
       onOpen: openAutomationsPage,
@@ -99,7 +100,7 @@ export const LocalSidebarNav = React.memo(function LocalSidebarNav() {
   if (shouldShowMobileButton(settings)) {
     icons.push({
       key: 'mobile',
-      label: 'Orca Mobile',
+      label: translate('auto.features.local.projects.LocalSidebarNav.6b99e20b7a', 'Orca Mobile'),
       icon: Smartphone,
       active: activeView === 'mobile',
       onOpen: openMobilePage,
@@ -116,14 +117,19 @@ export const LocalSidebarNav = React.memo(function LocalSidebarNav() {
         <button
           type="button"
           onClick={() => openModal('worktree-palette')}
-          aria-label="Search worktrees and browser tabs"
+          aria-label={translate(
+            'auto.features.local.projects.LocalSidebarNav.bea08363ff',
+            'Search worktrees and browser tabs'
+          )}
           className="group flex h-7 min-w-0 flex-1 items-center gap-2 rounded-md bg-worktree-sidebar-foreground/5 px-2 text-left text-[13px] font-medium tracking-tight text-worktree-sidebar-foreground/60 transition-colors hover:bg-worktree-sidebar-foreground/8 focus-visible:ring-2 focus-visible:ring-worktree-sidebar-ring focus-visible:outline-none"
         >
           <Search
             className="size-4 shrink-0 text-worktree-sidebar-foreground/30"
             strokeWidth={1.75}
           />
-          <span className="flex-1 truncate">Search</span>
+          <span className="flex-1 truncate">
+            {translate('auto.features.local.projects.LocalSidebarNav.97215c5d8e', 'Search')}
+          </span>
           <span className="pointer-events-none hidden shrink-0 items-center gap-1 group-hover:flex group-focus-within:flex">
             {paletteCombos.map((combo) => (
               <ShortcutKeyCombo

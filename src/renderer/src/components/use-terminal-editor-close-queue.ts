@@ -6,21 +6,7 @@ import { isPinnedActiveEditorTab } from './terminal-workspace-model'
 import { selectWorkspaceSurface } from '@/lib/workspace-surface-reveal'
 import type { TerminalEditorCloseFoundation } from './use-terminal-editor-close-foundation'
 
-type TerminalEditorCloseQueueInput = Pick<
-  TerminalEditorCloseFoundation,
-  | 'activeWorktreeId'
-  | 'closeFile'
-  | 'inFlightSaveFileIdRef'
-  | 'pendingEditorCloseQueueRef'
-  | 'proceedToNativeWindowClose'
-  | 'setActiveFile'
-  | 'setActiveTabType'
-  | 'setActiveWorktree'
-  | 'setSaveDialogFileId'
-  | 'windowCloseAfterDirtyRef'
->
-
-export function useTerminalEditorCloseQueue(controller: TerminalEditorCloseQueueInput) {
+export function useTerminalEditorCloseQueue(controller: TerminalEditorCloseFoundation) {
   const {
     activeWorktreeId,
     closeFile,

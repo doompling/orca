@@ -10,6 +10,8 @@
 //     { emit: <frame> } | { awaitUserMessage: true } | { stderr: <text> } |
 //     { awaitControlRequest: <subtype> } | { awaitControlResponse: <request_id> } | { awaitFile: { path, timeoutMs } } |
 //     { replayLastUserMessage: true } | { delayMs: <n> } | { exit: <code> }
+//     Ether seam: local-projects e2e — replayLastUserMessage and sessionIdFromLaunch serve
+//     tests/e2e/helpers/local-project-scripted-chat.ts.
 //     sessionIdFromLaunch: true fills emitted frames' session_id from --session-id or --resume.
 //   ORCA_SDK_CONTRACT_REPORT_PATH — where argv/env observations are written
 //   ORCA_SDK_CONTRACT_IGNORE_SIGTERM — trap SIGTERM/SIGINT and outlive stdin close

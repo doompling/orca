@@ -27,7 +27,7 @@ export function readEtherProductMetadata(value: unknown): EtherProduct | null {
 const identities = new Map<string, EtherProduct | null>()
 
 export function getPackagedEtherProduct(): EtherProduct | null {
-  if (!app.isPackaged || typeof app.getAppPath !== 'function') {
+  if (!app?.isPackaged || typeof app.getAppPath !== 'function') {
     return null
   }
   const packagePath = join(app.getAppPath(), 'package.json')

@@ -97,7 +97,9 @@ export const PERSISTED_STATE_DISPOSITIONS = {
   onboarding: notApplicableDisposition(62),
   featureInteractionTelemetryBuckets: notApplicableDisposition(62),
   codexResetCreditAttemptLedger: notApplicableDisposition(62),
-  nativeChatUpgradeTipAudience: notApplicableDisposition(62)
+  nativeChatUpgradeTipAudience: notApplicableDisposition(62),
+  // Ether seam: persistence — local Projects hold native local roots only; never moved.
+  localProjects: notApplicableDisposition(62, 'Ether local Projects: native local roots only.')
 } as const satisfies Record<keyof PersistedState, WslMoveFieldDisposition>
 
 export const WORKSPACE_SESSION_DISPOSITIONS = {

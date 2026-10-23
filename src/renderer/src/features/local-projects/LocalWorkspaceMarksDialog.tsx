@@ -16,6 +16,7 @@ import {
   openLocalWorkspace,
   setLocalWorkspaceMarkSlot
 } from './local-workspace-sidebar-actions'
+import { translate } from '@/i18n/i18n'
 
 const isMac = navigator.userAgent.includes('Mac')
 
@@ -112,16 +113,33 @@ export function LocalWorkspaceMarksDialog({
         onOpenAutoFocus={() => setSelected(0)}
       >
         <DialogHeader>
-          <DialogTitle>Workspace marks</DialogTitle>
+          <DialogTitle>
+            {translate(
+              'auto.features.local.projects.LocalWorkspaceMarksDialog.025e3fc67d',
+              'Workspace marks'
+            )}
+          </DialogTitle>
           <DialogDescription>
-            {jumpLabel ? `${jumpLabel.replace(/1$/, '1–9')} opens a slot. ` : ''}Slots keep their
-            numbers when others are cleared.
+            {jumpLabel
+              ? translate(
+                  'auto.features.local.projects.LocalWorkspaceMarksDialog.76f08f888e',
+                  '{{value0}} opens a slot. ',
+                  { value0: jumpLabel.replace(/1$/, '1–9') }
+                )
+              : ''}
+            {translate(
+              'auto.features.local.projects.LocalWorkspaceMarksDialog.d57fd0930a',
+              'Slots keep their numbers when others are cleared.'
+            )}
           </DialogDescription>
         </DialogHeader>
         {/* Why tabIndex: arrow keys and digits need focus here; options are announced via the active descendant. */}
         <ul
           role="listbox"
-          aria-label="Mark slots"
+          aria-label={translate(
+            'auto.features.local.projects.LocalWorkspaceMarksDialog.fb8dcc3ab8',
+            'Mark slots'
+          )}
           tabIndex={0}
           aria-activedescendant={`${listId}-${selected + 1}`}
           className="space-y-px outline-none"
@@ -144,7 +162,11 @@ export function LocalWorkspaceMarksDialog({
                 <span
                   className={cn('min-w-0 flex-1 truncate', !workspace && 'text-muted-foreground')}
                 >
-                  {workspace?.name ?? 'Empty'}
+                  {workspace?.name ??
+                    translate(
+                      'auto.features.local.projects.LocalWorkspaceMarksDialog.c569b3d704',
+                      'Empty'
+                    )}
                 </span>
                 {project ? (
                   <span className="truncate text-xs text-muted-foreground">{project.name}</span>
@@ -154,8 +176,11 @@ export function LocalWorkspaceMarksDialog({
           })}
         </ul>
         <p className="text-[11px] text-muted-foreground">
-          1–9 or Enter opens · Enter on an empty slot or A puts the open Workspace there ·{' '}
-          {isMac ? '⌥' : 'Alt+'}↑↓ moves · {isMac ? '⌫' : 'Backspace'} clears
+          {translate(
+            'localProjects.marksDialog.hint',
+            '1–9 or Enter opens · Enter on an empty slot or A puts the open Workspace there · {{move}}↑↓ moves · {{clear}} clears',
+            { move: isMac ? '⌥' : 'Alt+', clear: isMac ? '⌫' : 'Backspace' }
+          )}
         </p>
       </DialogContent>
     </Dialog>

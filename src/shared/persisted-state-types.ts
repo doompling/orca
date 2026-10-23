@@ -59,6 +59,7 @@ export type PersistedMobileClientTabSelections = Record<
 // ─── Persistence shape ──────────────────────────────────────────────
 export type PersistedState = {
   schemaVersion: number
+  // Ether seam: local-projects
   localProjects?: LocalProjectsState
   repos: Repo[]
   projects: Project[]

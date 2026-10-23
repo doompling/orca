@@ -186,7 +186,6 @@ describe('repo catalog refresh on repos:changed', () => {
     const fetchRepos = vi.fn(() => Promise.resolve())
     const fetchProjectGroups = vi.fn(() => Promise.resolve())
     const fetchFolderWorkspaces = vi.fn(() => Promise.resolve())
-    const fetchLocalProjects = vi.fn(() => Promise.resolve())
     const remountTerminalTabForRecovery = vi.fn(() => true)
     const state = {
       settings: { activeRuntimeEnvironmentId: null as string | null },
@@ -200,7 +199,8 @@ describe('repo catalog refresh on repos:changed', () => {
       fetchRepos,
       fetchProjectGroups,
       fetchFolderWorkspaces,
-      fetchLocalProjects
+      // Ether seam: local-projects — the bridge also refreshes local Projects on repos:changed.
+      fetchLocalProjects: vi.fn(() => Promise.resolve())
     }
 
     vi.doMock('react', async () => {
@@ -271,7 +271,6 @@ describe('repo catalog refresh on repos:changed', () => {
     expect(fetchRepos).toHaveBeenCalledWith(localOwner)
     expect(fetchProjectGroups).toHaveBeenCalledWith(localOwner)
     expect(fetchFolderWorkspaces).toHaveBeenCalledWith(localOwner)
-    expect(fetchLocalProjects).toHaveBeenCalledOnce()
     expect(remountTerminalTabForRecovery).toHaveBeenCalledWith('tab-1')
     clearTerminalTabsParkedOnUnresolvedHost()
   })

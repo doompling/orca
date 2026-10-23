@@ -1,7 +1,9 @@
+import type { LinearIssue } from '../../../../shared/linear/issue-types'
 import type { LinearWorkspace } from '../../../../shared/linear/workspace-types'
 import type { LocalProjectsState } from '../../../../shared/local-projects/types'
 import type { TaskSourceContext } from '../../../../shared/task-source-context'
-import type { LinkedLinearIssueRef } from '@/components/task-page-linear-in-orca-issues'
+import type { LinkedLinearIssueRef } from '@/components/task-page/linear/task-page-linear-in-orca-issues'
+import { getEnvironmentRuntimeContextKey } from '@/lib/provider-runtime-context'
 import { localLinearWorkspaceTargets } from './local-workspace-linear-attachments'
 
 export function localWorkspaceLinearTaskRefs({
@@ -52,4 +54,52 @@ export function localWorkspaceLinearTaskRefs({
     }
   }
   return [...refs.values()]
+}
+
+/** Local links only count accounts vouched for by this host's checked Linear status. */
+export function localWorkspaceLinearTaskRefsForStatus({
+  catalog,
+  accounts,
+  statusChecked,
+  statusContextKey,
+  selectedAccountId,
+  sourceContext
+}: Parameters<typeof localWorkspaceLinearTaskRefs>[0] & {
+  statusChecked: boolean
+  statusContextKey: string | null
+}): LinkedLinearIssueRef[] {
+  const localStatus = statusChecked && statusContextKey === getEnvironmentRuntimeContextKey(null)
+  return localWorkspaceLinearTaskRefs({
+    catalog,
+    accounts: localStatus ? accounts : [],
+    selectedAccountId,
+    sourceContext
+  })
+}
+
+type LinkedIssueReader = (
+  id: string,
+  workspaceId?: string | null,
+  options?: { sourceContext?: TaskSourceContext | null }
+) => Promise<LinearIssue | null>
+
+/** Reads a linked issue, by its saved UUID when a local link supplied one. */
+export async function readLinkedLinearIssueRef(
+  ref: LinkedLinearIssueRef,
+  options: {
+    fetch: LinkedIssueReader
+    refresh: LinkedIssueReader
+    forceRefresh: boolean
+    workspaceId?: string | null
+    sourceContext: TaskSourceContext | null
+  }
+): Promise<LinearIssue | null> {
+  const read = options.forceRefresh ? options.refresh : options.fetch
+  const result = await read(ref.issueId ?? ref.identifier, ref.workspaceId ?? options.workspaceId, {
+    sourceContext: ref.sourceContext ?? options.sourceContext
+  })
+  if (ref.issueId && (result?.id !== ref.issueId || result.workspaceId !== ref.workspaceId)) {
+    return null
+  }
+  return result
 }

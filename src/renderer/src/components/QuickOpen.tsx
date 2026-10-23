@@ -21,6 +21,7 @@ import { useQuickOpenHistory } from '@/lib/quick-open-file-history'
 import { useRuntimeFileListForWorktree } from '@/components/quick-open-file-list'
 import { useModalReturnFocus } from '@/hooks/useModalReturnFocus'
 import { translate } from '@/i18n/i18n'
+// Ether seam: local-projects
 import { useActiveLocalWorkspace } from '@/features/local-projects/use-active-local-workspace'
 import { LocalWorkspaceQuickOpen } from '@/features/local-projects/LocalWorkspaceQuickOpen'
 import {
@@ -55,6 +56,7 @@ export default function QuickOpen(): React.JSX.Element | null {
   if (!visible && !lingering) {
     return null
   }
+  // Ether seam: local-projects — a local Workspace searches every root.
   return localWorkspace ? (
     visible ? (
       <LocalWorkspaceQuickOpen context={localWorkspace} />

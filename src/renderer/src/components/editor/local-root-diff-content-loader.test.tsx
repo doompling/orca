@@ -6,19 +6,22 @@ import type { OpenFile } from '@/store/slices/editor'
 import type { DiffContent } from './editor-panel-content-types'
 import { useEditorPanelDiffContentLoader } from './useEditorPanelDiffContentLoader'
 
-const { read, connection, activeSettings } = vi.hoisted(() => ({
+const { read, connection, ownerTarget } = vi.hoisted(() => ({
   read: vi.fn(),
   connection: vi.fn(() => 'unrelated-ssh-host'),
-  activeSettings: { activeRuntimeEnvironmentId: 'unrelated-remote' }
+  ownerTarget: vi.fn(() => ({ kind: 'environment', environmentId: 'unrelated-remote' }))
 }))
-vi.mock('@/store', () => ({
-  useAppStore: { getState: () => ({ settings: activeSettings }) }
-}))
+vi.mock('@/store', () => ({ useAppStore: { getState: () => ({}) } }))
 vi.mock('@/lib/connection-context', () => ({ getConnectionIdForFile: connection }))
-vi.mock('@/runtime/runtime-git-client', () => ({
+vi.mock('@/lib/file-owner-runtime-target', () => ({
+  requireRuntimeTargetForFileOwner: ownerTarget
+}))
+vi.mock('@/runtime/runtime-git-diff-client', () => ({
   getRuntimeGitDiff: read,
   getRuntimeGitBranchDiff: vi.fn(),
-  getRuntimeGitCommitDiff: vi.fn(),
+  getRuntimeGitCommitDiff: vi.fn()
+}))
+vi.mock('@/runtime/runtime-git-client-context', () => ({
   getRuntimeGitScope: vi.fn(() => 'local')
 }))
 
@@ -59,7 +62,7 @@ afterEach(() => {
 })
 
 describe('local-root diff content routing', () => {
-  it('retains the tab root and native host when unrelated remote settings are active', async () => {
+  it('retains the tab root and native host when the workspace owner is remote', async () => {
     read.mockResolvedValue(diff)
     const { result } = renderHook(useLoader)
     await act(() => result.current.load(file('root-a')))
@@ -69,11 +72,12 @@ describe('local-root diff content routing', () => {
         worktreeId: 'folder:workspace',
         worktreePath: '/checkout',
         connectionId: undefined,
-        settings: expect.objectContaining({ activeRuntimeEnvironmentId: null })
+        target: { kind: 'local' }
       }),
       { filePath: 'same.txt', staged: true, compareAgainstHead: false }
     )
     expect(connection).not.toHaveBeenCalled()
+    expect(ownerTarget).not.toHaveBeenCalled()
     expect(result.current.contents['diff:root-a']).toEqual(diff)
   })
 

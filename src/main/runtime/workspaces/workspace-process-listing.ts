@@ -58,6 +58,10 @@ import {
   withoutHiddenHosts
 } from '../runtime-visible-catalog'
 import { isWorkspaceNotificationMuted } from '../workspace-notification-mute'
+// Ether seam: local-projects
+import { acquireLocalWorkspaceStructuredLaunch } from '../../local-projects/launch-scope-lock'
+import { installLocalWorkspaceScopeAcquirer } from '../../local-projects/seams/chat-scope-seam'
+import type { WorktreeTerminalMutationKind } from '../worktree-terminal-mutation-lock'
 
 export abstract class OrcaRuntimeWithGetWorktreePs extends OrcaRuntimeWithWorktreePsDependencies {
   async getWorktreePs(
@@ -230,6 +234,13 @@ export abstract class OrcaRuntimeWithGetWorktreePs extends OrcaRuntimeWithWorktr
    * builds the chat host. The record store it sits on may already be open, from
    * a launch's admission.
    */
+  // Ether seam: chat-scope — implemented by the terminal stop layer further down the chain.
+  abstract acquireWorktreeTerminalMutation(
+    worktreeId: string,
+    kind: WorktreeTerminalMutationKind,
+    deadline?: number
+  ): Promise<() => void>
+
   async ensureStructuredAgentSessionHost(): Promise<void> {
     const logger = createStructuredAgentSessionLogger()
     const nameChat = createStructuredChatNamingHandler(
@@ -248,6 +259,10 @@ export abstract class OrcaRuntimeWithGetWorktreePs extends OrcaRuntimeWithWorktr
         },
         logger
       )
+    )
+    // Ether seam: chat-scope — a chat launch holds its Workspace roots against edits.
+    installLocalWorkspaceScopeAcquirer((p) =>
+      acquireLocalWorkspaceStructuredLaunch(this.requireStore(), this, p)
     )
     await installStructuredAgentSessionHost({
       stateDirectory: getProfileUserDataPath(),

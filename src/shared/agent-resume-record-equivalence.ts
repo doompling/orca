@@ -13,6 +13,7 @@ export function launchConfigsEqual(
   if (
     a.agentCommand !== b.agentCommand ||
     a.agentArgs !== b.agentArgs ||
+    // Ether seam: agent-launch
     !localWorkspaceLaunchScopesEqual(a.localWorkspaceScope, b.localWorkspaceScope) ||
     a.ompResumeFilePath !== b.ompResumeFilePath
   ) {

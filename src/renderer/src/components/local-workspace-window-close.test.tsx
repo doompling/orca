@@ -8,6 +8,7 @@ import { useTerminalEditorCloseQueue } from './use-terminal-editor-close-queue'
 import { useTerminalWindowLifecycle } from './use-terminal-window-lifecycle'
 import { dispatchWindowCloseRequest } from './window-close-request-coordinator'
 import { registerPendingEditorFlush } from './editor/editor-pending-flush'
+import { EMPTY_EDITOR_BUFFER_VIEW_INDEX } from '../store/slices/editor/buffers/editor-buffer-views'
 
 type TestState = Pick<
   AppState,
@@ -22,6 +23,9 @@ type TestState = Pick<
   | 'unifiedTabsByWorktree'
   | 'groupsByWorktree'
   | 'activeGroupIdByWorktree'
+  | 'editorBufferIdOf'
+  | 'editorBufferViews'
+  | 'setActiveWorktree'
 >
 
 const mocks = vi.hoisted(() => {
@@ -62,6 +66,8 @@ vi.mock('@/lib/shutdown-checkpoint-failure-toast', () => ({
 
 function fixture(): TestState {
   return {
+    ...EMPTY_EDITOR_BUFFER_VIEW_INDEX,
+    setActiveWorktree: mocks.setActiveWorktree,
     localProjects: {
       version: 1,
       projects: [
@@ -106,18 +112,26 @@ function fixture(): TestState {
   }
 }
 
+type FoundationController = Parameters<typeof useTerminalEditorCloseFoundation>[0]
+type QueueController = Parameters<typeof useTerminalEditorCloseQueue>[0]
+type LifecycleController = Parameters<typeof useTerminalWindowLifecycle>[0]
+
 function mountCloseFlow(state: TestState) {
   mocks.store.state = state
   return renderHook(() => {
-    const foundation = useTerminalEditorCloseFoundation({ openFiles: state.openFiles })
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the close foundation reads only openFiles from the projection.
+    const foundation = useTerminalEditorCloseFoundation({
+      openFiles: state.openFiles
+    } as unknown as FoundationController)
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the queue reads only the foundation and these store actions.
     const queue = useTerminalEditorCloseQueue({
       ...foundation,
       activeWorktreeId: state.activeWorktreeId,
       closeFile: mocks.closeFile,
       setActiveFile: vi.fn(),
-      setActiveTabType: vi.fn(),
-      setActiveWorktree: mocks.setActiveWorktree
-    })
+      setActiveTabType: vi.fn()
+    } as unknown as QueueController)
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the lifecycle reads only close wiring and these tab fields.
     useTerminalWindowLifecycle({
       ...foundation,
       ...queue,
@@ -127,7 +141,7 @@ function mountCloseFlow(state: TestState) {
       renderedActiveWorktreeId: state.activeWorktreeId,
       setActiveBrowserTab: vi.fn(),
       setActiveTabType: vi.fn()
-    })
+    } as unknown as LifecycleController)
     return { ...foundation, ...queue }
   })
 }

@@ -5,6 +5,7 @@ import { useAppStore } from '@/store'
 import type { ResolvedLocalWorkspace } from '../../../../shared/local-projects/types'
 import { resolveLocalWorkspace } from '../../../../shared/local-projects/workspace-resolution'
 import { LocalWorkspaceLinearIssues } from './LocalWorkspaceLinearIssues'
+import { translate } from '@/i18n/i18n'
 
 export function LocalWorkspaceRootBar({
   context,
@@ -31,8 +32,20 @@ export function LocalWorkspaceRootBar({
     : 0
   return (
     <div className="space-y-2 border-b border-border p-2">
-      <p className="text-xs font-medium text-muted-foreground">Workspace directories</p>
-      <div className="flex flex-wrap gap-1" role="group" aria-label="Browse directory">
+      <p className="text-xs font-medium text-muted-foreground">
+        {translate(
+          'auto.features.local.projects.LocalWorkspaceRootBar.c75df58001',
+          'Workspace directories'
+        )}
+      </p>
+      <div
+        className="flex flex-wrap gap-1"
+        role="group"
+        aria-label={translate(
+          'auto.features.local.projects.LocalWorkspaceRootBar.b0de98ffd9',
+          'Browse directory'
+        )}
+      >
         {context.roots.map((root) => (
           <Button
             key={root.id}
@@ -51,12 +64,24 @@ export function LocalWorkspaceRootBar({
         {selected?.path}
       </p>
       <p className="text-xs text-muted-foreground">
-        Default command directory: {defaultRoot?.label}
+        {translate(
+          'localProjects.rootBar.defaultDirectory',
+          'Default command directory: {{label}}',
+          { label: defaultRoot?.label ?? '' }
+        )}
       </p>
       {sharedBy > 0 && (
         <p className="text-xs text-muted-foreground">
-          Shared with {sharedBy} other Workspace{sharedBy === 1 ? '' : 's'}. Saved files change in
-          every view; drafts stay separate.
+          {sharedBy === 1
+            ? translate(
+                'localProjects.rootBar.sharedOne',
+                'Shared with 1 other Workspace. Saved files change in every view; drafts stay separate.'
+              )
+            : translate(
+                'localProjects.rootBar.sharedMany',
+                'Shared with {{count}} other Workspaces. Saved files change in every view; drafts stay separate.',
+                { count: sharedBy }
+              )}
         </p>
       )}
       <Button
@@ -77,7 +102,10 @@ export function LocalWorkspaceRootBar({
         }}
       >
         <Terminal />
-        Terminal in this directory
+        {translate(
+          'auto.features.local.projects.LocalWorkspaceRootBar.cfc92313f8',
+          'Terminal in this directory'
+        )}
       </Button>
       {error && (
         <p role="alert" className="text-xs text-destructive">

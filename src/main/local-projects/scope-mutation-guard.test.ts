@@ -166,7 +166,7 @@ describe('local root mutation execution guard', () => {
     })
     const { guard } = fixture()
     await expect(guard(['workspace'], async () => 'committed')).resolves.toBe('committed')
-    record.lease.handoffStage = 'old-owner-stopped'
+    record.lease.handoffStage = 'recovering'
     await expect(guard(['workspace'], async () => 'incorrect')).rejects.toThrow(
       'Stop the Workspace agents'
     )

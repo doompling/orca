@@ -48,7 +48,8 @@ const store = {
 }
 vi.mock('@/store', () => ({ useAppStore: { getState: () => store } }))
 vi.mock('@/lib/agent-resume-launch-target', () => ({
-  resolveAgentResumeLaunchTarget: () => ({ platform: 'darwin', shell: 'posix' })
+  resolveAgentResumeLaunchTarget: () => ({ platform: 'darwin', shell: 'posix' }),
+  resolveSshHostReportedPlatform: () => undefined
 }))
 vi.mock('@/lib/worktree-runtime-owner', () => ({ getExecutionHostIdForWorktree: () => 'local' }))
 vi.mock('@/lib/local-preflight-context', () => ({

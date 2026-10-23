@@ -40,6 +40,7 @@ export const KEYBINDING_DEFINITIONS: readonly KeybindingDefinition[] = [
   ...KEYBINDING_DEFINITION_CORE_2,
   ...KEYBINDING_DEFINITION_CORE_3,
   ...KEYBINDING_DEFINITION_CORE_4,
+  // Ether seam: sidebar
   ...KEYBINDING_DEFINITION_LOCAL_WORKSPACES,
   ...buildAgentTabKeybindingDefinitions()
 ]

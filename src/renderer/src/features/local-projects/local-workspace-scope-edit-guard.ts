@@ -1,5 +1,5 @@
 import type { AppState } from '@/store/types'
-import { tabHasLivePty } from '@/lib/tab-has-live-pty'
+import { tabHasLivePty } from '../../../../shared/tab-has-live-pty'
 import { folderWorkspaceKey } from '../../../../shared/workspace-scope'
 
 type ScopeEditState = Pick<

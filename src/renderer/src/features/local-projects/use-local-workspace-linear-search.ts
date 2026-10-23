@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { linearStatus } from '@/runtime/runtime-linear-client'
+import { linearStatusForTarget } from '@/runtime/runtime-linear-client'
 import type { LinearIssue } from '../../../../shared/linear/issue-types'
 import type { LinearConnectionStatus } from '../../../../shared/linear/workspace-types'
 
 import {
-  LOCAL_WORKSPACE_LINEAR_SETTINGS,
+  LOCAL_WORKSPACE_LINEAR_TARGET,
   readLocalWorkspaceLinearIssues
 } from './local-workspace-linear-issue-reads'
 export { LOCAL_WORKSPACE_LINEAR_SEARCH_LIMIT } from './local-workspace-linear-issue-reads'
@@ -29,7 +29,7 @@ export function useLocalWorkspaceLinearSearch() {
     setStatusError(null)
     setStatus(null)
     setResult(null)
-    void linearStatus(LOCAL_WORKSPACE_LINEAR_SETTINGS).then(
+    void linearStatusForTarget(LOCAL_WORKSPACE_LINEAR_TARGET).then(
       (next) => {
         if (!current) {
           return

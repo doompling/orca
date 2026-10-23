@@ -4,7 +4,7 @@ import {
   captureLocalWorkspaceFileLayout,
   filterLocalWorkspaceFileLayout
 } from './local-workspace-file-layout'
-import { fileLayoutFixture } from './local-workspace-file-layout.test-fixtures'
+import { fileLayoutFixture } from './local-workspace-file-layout.test-fixture'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -41,17 +41,15 @@ describe('clean local file layout snapshots', () => {
     { readOnly: true },
     { liveTail: true },
     { markdownPreviewSourceFileId: 'draft-owner' },
-    { pendingOwnerMigration: true },
-    { pendingDiskBaselineVerification: true },
-    { pendingLiveDiskVerification: true }
+    { pendingOwnerMigration: true }
   ])('excludes ineligible source file state %j', (flag) => {
     const { store } = fileLayoutFixture()
-    store.setState({
-      openFiles: store
-        .getState()
-        .openFiles.map((file) => (file.id === 'file-b' ? { ...file, ...flag } : file))
-    })
-    const snapshot = captureLocalWorkspaceFileLayout(store.getState(), 'main', 'project')
+    // Capture reads plain state, so patch a copy rather than desync the editor buffer records.
+    const state = store.getState()
+    const openFiles = state.openFiles.map((file) =>
+      file.id === 'file-b' ? { ...file, ...flag } : file
+    )
+    const snapshot = captureLocalWorkspaceFileLayout({ ...state, openFiles }, 'main', 'project')
     expect(snapshot.groups).toHaveLength(1)
     expect(snapshot.layout).toEqual({ type: 'leaf', groupId: 'left' })
     expect(snapshot.skipped).toBe(2)

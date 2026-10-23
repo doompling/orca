@@ -55,6 +55,7 @@ export function renderTasksSettingsSection(context: SettingsRenderContext): Reac
     <SettingsSection
       id="tasks"
       title={translate('auto.components.settings.Settings.11faa2f7dd', 'Task Sources')}
+      // Ether seam: linear
       description={translate(
         'auto.components.settings.Settings.taskSourcesOptionalSkillDescription',
         'Connect providers and choose what appears in Tasks. The Linear agent skill is optional.'

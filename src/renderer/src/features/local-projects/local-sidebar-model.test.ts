@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { AgentRowState } from '@/lib/agent-row-decay-state'
+import type { AgentRowState } from '../../../../shared/agent-row-decay-state'
 import type {
   LocalProject,
   LocalProjectsState,

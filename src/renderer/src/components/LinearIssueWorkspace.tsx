@@ -81,6 +81,7 @@ function LinearIssueWorkspaceIssue({
         issue={detail.displayed}
         issueLoading={detail.issueLoading}
         attachedWorkspace={attachedWorkspace !== null}
+        // Ether seam: linear
         attachedWorkspaceLabel={attachedWorkspaceLabel}
         sourceContext={sourceContext}
         variant={variant}

@@ -45,6 +45,7 @@ export function copySleepingAgentLaunchConfig(
     ...(config.agentCommand ? { agentCommand: config.agentCommand } : {}),
     agentArgs: config.agentArgs,
     agentEnv: { ...config.agentEnv },
+    // Ether seam: agent-launch
     ...(config.localWorkspaceScope
       ? { localWorkspaceScope: copyLocalWorkspaceLaunchScope(config.localWorkspaceScope) }
       : {}),

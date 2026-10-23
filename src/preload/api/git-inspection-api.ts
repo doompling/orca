@@ -12,6 +12,7 @@ import type {
 } from '../../shared/git-status-types'
 import type { GitPushTarget } from '../../shared/worktree/types'
 import type { GitHistoryOptions, GitHistoryResult } from '../../shared/git-history'
+// Ether seam: git — `localRoot` routes a local Workspace root's Git calls.
 import type { LocalWorkspaceGitRoot } from '../../shared/local-projects/git-root'
 import type {
   CommitMessageAgentCapability,

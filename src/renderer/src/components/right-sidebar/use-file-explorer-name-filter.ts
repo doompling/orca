@@ -23,12 +23,10 @@ type UseFileExplorerNameFilterResult = {
 /** Files-view name-filter query state and the projection source derived from it. */
 export function useFileExplorerNameFilter({
   isFilesViewActive,
-  activeWorktreeId,
-  rootPath
+  activeWorktreeId
 }: {
   isFilesViewActive: boolean
   activeWorktreeId: string | null
-  rootPath?: string
 }): UseFileExplorerNameFilterResult {
   const [nameFilterQuery, setNameFilterQuery] = useState('')
   const [nameFilterCollapsedPaths, setNameFilterCollapsedPaths] = useState<Set<string>>(
@@ -48,7 +46,6 @@ export function useFileExplorerNameFilter({
   const nameFilterFiles = useRuntimeFileListForWorktree({
     enabled: hasNameFilter && !nameFilterQueryTooLarge,
     worktreeId: activeWorktreeId,
-    rootPath,
     query: nameFilterQuery,
     hostFilterWhenCapped: true
   })

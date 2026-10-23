@@ -5,6 +5,7 @@ import { existsSync, lstatSync, readlinkSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import path from 'node:path'
 
+// Ether seam: packaging — build:ether must not replace the global orca-dev link.
 if (process.env.ORCA_SKIP_DEV_CLI_INSTALL === '1') {
   console.log('[orca-dev] Skipping global symlink for this build.')
   process.exit(0)

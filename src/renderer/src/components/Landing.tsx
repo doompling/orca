@@ -17,6 +17,7 @@ import { translate } from '@/i18n/i18n'
 import { hasGitHubBackedProject, type PreflightIssue } from './landing-preflight-issues'
 import { useLandingPreflightRuntime } from './landing-preflight-runtime'
 import { useLandingOrcaStarState, type LandingStarState } from './landing-github-star-state'
+// Ether seam: local-projects
 import { hasLocalProjectsApi } from '@/features/local-projects/local-projects-availability'
 import { LocalProjectsLanding } from '@/features/local-projects/LocalProjectsLanding'
 
@@ -225,6 +226,7 @@ function PreflightBanner({
 }
 
 export default function Landing(): React.JSX.Element {
+  // Ether seam: local-projects
   return hasLocalProjectsApi() ? <LocalProjectsLanding /> : <LegacyLanding />
 }
 

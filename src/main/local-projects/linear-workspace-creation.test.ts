@@ -2,7 +2,8 @@ import { mkdirSync, mkdtempSync, realpathSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { Store } from '../persistence/loading-store/store'
+import type { Store } from '../persistence/loading-store/store'
+import { openLocalProjectsTestStore } from './local-projects-store.test-support'
 import type { LocalWorkspaceLinearIssue } from '../../shared/local-projects/linear-issues'
 
 const { verifyIssue } = vi.hoisted(() => ({ verifyIssue: vi.fn() }))
@@ -52,8 +53,8 @@ async function fixture() {
   directories.push(directory)
   const root = join(directory, 'source')
   mkdirSync(root)
-  const dataFile = join(directory, 'profile.json')
-  const store = new Store({ dataFile })
+  const profileDir = directory
+  const store = openLocalProjectsTestStore(profileDir)
   stores.push(store)
   const { project } = await store.createLocalProject({ name: 'App', roots: [{ path: root }] })
   const args = {
@@ -62,12 +63,12 @@ async function fixture() {
     linearIssue: { linearWorkspaceId: 'account', issueId: 'uuid' }
   }
   verifyIssue.mockResolvedValue(link)
-  return { store, args, dataFile }
+  return { store, args, profileDir }
 }
 
 describe('atomic verified Linear Workspace creation', () => {
   it('commits the Workspace and verified link together, preserving Main and restart state', async () => {
-    const { store, args, dataFile } = await fixture()
+    const { store, args, profileDir } = await fixture()
     const before = store.getLocalProjectsSnapshot()
     const flush = vi.spyOn(store, 'flushOrThrow')
     const workspace = await store.createLocalWorkspace(args)
@@ -77,7 +78,7 @@ describe('atomic verified Linear Workspace creation', () => {
     expect(workspace.linearIssues).toEqual([link])
     expect(store.getLocalProjectsSnapshot().workspaces[0]).toEqual(before.workspaces[0])
     store.freezeWrites()
-    const reopened = new Store({ dataFile })
+    const reopened = openLocalProjectsTestStore(profileDir)
     stores.push(reopened)
     expect(reopened.getLocalProjectsSnapshot().workspaces).toEqual([
       ...before.workspaces,

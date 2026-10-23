@@ -58,12 +58,13 @@ export function localWorkspacePtyPathCheck(
   return null
 }
 
-/** A local Workspace terminal starts in its default root; null for any other workspace. */
+/** A local Workspace terminal starts in its default root (undefined when that path is unusable);
+ *  null for any other workspace. */
 export function localWorkspacePtyStartupCwd(
   store: Partial<Pick<Store, 'resolveLocalWorkspace'>> | undefined,
   worktreeId: string | undefined,
   cwd: string | undefined
-): string | null {
+): string | undefined | null {
   const scope = worktreeId ? parseWorkspaceKey(worktreeId) : null
   const localWorkspace =
     scope?.type === 'folder' ? store?.resolveLocalWorkspace?.(scope.folderWorkspaceId) : null

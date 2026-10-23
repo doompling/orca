@@ -20,6 +20,7 @@ import {
 import type { LocalProject, LocalWorkspace } from '../../../../shared/local-projects/types'
 import { localWorkspaceCheckoutScope } from '../../../../shared/local-projects/scope-update'
 import { LocalWorkspaceCheckoutChoices } from './LocalWorkspaceCheckoutChoices'
+import { translate } from '@/i18n/i18n'
 
 export function LocalWorkspaceCheckoutDialog({
   project,
@@ -79,10 +80,18 @@ export function LocalWorkspaceCheckoutDialog({
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit Workspace checkouts</DialogTitle>
+          <DialogTitle>
+            {translate(
+              'auto.features.local.projects.LocalWorkspaceCheckoutDialog.23aefebea5',
+              'Edit Workspace checkouts'
+            )}
+          </DialogTitle>
           <DialogDescription>
-            Directory choices for {original.workspace.name}. Clean tabs from replaced checkouts will
-            close. Files stay where they are.
+            {translate(
+              'localProjects.checkoutDialog.description',
+              'Directory choices for {{name}}. Clean tabs from replaced checkouts will close. Files stay where they are.',
+              { name: original.workspace.name }
+            )}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
@@ -96,7 +105,12 @@ export function LocalWorkspaceCheckoutDialog({
             initiallyExpanded
           />
           <div className="space-y-2">
-            <Label htmlFor="local-checkout-default">Default command directory</Label>
+            <Label htmlFor="local-checkout-default">
+              {translate(
+                'auto.features.local.projects.LocalWorkspaceCheckoutDialog.cbffb0dde9',
+                'Default command directory'
+              )}
+            </Label>
             <Select
               value={defaultRootId === null ? 'project' : `root:${defaultRootId}`}
               onValueChange={(value) =>
@@ -108,7 +122,12 @@ export function LocalWorkspaceCheckoutDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="project">Use Project default</SelectItem>
+                <SelectItem value="project">
+                  {translate(
+                    'auto.features.local.projects.LocalWorkspaceCheckoutDialog.efb785fa5c',
+                    'Use Project default'
+                  )}
+                </SelectItem>
                 {original.project.roots.map((root) => (
                   <SelectItem key={root.id} value={`root:${root.id}`}>
                     {root.label}
@@ -118,8 +137,10 @@ export function LocalWorkspaceCheckoutDialog({
             </Select>
           </div>
           <p className="text-xs text-muted-foreground">
-            Save or discard unsaved edits and close running terminals and agents in this Workspace
-            before changing these choices. Other Workspaces keep their checkout choices.
+            {translate(
+              'auto.features.local.projects.LocalWorkspaceCheckoutDialog.fae505d00d',
+              'Save or discard unsaved edits and close running terminals and agents in this Workspace before changing these choices. Other Workspaces keep their checkout choices.'
+            )}
           </p>
           {error && (
             <p role="alert" className="text-sm text-destructive">
@@ -128,10 +149,21 @@ export function LocalWorkspaceCheckoutDialog({
           )}
           <DialogFooter>
             <Button type="button" variant="ghost" disabled={disabled} onClick={onClose}>
-              Cancel
+              {translate(
+                'auto.features.local.projects.LocalWorkspaceCheckoutDialog.e12d21ef1f',
+                'Cancel'
+              )}
             </Button>
             <Button type="submit" disabled={disabled}>
-              {busy ? 'Saving…' : 'Save checkouts'}
+              {busy
+                ? translate(
+                    'auto.features.local.projects.LocalWorkspaceCheckoutDialog.5ec9c90086',
+                    'Saving…'
+                  )
+                : translate(
+                    'auto.features.local.projects.LocalWorkspaceCheckoutDialog.1f578c0418',
+                    'Save checkouts'
+                  )}
             </Button>
           </DialogFooter>
         </form>

@@ -32,11 +32,14 @@ import { removeWorkspaceLineageForFolderParent } from './metadata-lineage-operat
 import { bumpLocalWorktreeScanGeneration } from '../../local-worktree-scan-generation'
 import { dropOrcadTerminalRestoreHintsForWorktrees } from '../migrating-orcad-catalog/orcad-terminal-restore-hint-store'
 import { folderWorkspaceKey } from '../../../shared/workspace-scope'
+// Ether seam: local-projects
 import type { LocalProjectsPersistence } from '../../local-projects/persistence'
 import {
-  projectLocalFolderWorkspace,
-  projectLocalFolderWorkspaces
-} from '../../../shared/local-projects/folder-projection'
+  getLocalFolderWorkspace,
+  refuseLocalWorkspaceRemoval,
+  updateLocalFolderWorkspace,
+  withLocalFolderWorkspaces
+} from '../../local-projects/seams/folder-workspace-seam'
 
 type ProjectCollectionOperationsRuntime = Pick<
   StoreRuntimeState,
@@ -54,6 +57,7 @@ type ProjectCollectionOperationsContext = {
   repos: RepoLifecycleOperations
   scheduling: WriteSchedulingOperations
   metadata: MetadataLineageOperations
+  // Ether seam: local-projects
   localProjects: LocalProjectsPersistence
 }
 
@@ -141,19 +145,19 @@ export class ProjectCollectionOperations {
   }
 
   getFolderWorkspaces(): FolderWorkspace[] {
-    const local = this[projectCollectionOperationsContext].localProjects.getLocalProjectsSnapshot()
-    return [
-      ...getFolderWorkspaceOperations(this).getFolderWorkspaces(),
-      ...projectLocalFolderWorkspaces(local)
-    ]
+    // Ether seam: local-projects
+    return withLocalFolderWorkspaces(
+      this[projectCollectionOperationsContext].localProjects,
+      getFolderWorkspaceOperations(this).getFolderWorkspaces()
+    )
   }
 
   getFolderWorkspace(id: string): FolderWorkspace | undefined {
-    const local = this[projectCollectionOperationsContext].localProjects.getLocalProjectsSnapshot()
-    const workspace = local.workspaces.find((entry) => entry.id === id)
-    return workspace
-      ? projectLocalFolderWorkspace(local, workspace)
-      : getFolderWorkspaceOperations(this).getFolderWorkspace(id)
+    return (
+      // Ether seam: local-projects
+      getLocalFolderWorkspace(this[projectCollectionOperationsContext].localProjects, id) ??
+      getFolderWorkspaceOperations(this).getFolderWorkspace(id)
+    )
   }
 
   createFolderWorkspace(
@@ -166,26 +170,19 @@ export class ProjectCollectionOperations {
     id: string,
     updates: Parameters<FolderWorkspacePersistenceOperations['updateFolderWorkspace']>[1]
   ): FolderWorkspace | null {
-    const owner = this[projectCollectionOperationsContext].localProjects
-    if (owner.resolveLocalWorkspace(id)) {
-      const { pendingFirstAgentMessageRename, firstAgentMessageRenameError, ...metadata } = updates
-      if (
-        (pendingFirstAgentMessageRename !== undefined &&
-          pendingFirstAgentMessageRename !== false) ||
-        (firstAgentMessageRenameError !== undefined && firstAgentMessageRenameError !== null)
-      ) {
-        throw new Error('Local Workspace names are managed explicitly.')
-      }
-      const workspace = owner.updateLocalWorkspace({ workspaceId: id, updates: metadata })
-      return projectLocalFolderWorkspace(owner.getLocalProjectsSnapshot(), workspace)
-    }
-    return getFolderWorkspaceOperations(this).updateFolderWorkspace(id, updates)
+    return (
+      // Ether seam: local-projects
+      updateLocalFolderWorkspace(
+        this[projectCollectionOperationsContext].localProjects,
+        id,
+        updates
+      ) ?? getFolderWorkspaceOperations(this).updateFolderWorkspace(id, updates)
+    )
   }
 
   removeFolderWorkspace(id: string): boolean {
-    if (this[projectCollectionOperationsContext].localProjects.resolveLocalWorkspace(id)) {
-      throw new Error('Archive this local Workspace instead of deleting its saved context.')
-    }
+    // Ether seam: local-projects
+    refuseLocalWorkspaceRemoval(this[projectCollectionOperationsContext].localProjects, id)
     const removed = getFolderWorkspaceOperations(this).removeFolderWorkspace(id)
     if (removed) {
       const workspaceKey = folderWorkspaceKey(id)

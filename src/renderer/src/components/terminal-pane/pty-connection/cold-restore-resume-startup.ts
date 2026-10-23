@@ -19,24 +19,10 @@ import {
 import type { ColdRestoreAgentResumeStartup } from './fresh-spawn-types'
 
 import type { ConnectPanePtySession } from './connect-pane-pty-session'
+// Ether seam: agent-launch
 import { localWorkspaceResumeHasRoots } from '@/features/local-projects/seams/launch-seam'
 
-export type ColdRestoreResumeSession = Pick<
-  ConnectPanePtySession,
-  | 'buildColdRestoreAgentResumeStartup'
-  | 'pendingStartupCommand'
-  | 'cacheKey'
-  | 'getSleepingRecordForPane'
-  | 'executionHostId'
-  | 'projectRuntime'
-  | 'connectionId'
-  | 'worktree'
-  | 'shellOverride'
-> & { deps: Pick<ConnectPanePtySession['deps'], 'worktreeId'> }
-
-export function bindBuildColdRestoreAgentResumeStartup(
-  session: ConnectPanePtySession | ColdRestoreResumeSession
-): void {
+export function bindBuildColdRestoreAgentResumeStartup(session: ConnectPanePtySession): void {
   session.buildColdRestoreAgentResumeStartup = (): ColdRestoreAgentResumeStartup | null => {
     if (session.pendingStartupCommand) {
       return null

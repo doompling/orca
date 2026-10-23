@@ -1,13 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { SearchResult } from '../../../../shared/code-search-types'
 import type { ResolvedLocalWorkspace } from '../../../../shared/local-projects/types'
-import { searchRuntimeFiles, statRuntimePath } from '@/runtime/runtime-file-client'
+import { searchRuntimeFiles } from '@/runtime/runtime-file-search-client'
+import { statRuntimePath } from '@/runtime/runtime-file-metadata-client'
 import { searchLocalWorkspaceContents } from './local-workspace-content-search'
 
-vi.mock('@/runtime/runtime-file-client', () => ({
-  searchRuntimeFiles: vi.fn(),
-  statRuntimePath: vi.fn()
-}))
+vi.mock('@/runtime/runtime-file-search-client', () => ({ searchRuntimeFiles: vi.fn() }))
+vi.mock('@/runtime/runtime-file-metadata-client', () => ({ statRuntimePath: vi.fn() }))
 const search = vi.mocked(searchRuntimeFiles)
 const workspace: ResolvedLocalWorkspace = {
   workspaceId: 'workspace',
@@ -61,7 +60,7 @@ describe('Local Workspace contents search', () => {
     expect(search).toHaveBeenNthCalledWith(
       1,
       {
-        settings: { activeRuntimeEnvironmentId: null },
+        target: { kind: 'local' },
         worktreeId: 'folder:workspace',
         worktreePath: '/code/a'
       },
@@ -72,7 +71,8 @@ describe('Local Workspace contents search', () => {
         excludePattern: 'dist',
         maxResults: 1000,
         rootPath: '/code/a'
-      }
+      },
+      undefined
     )
     expect(results.files).toEqual([
       expect.objectContaining({

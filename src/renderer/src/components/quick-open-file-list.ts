@@ -31,7 +31,8 @@ import {
   type CappedLocalListing
 } from '@/components/quick-open-capped-local-listing'
 import { useAppStore } from '@/store'
-import { useKnownWorktreeById, useWorktreesForRepo } from '@/store/selectors'
+// Ether seam: local-projects — a Workspace root subtree lists that root.
+import { useKnownWorktreeById, useWorktreesForRepo } from '@/features/local-projects/root-scope'
 import type { FileExplorerOperationOwner } from '@/components/right-sidebar/file-explorer-types'
 import {
   getFileExplorerOperationOwnerFromState,
@@ -67,14 +68,12 @@ export function cleanRuntimeFileListError(error: unknown): string {
 export function useRuntimeFileListForWorktree({
   enabled,
   worktreeId,
-  rootPath,
   query,
   hostFilterWhenCapped = false,
   recentPaths
 }: {
   enabled: boolean
   worktreeId: string | null
-  rootPath?: string
   query?: string
   recentPaths?: readonly string[]
   /** When a local listing hits its cap, re-list with `query` applied as the Explorer name filter on the host. */
@@ -82,8 +81,7 @@ export function useRuntimeFileListForWorktree({
 }): RuntimeFileListState {
   // Why: folder workspaces live in the known-worktree catalog, not worktreesByRepo.
   const worktree = useKnownWorktreeById(worktreeId)
-  // Ether seam: local-projects — a multi-root Workspace lists the selected root.
-  const worktreePath = rootPath ?? worktree?.path ?? null
+  const worktreePath = worktree?.path ?? null
   const repoWorktrees = useWorktreesForRepo(worktree?.repoId ?? null)
   const [listing, setListing] = useState(NO_LISTING)
   const [loadingRequest, setLoadingRequest] = useState({ requestKey: '', loading: false })

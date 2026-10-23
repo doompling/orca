@@ -1,6 +1,6 @@
 import { useAppStore } from '@/store'
-import { getProviderRuntimeContextKey } from '@/lib/provider-runtime-context'
-import { getSettingsFocusedExecutionHostId } from '../../../../shared/execution-host'
+import { getEnvironmentRuntimeContextKey } from '@/lib/provider-runtime-context'
+import { LOCAL_EXECUTION_HOST_ID } from '../../../../shared/execution-host'
 import type { LinearIssue } from '../../../../shared/linear/issue-types'
 import type { TaskSourceContext } from '../../../../shared/task-source-context'
 import {
@@ -17,10 +17,10 @@ export function useLocalLinearIssueWorkspaces(
   const status = useAppStore((state) => state.linearStatus)
   const statusKey = useAppStore((state) => state.linearStatusContextKey)
   const checked = useAppStore((state) => state.linearStatusChecked)
-  const settings = useAppStore((state) => state.settings)
-  const hostId = sourceContext?.hostId ?? getSettingsFocusedExecutionHostId(settings)
+  // Ether runs no remote hosts, so an issue without a source row came from this host's Linear.
+  const hostId = sourceContext?.hostId ?? LOCAL_EXECUTION_HOST_ID
   const accounts =
-    checked && statusKey === getProviderRuntimeContextKey(null) ? (status.workspaces ?? []) : []
+    checked && statusKey === getEnvironmentRuntimeContextKey(null) ? (status.workspaces ?? []) : []
   const account = localLinearIssueAccount(issue, hostId, accounts)
   const targets = localLinearWorkspaceTargets(catalog)
   const attached = account

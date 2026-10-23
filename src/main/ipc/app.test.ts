@@ -164,8 +164,6 @@ describe('registerAppHandlers', () => {
 
   beforeEach(() => {
     vi.useFakeTimers()
-    runtimeFlags.dev = true
-    getPackagedEtherProductMock.mockReset().mockReturnValue(null)
     handlers.clear()
     appExitMock.mockReset()
     appQuitMock.mockReset()

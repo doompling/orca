@@ -44,6 +44,7 @@ import {
   withAgentSessionSpan,
   type AgentSessionCreatePhaseRecorder
 } from '../../observability/agent-session-instrumentation'
+// Ether seam: chat-scope
 import { withLocalWorkspaceScopeLock } from '../../local-projects/seams/chat-scope-seam'
 import {
   heldStructuredAgentSessionAttachLock,
@@ -79,9 +80,7 @@ export function attachStructuredAgentSessionForStart(
   options: StructuredAgentSessionAttachOptions & { lock: StructuredAgentSessionAttachLock }
 ): Promise<AgentSessionMutationResult<AgentSessionAttachResult>> {
   // Ether seam: chat-scope
-  return withLocalWorkspaceScopeLock(context.deps.acquireWorkspaceScope, params, () =>
-    runAttach(context, callerKey, params, options)
-  )
+  return withLocalWorkspaceScopeLock(params, () => runAttach(context, callerKey, params, options))
 }
 
 export function attachStructuredAgentSession(
@@ -96,7 +95,7 @@ export function attachStructuredAgentSession(
   const run = (recordPhase?: AgentSessionCreatePhaseRecorder) =>
     context.tasks.trackAttach(
       // Ether seam: chat-scope
-      withLocalWorkspaceScopeLock(context.deps.acquireWorkspaceScope, params, async () => {
+      withLocalWorkspaceScopeLock(params, async () => {
         for (;;) {
           const selected = await context.serialize(sessionId, async () => {
             const child = context.sessions.get(sessionId)?.child

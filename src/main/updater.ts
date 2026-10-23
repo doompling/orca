@@ -11,11 +11,13 @@ import type {
 } from '../shared/remote-server-update'
 import type { ReleaseBuild, ReleaseChannel } from '../shared/release-channel'
 import type { ReleaseBuildListOptions } from './updater-release-build-cache'
-import { UpdaterSetup, type UpdaterSetupOptions } from './updater/updater-setup'
+import type { UpdaterSetupOptions } from './updater/updater-setup'
+// Ether seam: updater
+import { createUpdaterSetup } from './updater/ether-manual-updater'
 import type { PreQuitCleanupFailureMode, UpdateInstallMode } from './updater/updater-state'
 
 // Keep one service instance so all public API calls share updater state and event listeners.
-const updater = new UpdaterSetup()
+const updater = createUpdaterSetup()
 
 export type { PreQuitCleanupFailureMode, UpdateInstallMode, UpdaterSetupOptions }
 

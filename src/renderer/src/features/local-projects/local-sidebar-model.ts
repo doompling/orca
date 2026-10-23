@@ -6,7 +6,7 @@ import type {
 } from '../../../../shared/local-projects/types'
 import { folderWorkspaceKey } from '../../../../shared/workspace-scope'
 import { formatShortTimeAgo } from '@/lib/short-time-ago'
-import type { AgentRowState } from '@/lib/agent-row-decay-state'
+import type { AgentRowState } from '../../../../shared/agent-row-decay-state'
 import {
   LOCAL_WORKSPACE_MARK_SLOTS,
   nextFreeLocalWorkspaceMarkSlot

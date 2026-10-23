@@ -25,6 +25,7 @@ import { useTitlebarAppName } from './use-titlebar-app-name'
  * header so the agent badge popover isn't duplicated.
  */
 export function TitlebarLeftControls({ layout }: { layout: AppChromeLayout }): React.JSX.Element {
+  // Ether seam: identity
   const appName = useTitlebarAppName() ?? translate('auto.App.5096cbbc86', 'Orca')
   const toggleSidebar = useAppStore((s) => s.toggleSidebar)
   const updateSettings = useAppStore((s) => s.updateSettings)

@@ -35,30 +35,6 @@ vi.mock('@/runtime/close-mirrored-editor-tab', () => ({
 }))
 
 describe('createEditorSlice openDiff', () => {
-  it('keeps identical relative paths in distinct local roots separate without changing the folder session', () => {
-    const store = createEditorStore()
-    for (const rootId of ['a', 'b']) {
-      store
-        .getState()
-        .openDiff('folder:workspace', `/${rootId}/same.txt`, 'same.txt', 'plaintext', false, {
-          preview: false,
-          runtimeEnvironmentId: null,
-          localRoot: { workspaceId: 'workspace', rootId }
-        })
-    }
-    const files = store.getState().openFiles
-    expect(files).toHaveLength(2)
-    expect(new Set(files.map((file) => file.id)).size).toBe(2)
-    expect(files.map((file) => file.localRoot?.rootId)).toEqual(['a', 'b'])
-    expect(files.every((file) => file.worktreeId === 'folder:workspace')).toBe(true)
-    store.getState().openDiff('folder:workspace', '/a/same.txt', 'same.txt', 'plaintext', false, {
-      preview: false,
-      runtimeEnvironmentId: null,
-      localRoot: { workspaceId: 'workspace', rootId: 'a' }
-    })
-    expect(store.getState().openFiles).toHaveLength(2)
-    expect(store.getState().openFiles[0].diffContentReloadNonce).toBe(1)
-  })
   it('keeps staged and unstaged diffs in separate tabs', () => {
     const store = createEditorStore()
 

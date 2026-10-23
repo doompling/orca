@@ -119,6 +119,7 @@ export type KeybindingActionId =
   | 'terminal.splitRight'
   | 'terminal.splitDown'
   | 'terminal.switchInputSource'
+  // Ether seam: sidebar
   | LocalWorkspaceKeybindingActionId
   | PluginKeybindingActionId
 

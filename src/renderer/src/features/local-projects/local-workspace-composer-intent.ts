@@ -1,16 +1,35 @@
 import { normalizeStoredTaskSourceContext } from '../../../../shared/task-source-context'
 import { parseLinearIssueUrlIntent } from '../../../../shared/linear/links'
-import { LocalWorkspaceLinearIssueSelectionSchema } from '../../../../shared/local-projects/linear-issues'
+import {
+  LocalWorkspaceLinearIssueSelectionSchema,
+  type LocalWorkspaceLinearIssueSelection
+} from '../../../../shared/local-projects/linear-issues'
+import type { LinearIssue } from '../../../../shared/linear/issue-types'
+import { buildLinearIssueLinkedWorkItem } from '@/lib/linear-linked-work-item'
+
+/** Composer data naming the exact Linear issue a new local Workspace links to. */
+export function localWorkspaceComposerIssueData(issue: Pick<LinearIssue, 'id' | 'workspaceId'>): {
+  linearIssue?: LocalWorkspaceLinearIssueSelection
+} {
+  return issue.workspaceId
+    ? { linearIssue: { linearWorkspaceId: issue.workspaceId, issueId: issue.id } }
+    : {}
+}
+
+/** Composer data for a Workspace from a Linear issue: its linked work item and exact issue. */
+export function linearIssueComposerData(issue: LinearIssue) {
+  return {
+    linkedWorkItem: buildLinearIssueLinkedWorkItem(issue),
+    ...localWorkspaceComposerIssueData(issue)
+  }
+}
 
 export function readLocalWorkspaceComposerIssue(data: Record<string, unknown>) {
   const parsed = LocalWorkspaceLinearIssueSelectionSchema.safeParse(data.linearIssue)
   return parsed.success ? parsed.data : undefined
 }
 
-export function usesLocalWorkspaceComposer(
-  data: Record<string, unknown>,
-  activeRuntimeEnvironmentId?: string | null
-): boolean {
+export function usesLocalWorkspaceComposer(data: Record<string, unknown>): boolean {
   if (data.taskSourceContext != null) {
     const context = normalizeStoredTaskSourceContext(data.taskSourceContext)
     if (!context || context.hostId !== 'local') {
@@ -22,9 +41,6 @@ export function usesLocalWorkspaceComposer(
   }
   const item = data.linkedWorkItem
   if (item != null) {
-    if (data.taskSourceContext == null && activeRuntimeEnvironmentId) {
-      return false
-    }
     return (
       typeof item === 'object' &&
       'provider' in item &&

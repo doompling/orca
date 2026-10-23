@@ -25,7 +25,7 @@ import { StalledTerminalDaemonBanner } from './StalledTerminalDaemonBanner'
 import { hasLocalProjectsApi } from '@/features/local-projects/local-projects-availability'
 import { LocalProjectsSidebar } from '@/features/local-projects/LocalProjectsSidebar'
 import { LocalSidebarTop } from '@/features/local-projects/LocalSidebarTop'
-import { LocalWorkspaceShortcuts } from '@/features/local-projects/LocalWorkspaceShortcuts'
+import { LocalProjectsSidebarServices } from '@/features/local-projects/LocalProjectsSidebarServices'
 
 // Why lazy: the Agents list pulls the whole activity pipeline (virtualizer, markdown
 // previews, thread derivation); users on the workspace view should not load or render any of it.
@@ -269,8 +269,8 @@ function Sidebar({
         )}
       </div>
 
-      {/* Shortcuts stay live while the sidebar is collapsed. */}
-      {localProjects ? <LocalWorkspaceShortcuts /> : null}
+      {/* Catalog loading and shortcuts stay live while the sidebar is collapsed. */}
+      {localProjects ? <LocalProjectsSidebarServices /> : null}
       {/* Dialogs render outside sidebar to avoid clipping. Lazy-load them only
       for the modal that needs their flow-specific hooks and UI. */}
       <React.Suspense fallback={null}>

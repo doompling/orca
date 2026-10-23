@@ -8,6 +8,7 @@ import { Popover, PopoverAnchor, PopoverArrow, PopoverContent } from '@/componen
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Sparkles, Bell } from 'lucide-react'
 import { cn } from '@/lib/utils'
+// Ether seam: local-projects
 import { hasLocalProjectsApi } from '@/features/local-projects/local-projects-availability'
 
 type SidebarHeaderProps = {
@@ -37,6 +38,7 @@ const SidebarHeader = React.memo(function SidebarHeader({
   const acknowledgeIntro = React.useCallback(() => {
     void updateSettings?.({ agentsSidebarIntroShown: true })
   }, [updateSettings])
+  // Ether seam: local-projects — local mode always lists Projects.
   const sidebarTitle =
     hasLocalProjectsApi() || groupBy === 'repo'
       ? translate('dashboard.sidebar.projects', 'Projects')

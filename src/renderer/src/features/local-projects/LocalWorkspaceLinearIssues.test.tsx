@@ -1,7 +1,11 @@
 // @vitest-environment happy-dom
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { linearListIssues, linearSearchIssues, linearStatus } from '@/runtime/runtime-linear-client'
+import {
+  linearListIssues,
+  linearSearchIssuesForTarget,
+  linearStatusForTarget
+} from '@/runtime/runtime-linear-client'
 import {
   LocalWorkspaceLinearIssues,
   LocalWorkspaceLinearIssuesContent
@@ -22,8 +26,8 @@ const actions = vi.hoisted(() => ({
   openSettingsTarget: vi.fn()
 }))
 vi.mock('@/runtime/runtime-linear-client', () => ({
-  linearStatus: vi.fn(),
-  linearSearchIssues: vi.fn(),
+  linearStatusForTarget: vi.fn(),
+  linearSearchIssuesForTarget: vi.fn(),
   linearListIssues: vi.fn()
 }))
 vi.mock('@/store', () => ({
@@ -47,8 +51,8 @@ beforeEach(() => {
   catalog = localLinearCatalog()
   switching = false
   vi.clearAllMocks()
-  vi.mocked(linearStatus).mockResolvedValue(localLinearStatus())
-  vi.mocked(linearSearchIssues).mockResolvedValue([localLinearIssue()])
+  vi.mocked(linearStatusForTarget).mockResolvedValue(localLinearStatus())
+  vi.mocked(linearSearchIssuesForTarget).mockResolvedValue([localLinearIssue()])
   vi.mocked(linearListIssues).mockResolvedValue({ items: [localLinearIssue()] })
   vi.stubGlobal('api', { shell: { openUrl } })
 })
@@ -82,7 +86,7 @@ describe('Workspace Linear issue controls', () => {
 
   it('keeps snapshots visible offline and unlinks only this Workspace', async () => {
     catalog = localLinearCatalog([localLinearLink()])
-    vi.mocked(linearStatus).mockRejectedValue(new Error('Offline'))
+    vi.mocked(linearStatusForTarget).mockRejectedValue(new Error('Offline'))
     content()
     expect(screen.getByText('APP-1 · Fix the application')).toBeTruthy()
     expect(screen.getByText('In Progress')).toBeTruthy()
@@ -96,7 +100,7 @@ describe('Workspace Linear issue controls', () => {
         issueId: 'issue'
       })
     )
-    expect(linearSearchIssues).not.toHaveBeenCalled()
+    expect(linearSearchIssuesForTarget).not.toHaveBeenCalled()
     expect(actions.attachLocalWorkspaceLinearIssue).not.toHaveBeenCalled()
   })
 
@@ -111,7 +115,7 @@ describe('Workspace Linear issue controls', () => {
   })
 
   it('does not present an empty network result as proof there are no matching issues', async () => {
-    vi.mocked(linearSearchIssues).mockResolvedValue([])
+    vi.mocked(linearSearchIssuesForTarget).mockResolvedValue([])
     content()
     fireEvent.change(await screen.findByPlaceholderText('Search Linear issues…'), {
       target: { value: 'missing' }
@@ -150,7 +154,7 @@ describe('Workspace Linear issue controls', () => {
     content()
     fireEvent.click(screen.getByRole('button', { name: 'Unlink APP-1' }))
     await waitFor(() => expect(actions.detachLocalWorkspaceLinearIssue).toHaveBeenCalledOnce())
-    expect(linearStatus).not.toHaveBeenCalled()
+    expect(linearStatusForTarget).not.toHaveBeenCalled()
     expect(screen.queryByPlaceholderText('Search Linear issues…')).toBeNull()
   })
 
@@ -159,7 +163,7 @@ describe('Workspace Linear issue controls', () => {
     switching = true
     content()
     expect(screen.getByRole('button', { name: 'Unlink APP-1' })).toHaveProperty('disabled', true)
-    expect(linearStatus).not.toHaveBeenCalled()
+    expect(linearStatusForTarget).not.toHaveBeenCalled()
   })
 
   it('opens the same issue controls from the Workspace actions menu', async () => {

@@ -3,6 +3,7 @@ import { captureLocalWorkspaceLaunchScope } from '../../shared/local-projects/ag
 import { CodexAppServerRequestError } from './codex-app-server-connection'
 import { localWorkspaceCodexThreadOverrides } from './codex-local-workspace-thread'
 import { openCodexThread } from './codex-structured-thread-open'
+import { codexStructuredPermissionPolicy } from './codex-structured-permission-policy'
 
 const scope = captureLocalWorkspaceLaunchScope({
   workspaceId: 'workspace-a',
@@ -19,10 +20,7 @@ const singleRootScope = captureLocalWorkspaceLaunchScope({
   defaultRootId: 'a',
   roots: [{ id: 'a', label: 'App A', path: '/code/app-a' }]
 })
-const permissionPolicy = {
-  sandbox: 'workspace-write' as const,
-  approvalPolicy: 'on-request' as const
-}
+const permissionPolicy = codexStructuredPermissionPolicy('ask')
 const configured = {
   config: {
     developer_instructions: 'Keep the user instructions.',
@@ -59,8 +57,7 @@ describe('Codex multi-root thread scope', () => {
       const threadParams = request.mock.calls[1]?.[1]
       expect(threadParams).toEqual({
         cwd: '/code/app-b',
-        approvalPolicy: 'on-request',
-        sandbox: 'workspace-write',
+        ...permissionPolicy,
         config: {
           'sandbox_workspace_write.writable_roots': ['/existing', '/code/app-a', '/code/app-b']
         },
@@ -123,7 +120,7 @@ describe('Codex multi-root thread scope', () => {
     const request = vi.fn(async () => opened)
     await expect(
       localWorkspaceCodexThreadOverrides({ request }, undefined, 2_000)
-    ).resolves.toEqual({})
+    ).resolves.toEqual({ config: {} })
     expect(request).not.toHaveBeenCalled()
     await openCodexThread(
       { request },
@@ -135,6 +132,35 @@ describe('Codex multi-root thread scope', () => {
       { cwd: '/legacy', ...permissionPolicy },
       { timeoutMs: 2_000 }
     )
+  })
+
+  it('keeps the chat visuals folder writable alongside every Workspace root', async () => {
+    const request = vi.fn(async (method: string, _params?: Record<string, unknown>) =>
+      method === 'config/read' ? configured : opened
+    )
+    await openCodexThread(
+      { request },
+      {
+        cwd: scope.cwd,
+        resumeThreadId: null,
+        permissionPolicy,
+        localWorkspaceScope: scope,
+        threadConfig: {
+          'sandbox_workspace_write.writable_roots': ['/existing', '/chat-visuals'],
+          'features.example': true
+        }
+      },
+      2_000
+    )
+    expect(request.mock.calls[1]?.[1]?.config).toEqual({
+      'sandbox_workspace_write.writable_roots': [
+        '/existing',
+        '/chat-visuals',
+        '/code/app-a',
+        '/code/app-b'
+      ],
+      'features.example': true
+    })
   })
 
   it('deduplicates configured roots without replacing unrelated sandbox settings', async () => {
@@ -199,7 +225,7 @@ describe('Codex multi-root thread scope', () => {
         cwd: scope.cwd,
         resumeThreadId: null,
         localWorkspaceScope: scope,
-        permissionPolicy: { sandbox: 'danger-full-access', approvalPolicy: 'never' }
+        permissionPolicy: codexStructuredPermissionPolicy('full-access')
       },
       2_000
     )
@@ -209,13 +235,17 @@ describe('Codex multi-root thread scope', () => {
     })
   })
 
-  it('keeps the full scope on the existing bounded excludeTurns compatibility fallback', async () => {
-    const request = vi.fn(async (method: string, params?: Record<string, unknown>) => {
+  it('keeps the full scope when an unsaved resume restarts as a new thread', async () => {
+    const request = vi.fn(async (method: string, _params?: Record<string, unknown>) => {
       if (method === 'config/read') {
         return configured
       }
-      if (params?.excludeTurns) {
-        throw new CodexAppServerRequestError('thread/resume', -32602, 'unknown field excludeTurns')
+      if (method === 'thread/resume') {
+        throw new CodexAppServerRequestError(
+          'thread/resume',
+          -32600,
+          'no rollout found for thread id thread-unsaved'
+        )
       }
       return opened
     })
@@ -223,15 +253,16 @@ describe('Codex multi-root thread scope', () => {
       { request },
       {
         cwd: scope.cwd,
-        resumeThreadId: 'thread-original',
+        resumeThreadId: 'thread-unsaved',
+        supersedeIfUnsaved: true,
         permissionPolicy,
         localWorkspaceScope: scope
       },
       2_000
     )
-    const resumed = request.mock.calls.filter(([method]) => method === 'thread/resume')
-    expect(resumed).toHaveLength(2)
-    for (const [, params] of resumed) {
+    const threadCalls = request.mock.calls.filter(([method]) => method !== 'config/read')
+    expect(threadCalls.map(([method]) => method)).toEqual(['thread/resume', 'thread/start'])
+    for (const [, params] of threadCalls) {
       expect(params).toMatchObject({
         cwd: scope.cwd,
         ...permissionPolicy,
@@ -271,7 +302,7 @@ describe('Codex multi-root thread scope', () => {
           cwd: scope.cwd,
           resumeThreadId: null,
           localWorkspaceScope: scope,
-          permissionPolicy: { sandbox: 'danger-full-access', approvalPolicy: 'never' }
+          permissionPolicy: codexStructuredPermissionPolicy('full-access')
         },
         2_000
       )

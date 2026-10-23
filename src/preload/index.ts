@@ -112,6 +112,7 @@ const api = {
   projects: projectsApi,
   projectGroups: projectGroupsApi,
   folderWorkspaces: folderWorkspacesApi,
+  // Ether seam: local-projects
   localProjects: localProjectsApi,
   sparsePresets: sparsePresetsApi,
   worktrees: worktreesApi,

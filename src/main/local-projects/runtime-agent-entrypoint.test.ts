@@ -2,7 +2,8 @@ import { mkdirSync, mkdtempSync, realpathSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { Store } from '../persistence/loading-store/store'
+import type { Store } from '../persistence/loading-store/store'
+import { openLocalProjectsTestStore } from './local-projects-store.test-support'
 import { OrcaRuntimeService } from '../runtime/orca-runtime'
 import type { TerminalWorkspaceLaunchScope } from '../runtime/runtime-legacy-worker-terminal-recovery-types'
 import type { TerminalCreateOptions } from '../runtime/runtime-terminal-contracts'
@@ -48,7 +49,7 @@ async function fixture() {
   const second = join(directory, 'second')
   mkdirSync(first)
   mkdirSync(second)
-  const store = new Store({ dataFile: join(directory, 'profile.json') })
+  const store = openLocalProjectsTestStore(directory)
   stores.push(store)
   const { workspace } = await store.createLocalProject({
     name: 'Application',

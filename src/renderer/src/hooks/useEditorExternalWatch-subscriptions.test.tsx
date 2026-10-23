@@ -169,28 +169,6 @@ describe('useEditorExternalWatch subscriptions', () => {
     expect(unwatchWorktree).not.toHaveBeenCalled()
   })
 
-  it('keeps one physical watch until the final workspace sharing its directory closes', async () => {
-    const first: TestWatchTarget = {
-      worktreeId: 'folder:first',
-      worktreePath: '/repo',
-      connectionId: undefined,
-      runtimeEnvironmentId: null
-    }
-    const second = { ...first, worktreeId: 'folder:second' }
-    subscriptionState.snapshot = { targets: [first, second], targetsKey: 'both' }
-    await act(async () => root.render(createElement(WatchProbe)))
-    expect(watchWorktree).toHaveBeenCalledTimes(1)
-
-    subscriptionState.snapshot = { targets: [second], targetsKey: 'second' }
-    await act(async () => root.render(createElement(WatchProbe)))
-    expect(unwatchWorktree).not.toHaveBeenCalled()
-    expect(watchWorktree).toHaveBeenCalledTimes(1)
-
-    subscriptionState.snapshot = { targets: [], targetsKey: '' }
-    await act(async () => root.render(createElement(WatchProbe)))
-    expect(unwatchWorktree).toHaveBeenCalledTimes(1)
-  })
-
   it('cannot let an old runtime subscribe resolution replace a re-added watch', async () => {
     const stalePending = deferredRuntimeSubscription()
     const currentPending = deferredRuntimeSubscription()

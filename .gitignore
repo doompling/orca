@@ -96,7 +96,7 @@ design-docs/
 # Machine-local agent hook endpoint files may contain auth tokens.
 /agent-hooks/
 
-# Ether: dedicated local-fork development profile; never commit saved work or credentials.
+# Ether seam: local-projects — dedicated fork development profile; never commit saved work or credentials.
 /.orca-local-profile/
 
 # Local-only design/planning docs (not checked in).
@@ -122,6 +122,7 @@ docs/**
 !docs/bug-reproductions/
 !docs/bug-reproductions/**
 !docs/STYLEGUIDE.md
+# Ether seam: docs
 !docs/ether-maintenance.md
 !docs/reference/
 !docs/reference/cross-platform-support.md

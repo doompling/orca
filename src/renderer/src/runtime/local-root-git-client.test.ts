@@ -6,18 +6,10 @@ import { commitRuntimeGit } from './runtime-git-sync-client'
 import type { RuntimeGitContext } from './runtime-git-client-context'
 
 const { rpc } = vi.hoisted(() => ({ rpc: vi.fn() }))
-vi.mock('./runtime-rpc-client', () => ({
-  callRuntimeRpc: rpc,
-  getActiveRuntimeTarget: (
-    settings: { activeRuntimeEnvironmentId?: string | null } | null | undefined
-  ) =>
-    settings?.activeRuntimeEnvironmentId
-      ? { kind: 'environment', environmentId: settings.activeRuntimeEnvironmentId }
-      : { kind: 'local' }
-}))
+vi.mock('./runtime-rpc-client', () => ({ callRuntimeRpc: rpc }))
 const git = { status: vi.fn(), diff: vi.fn(), stage: vi.fn(), unstage: vi.fn(), commit: vi.fn() }
 const context: RuntimeGitContext = {
-  settings: { activeRuntimeEnvironmentId: null },
+  target: { kind: 'local' },
   worktreeId: 'folder:workspace',
   worktreePath: '/second',
   localRoot: { workspaceId: 'workspace', rootId: 'second' }
@@ -45,7 +37,7 @@ describe('explicit local root Git client route', () => {
 
   it.each([
     { connectionId: 'ssh-host' },
-    { settings: { activeRuntimeEnvironmentId: 'remote' } },
+    { target: { kind: 'environment', environmentId: 'remote' } as const },
     { worktreeId: 'folder:other' }
   ])('refuses a substituted owner before desktop or remote dispatch: %j', async (changes) => {
     const target = { ...context, ...changes }

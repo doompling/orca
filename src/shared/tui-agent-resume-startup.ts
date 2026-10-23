@@ -12,6 +12,7 @@ import { resolveStartupShell, type AgentStartupShell } from './tui-agent-startup
 import { TUI_AGENT_CONFIG } from './tui-agent-config'
 import type { TuiAgent } from './tui-agent'
 import { buildAgentResumeLaunchCommand } from './agent-resume-launch-command'
+// Ether seam: agent-launch
 import type { LocalWorkspaceLaunchScope } from './local-projects/agent-launch-scope'
 
 export function buildAgentResumeStartupPlan(args: {

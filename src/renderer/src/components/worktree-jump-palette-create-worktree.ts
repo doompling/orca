@@ -18,7 +18,8 @@ import {
   normalizeTaskSourceContext
 } from '../../../shared/task-source-context'
 import { getLinearIssueWorkspaceName } from '../../../shared/workspace-name'
-import { buildLinearIssueLinkedWorkItem } from '@/lib/linear-linked-work-item'
+// Ether seam: linear
+import { linearIssueComposerData } from '@/features/local-projects/local-workspace-composer-intent'
 import { isWorktreePaletteCreateActivationAllowed } from '@/lib/worktree-palette-create-action'
 import type { WorktreeJumpPaletteFilter } from './use-worktree-jump-palette-filter'
 import type { WorktreeJumpPaletteLocalState } from './use-worktree-jump-palette-local-state'
@@ -137,15 +138,8 @@ export function createWorktreeJumpPaletteWorktreeHandler({
                 : null
               return {
                 prefilledName: getLinearIssueWorkspaceName(preview.issue),
-                linkedWorkItem: buildLinearIssueLinkedWorkItem(preview.issue),
-                ...(preview.issue.workspaceId
-                  ? {
-                      linearIssue: {
-                        linearWorkspaceId: preview.issue.workspaceId,
-                        issueId: preview.issue.id
-                      }
-                    }
-                  : {}),
+                // Ether seam: linear — also names the exact issue a local Workspace links.
+                ...linearIssueComposerData(preview.issue),
                 ...(preview.initialRepoId ? { initialRepoId: preview.initialRepoId } : {}),
                 ...(sourceContext ? { taskSourceContext: sourceContext } : {})
               }

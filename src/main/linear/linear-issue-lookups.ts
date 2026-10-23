@@ -3,6 +3,7 @@ import type { LinearWorkspaceSelection } from '../../shared/linear/workspace-typ
 import { acquire, release } from './linear-request-concurrency'
 import { clearToken } from './linear-token-store'
 import { getClients, isAuthError } from './client'
+// Ether seam: linear — stalled searches time out with a retryable error.
 import { withLinearReadDeadline } from './linear-read-deadline'
 import { getRequiredEntry } from './issue-context/client'
 import { getDescriptionImageUrls } from './linear-description-images'
@@ -174,47 +175,57 @@ export async function searchIssues(
   limit = 20,
   workspaceId?: LinearWorkspaceSelection | null
 ): Promise<LinearIssue[]> {
-  // Ether seam: linear — stalled searches time out with a retryable error.
-  return withLinearReadDeadline(async (signal) => {
-    const entries = getClients(workspaceId, signal)
-    if (entries.length === 0) {
-      return []
-    }
+  // Ether seam: linear
+  return withLinearReadDeadline((signal) =>
+    searchIssuesWithSignal(query, limit, workspaceId, signal)
+  )
+}
 
-    const results = await Promise.all(
-      entries.map(async (entry) => {
-        await acquire(signal)
-        try {
-          const result = await entry.client.client.rawRequest<
-            LinearIssueConnectionResponse,
-            LinearRawVariables
-          >(SEARCH_ISSUES_QUERY, { term: query, first: limit })
-          const nodes = result.data?.searchIssues?.nodes ?? []
-          return nodes.map((issue) => mapRawIssueForWorkspace(entry, issue))
-        } catch (error) {
-          if (isAuthError(error)) {
-            clearToken(entry.workspace.id)
-            if (shouldThrowAuthError(workspaceId)) {
-              throw error
-            }
-          } else {
-            console.warn('[linear] searchIssues failed:', error)
-            if (shouldThrowAuthError(workspaceId)) {
-              throw error
-            }
+async function searchIssuesWithSignal(
+  query: string,
+  limit: number,
+  workspaceId: LinearWorkspaceSelection | null | undefined,
+  signal: AbortSignal
+): Promise<LinearIssue[]> {
+  const entries = getClients(workspaceId, signal)
+  if (entries.length === 0) {
+    return []
+  }
+
+  const results = await Promise.all(
+    entries.map(async (entry) => {
+      await acquire(signal)
+      try {
+        const result = await entry.client.client.rawRequest<
+          LinearIssueConnectionResponse,
+          LinearRawVariables
+        >(SEARCH_ISSUES_QUERY, { term: query, first: limit })
+        const nodes = result.data?.searchIssues?.nodes ?? []
+        return nodes.map((issue) => mapRawIssueForWorkspace(entry, issue))
+      } catch (error) {
+        if (isAuthError(error)) {
+          clearToken(entry.workspace.id)
+          if (shouldThrowAuthError(workspaceId)) {
+            throw error
           }
-          return []
-        } finally {
-          release()
+        } else {
+          console.warn('[linear] searchIssues failed:', error)
+          // Ether seam: linear — a timed-out explicit search must surface, not read as no matches.
+          if (shouldThrowAuthError(workspaceId)) {
+            throw error
+          }
         }
-      })
-    )
-    // Why: searchIssues returns Linear's relevance ranking. Re-sorting by
-    // updatedAt would discard relevance order for single-workspace results,
-    // diverging from Linear's web UI and pre-PR behavior.
-    if (entries.length === 1) {
-      return results.flat().slice(0, limit)
-    }
-    return sortAndLimitIssues(results.flat(), limit)
-  })
+        return []
+      } finally {
+        release()
+      }
+    })
+  )
+  // Why: searchIssues returns Linear's relevance ranking. Re-sorting by
+  // updatedAt would discard relevance order for single-workspace results,
+  // diverging from Linear's web UI and pre-PR behavior.
+  if (entries.length === 1) {
+    return results.flat().slice(0, limit)
+  }
+  return sortAndLimitIssues(results.flat(), limit)
 }

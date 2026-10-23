@@ -5,6 +5,7 @@ import {
   selectEditorExternalWatchTargets,
   type EditorExternalWatchTargetState
 } from './editor-external-watch-targets'
+import { getWorktreeVisitKey } from '@/lib/worktree-visit-recency'
 
 function fixture(): EditorExternalWatchTargetState & { localProjects: LocalProjectsState } {
   const localProjects: LocalProjectsState = {
@@ -51,6 +52,8 @@ function fixture(): EditorExternalWatchTargetState & { localProjects: LocalProje
       }
     ],
     activeWorktreeId: 'folder:first',
+    // Upstream watches inactive Workspaces only while they are among the recently visited.
+    lastVisitedAtByWorktreeId: { [getWorktreeVisitKey('folder:second')]: 1 },
     settings: null,
     rightSidebarOpen: true,
     rightSidebarTab: 'explorer',
@@ -60,14 +63,15 @@ function fixture(): EditorExternalWatchTargetState & { localProjects: LocalProje
   }
 }
 
+function watchedPaths(state: EditorExternalWatchTargetState): string[][] {
+  return selectEditorExternalWatchTargets(state)
+    .targets.map(({ worktreeId, worktreePath }) => [worktreeId, worktreePath])
+    .sort((left, right) => left.join('\0').localeCompare(right.join('\0')))
+}
+
 describe('local Project editor watches', () => {
-  it('watches every root in active and inactive contexts with open files', () => {
-    expect(
-      selectEditorExternalWatchTargets(fixture()).targets.map(({ worktreeId, worktreePath }) => [
-        worktreeId,
-        worktreePath
-      ])
-    ).toEqual([
+  it('watches every root in active and recently visited contexts with open files', () => {
+    expect(watchedPaths(fixture())).toEqual([
       ['folder:first', '/app_a'],
       ['folder:first', '/app_b'],
       ['folder:second', '/app_a'],
@@ -86,16 +90,11 @@ describe('local Project editor watches', () => {
           : workspace
       )
     }
-    expect(
-      selectEditorExternalWatchTargets(state).targets.map(({ worktreeId, worktreePath }) => [
-        worktreeId,
-        worktreePath
-      ])
-    ).toEqual([
+    expect(watchedPaths(state)).toEqual([
       ['folder:first', '/app_a'],
       ['folder:first', '/app_b'],
-      ['folder:second', '/app_a'],
-      ['folder:second', '/alternate_b']
+      ['folder:second', '/alternate_b'],
+      ['folder:second', '/app_a']
     ])
   })
 })

@@ -17,6 +17,7 @@ export function buildSleepingAgentLaunchConfig(args: {
     // Why: startup env may include prompt transport or pane identity values;
     // durable resume state is limited to Orca-managed agent inputs.
     agentEnv: args.agentEnv ? { ...args.agentEnv } : {},
+    // Ether seam: agent-launch
     ...(args.localWorkspaceScope
       ? { localWorkspaceScope: copyLocalWorkspaceLaunchScope(args.localWorkspaceScope) }
       : {}),

@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { linearListIssues, linearSearchIssues, linearStatus } from '@/runtime/runtime-linear-client'
-import { linearGetIssue } from '@/runtime/runtime-linear-issue-mutations'
+import {
+  linearListIssues,
+  linearSearchIssuesForTarget,
+  linearStatusForTarget
+} from '@/runtime/runtime-linear-client'
+import { getLocalLinearIssue } from './local-linear-issue-lookup'
 import {
   readLocalWorkspaceLinearIssues,
   readLocalWorkspaceLinkedIssue,
@@ -14,10 +18,10 @@ import {
 
 vi.mock('@/runtime/runtime-linear-client', () => ({
   linearListIssues: vi.fn(),
-  linearSearchIssues: vi.fn(),
-  linearStatus: vi.fn()
+  linearSearchIssuesForTarget: vi.fn(),
+  linearStatusForTarget: vi.fn()
 }))
-vi.mock('@/runtime/runtime-linear-issue-mutations', () => ({ linearGetIssue: vi.fn() }))
+vi.mock('./local-linear-issue-lookup', () => ({ getLocalLinearIssue: vi.fn() }))
 
 function account() {
   const entry = localLinearStatus().workspaces?.[0]
@@ -28,8 +32,8 @@ function account() {
 }
 beforeEach(() => {
   vi.resetAllMocks()
-  vi.mocked(linearStatus).mockResolvedValue(localLinearStatus())
-  vi.mocked(linearGetIssue).mockResolvedValue(localLinearIssue())
+  vi.mocked(linearStatusForTarget).mockResolvedValue(localLinearStatus())
+  vi.mocked(getLocalLinearIssue).mockResolvedValue(localLinearIssue())
 })
 
 describe('Workspace Linear issue reads', () => {
@@ -41,8 +45,8 @@ describe('Workspace Linear issue reads', () => {
         error: null
       })
       expect(linearListIssues).not.toHaveBeenCalled()
-      expect(linearSearchIssues).not.toHaveBeenCalled()
-      expect(linearGetIssue).not.toHaveBeenCalled()
+      expect(linearSearchIssuesForTarget).not.toHaveBeenCalled()
+      expect(getLocalLinearIssue).not.toHaveBeenCalled()
     }
   )
 
@@ -51,19 +55,15 @@ describe('Workspace Linear issue reads', () => {
       issues: [localLinearIssue()],
       error: null
     })
-    expect(linearGetIssue).toHaveBeenCalledExactlyOnceWith(
-      { activeRuntimeEnvironmentId: null },
-      'APP-1',
-      'account'
-    )
-    expect(linearSearchIssues).not.toHaveBeenCalled()
+    expect(getLocalLinearIssue).toHaveBeenCalledExactlyOnceWith('APP-1', 'account')
+    expect(linearSearchIssuesForTarget).not.toHaveBeenCalled()
   })
 
   it('resolves a pasted issue URL, checking its returned organization even when account metadata lacks a slug', async () => {
     await expect(
       readLocalWorkspaceLinearIssues(account(), localLinearIssue().url)
     ).resolves.toMatchObject({ issues: [{ id: 'issue' }] })
-    vi.mocked(linearGetIssue).mockResolvedValueOnce({
+    vi.mocked(getLocalLinearIssue).mockResolvedValueOnce({
       ...localLinearIssue(),
       url: 'https://linear.app/other/issue/APP-1/task'
     })
@@ -82,12 +82,12 @@ describe('Workspace Linear issue reads', () => {
     await expect(
       readLocalWorkspaceLinearIssues(account(), 'https://example.com/issue/APP-1')
     ).rejects.toThrow('Paste a Linear issue URL')
-    expect(linearGetIssue).not.toHaveBeenCalled()
-    expect(linearSearchIssues).not.toHaveBeenCalled()
+    expect(getLocalLinearIssue).not.toHaveBeenCalled()
+    expect(linearSearchIssuesForTarget).not.toHaveBeenCalled()
   })
 
   it('keeps ordinary title searches bounded and excludes another account response', async () => {
-    vi.mocked(linearSearchIssues).mockResolvedValue([
+    vi.mocked(linearSearchIssuesForTarget).mockResolvedValue([
       localLinearIssue(),
       localLinearIssue('other', 'another-account')
     ])
@@ -95,8 +95,8 @@ describe('Workspace Linear issue reads', () => {
       issues: [localLinearIssue()],
       error: null
     })
-    expect(linearSearchIssues).toHaveBeenCalledExactlyOnceWith(
-      { activeRuntimeEnvironmentId: null },
+    expect(linearSearchIssuesForTarget).toHaveBeenCalledExactlyOnceWith(
+      { kind: 'local' },
       'application',
       20,
       'account'
@@ -104,7 +104,7 @@ describe('Workspace Linear issue reads', () => {
   })
 
   it('reports a rejected search instead of falling back to unrelated results', async () => {
-    vi.mocked(linearSearchIssues).mockRejectedValue(new Error('Read failed'))
+    vi.mocked(linearSearchIssuesForTarget).mockRejectedValue(new Error('Read failed'))
     await expect(readLocalWorkspaceLinearIssues(account(), 'application')).rejects.toThrow(
       'Read failed'
     )
@@ -115,32 +115,28 @@ describe('Workspace Linear issue reads', () => {
     await expect(
       readLocalWorkspaceLinkedIssue({ ...localLinearLink(), identifier: 'OLD-42' })
     ).resolves.toEqual(localLinearIssue())
-    expect(linearGetIssue).toHaveBeenCalledExactlyOnceWith(
-      { activeRuntimeEnvironmentId: null },
-      'issue',
-      'account'
-    )
+    expect(getLocalLinearIssue).toHaveBeenCalledExactlyOnceWith('issue', 'account')
   })
 
   it('does not use a replaced or disconnected account to open or refresh saved details', async () => {
-    vi.mocked(linearStatus).mockResolvedValue({
+    vi.mocked(linearStatusForTarget).mockResolvedValue({
       ...localLinearStatus(),
       workspaces: [{ ...account(), organizationId: 'other' }]
     })
     await expect(requireLocalWorkspaceLinearAccount(localLinearLink())).rejects.toThrow(
       'original Linear account'
     )
-    vi.mocked(linearStatus).mockResolvedValue({ connected: false, viewer: null })
+    vi.mocked(linearStatusForTarget).mockResolvedValue({ connected: false, viewer: null })
     await expect(readLocalWorkspaceLinkedIssue(localLinearLink())).rejects.toThrow(
       'original Linear account'
     )
-    expect(linearGetIssue).not.toHaveBeenCalled()
+    expect(getLocalLinearIssue).not.toHaveBeenCalled()
   })
 
   it.each([{ id: 'wrong-uuid' }, { workspaceId: 'wrong-account' }])(
     'refuses a mismatched linked issue response %j',
     async (patch) => {
-      vi.mocked(linearGetIssue).mockResolvedValue({ ...localLinearIssue(), ...patch })
+      vi.mocked(getLocalLinearIssue).mockResolvedValue({ ...localLinearIssue(), ...patch })
       await expect(readLocalWorkspaceLinkedIssue(localLinearLink())).rejects.toThrow(
         'original Linear account'
       )

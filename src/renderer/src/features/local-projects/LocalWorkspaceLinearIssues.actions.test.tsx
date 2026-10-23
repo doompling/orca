@@ -1,8 +1,12 @@
 // @vitest-environment happy-dom
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { linearListIssues, linearSearchIssues, linearStatus } from '@/runtime/runtime-linear-client'
-import { linearGetIssue } from '@/runtime/runtime-linear-issue-mutations'
+import {
+  linearListIssues,
+  linearSearchIssuesForTarget,
+  linearStatusForTarget
+} from '@/runtime/runtime-linear-client'
+import { getLocalLinearIssue } from './local-linear-issue-lookup'
 import type { AttachLocalWorkspaceLinearIssueArgs } from '../../../../shared/local-projects/linear-issues'
 import type { LinearIssue } from '../../../../shared/linear/issue-types'
 import { LocalWorkspaceLinearIssuesContent } from './LocalWorkspaceLinearIssues'
@@ -22,11 +26,11 @@ const actions = vi.hoisted(() => ({
   openSettingsTarget: vi.fn()
 }))
 vi.mock('@/runtime/runtime-linear-client', () => ({
-  linearStatus: vi.fn(),
-  linearSearchIssues: vi.fn(),
+  linearStatusForTarget: vi.fn(),
+  linearSearchIssuesForTarget: vi.fn(),
   linearListIssues: vi.fn()
 }))
-vi.mock('@/runtime/runtime-linear-issue-mutations', () => ({ linearGetIssue: vi.fn() }))
+vi.mock('./local-linear-issue-lookup', () => ({ getLocalLinearIssue: vi.fn() }))
 vi.mock('@/store', () => ({
   useAppStore: Object.assign(
     (selector: (value: ReturnType<typeof state>) => unknown) => selector(state()),
@@ -48,10 +52,10 @@ beforeEach(() => {
   catalog = localLinearCatalog([localLinearLink()])
   profileId = 'profile'
   actions.attachLocalWorkspaceLinearIssue.mockResolvedValue(undefined)
-  vi.mocked(linearStatus).mockResolvedValue(localLinearStatus())
+  vi.mocked(linearStatusForTarget).mockResolvedValue(localLinearStatus())
   vi.mocked(linearListIssues).mockResolvedValue({ items: [localLinearIssue()] })
-  vi.mocked(linearSearchIssues).mockResolvedValue([localLinearIssue()])
-  vi.mocked(linearGetIssue).mockResolvedValue(localLinearIssue())
+  vi.mocked(linearSearchIssuesForTarget).mockResolvedValue([localLinearIssue()])
+  vi.mocked(getLocalLinearIssue).mockResolvedValue(localLinearIssue())
 })
 afterEach(cleanup)
 
@@ -103,7 +107,7 @@ describe('Workspace linked issue workflows', () => {
   it('links multiple searched issues without closing, removing prior links, or starting work', async () => {
     catalog = localLinearCatalog()
     const second = { ...localLinearIssue('second'), identifier: 'APP-2', title: 'Second task' }
-    vi.mocked(linearSearchIssues).mockResolvedValue([localLinearIssue(), second])
+    vi.mocked(linearSearchIssuesForTarget).mockResolvedValue([localLinearIssue(), second])
     actions.attachLocalWorkspaceLinearIssue.mockImplementation(async ({ issueId }) => {
       const issue = issueId === 'second' ? second : localLinearIssue()
       catalog.workspaces[0].linearIssues?.push({
@@ -137,7 +141,7 @@ describe('Workspace linked issue workflows', () => {
 
   it('does not navigate after the profile changes while a saved issue is loading', async () => {
     let finish: ((issue: LinearIssue) => void) | undefined
-    vi.mocked(linearGetIssue).mockImplementationOnce(
+    vi.mocked(getLocalLinearIssue).mockImplementationOnce(
       () =>
         new Promise((resolve) => {
           finish = resolve
@@ -145,7 +149,7 @@ describe('Workspace linked issue workflows', () => {
     )
     render(<LocalWorkspaceLinearIssuesContent workspaceId="workspace" onClose={() => {}} />)
     fireEvent.click(screen.getByRole('button', { name: 'Open APP-1 in Ether' }))
-    await waitFor(() => expect(linearGetIssue).toHaveBeenCalledOnce())
+    await waitFor(() => expect(getLocalLinearIssue).toHaveBeenCalledOnce())
     profileId = 'another-profile'
     await act(async () => {
       finish?.(localLinearIssue())

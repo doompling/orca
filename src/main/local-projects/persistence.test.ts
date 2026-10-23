@@ -11,7 +11,11 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { folderWorkspaceKey } from '../../shared/workspace-scope'
-import { Store } from '../persistence/loading-store/store'
+import type { Store } from '../persistence/loading-store/store'
+import {
+  openLocalProjectsTestStore,
+  readSavedProfileDomain
+} from './local-projects-store.test-support'
 import { resolveAuthorizedPath } from '../ipc/filesystem-auth'
 import { gitExecFileSync } from '../git/runner'
 
@@ -50,12 +54,12 @@ function fixture() {
   mkdirSync(appA)
   mkdirSync(appB)
   writeFileSync(join(appA, 'note.txt'), 'original')
-  const dataFile = join(directory, 'profile.json')
-  const store = new Store({ dataFile })
+  const profileDir = directory
+  const store = openLocalProjectsTestStore(profileDir)
   stores.push(store)
   return {
     store,
-    dataFile,
+    profileDir,
     appA,
     appB,
     input: {
@@ -71,7 +75,7 @@ function fixture() {
 
 describe('local Project persistence in the existing profile Store', () => {
   it('durably creates Project and Main together without a legacy record or filesystem mutation', async () => {
-    const { store, dataFile, appA, appB, input } = fixture()
+    const { store, profileDir, appA, appB, input } = fixture()
     const created = await store.createLocalProject(input)
     expect(created.workspace.name).toBe('Main')
     expect(created.project.lastWorkspaceId).toBe(created.workspace.id)
@@ -82,11 +86,12 @@ describe('local Project persistence in the existing profile Store', () => {
       ],
       defaultRootId: 'b'
     })
-    const saved = JSON.parse(readFileSync(dataFile, 'utf8'))
-    expect(saved.localProjects.projects).toEqual([created.project])
-    expect(saved.localProjects.workspaces).toEqual([created.workspace])
-    expect(saved.folderWorkspaces).toEqual([])
-    expect(saved.projectGroups).toEqual([])
+    expect(readSavedProfileDomain(profileDir, 'localProjects')).toMatchObject({
+      projects: [created.project],
+      workspaces: [created.workspace]
+    })
+    expect(readSavedProfileDomain(profileDir, 'folderWorkspaces')).toEqual([])
+    expect(readSavedProfileDomain(profileDir, 'projectGroups')).toEqual([])
     expect(store.getRepos()).toEqual([])
     expect(readFileSync(join(appA, 'note.txt'), 'utf8')).toBe('original')
     expect(store.getFolderWorkspace(created.workspace.id)?.folderPath).toBe(appB)
@@ -205,7 +210,7 @@ describe('local Project persistence in the existing profile Store', () => {
   })
 
   it('persists existing folder session identity and reloads projections without a writable mirror', async () => {
-    const { store, dataFile, input } = fixture()
+    const { store, profileDir, input } = fixture()
     const { workspace } = await store.createLocalProject(input)
     const key = folderWorkspaceKey(workspace.id)
     store.setWorkspaceSession({
@@ -226,7 +231,7 @@ describe('local Project persistence in the existing profile Store', () => {
     })
     store.flushOrThrow()
     store.freezeWrites()
-    const reopened = new Store({ dataFile })
+    const reopened = openLocalProjectsTestStore(profileDir)
     stores.push(reopened)
     expect(reopened.getLocalProjectsSnapshot()).toEqual(store.getLocalProjectsSnapshot())
     expect(reopened.getFolderWorkspace(workspace.id)?.id).toBe(workspace.id)
@@ -267,7 +272,7 @@ describe('local Project persistence in the existing profile Store', () => {
   })
 
   it('persists activity and attention in the canonical record without regressing delayed activity', async () => {
-    const { store, input, dataFile } = fixture()
+    const { store, input, profileDir } = fixture()
     const { workspace } = await store.createLocalProject(input)
     expect(store.getFolderWorkspace(workspace.id)).toMatchObject({
       isUnread: false,
@@ -292,7 +297,7 @@ describe('local Project persistence in the existing profile Store', () => {
       expect(() => store.updateFolderWorkspace(workspace.id, { lastActivityAt })).toThrow()
     }
     store.freezeWrites()
-    const reopened = new Store({ dataFile })
+    const reopened = openLocalProjectsTestStore(profileDir)
     stores.push(reopened)
     expect(reopened.getLocalProjectsSnapshot().workspaces[0]).toMatchObject({
       isUnread: false,
@@ -304,11 +309,11 @@ describe('local Project persistence in the existing profile Store', () => {
       isPinned: true,
       lastActivityAt: 20
     })
-    expect(JSON.parse(readFileSync(dataFile, 'utf8')).folderWorkspaces).toEqual([])
+    expect(readSavedProfileDomain(profileDir, 'folderWorkspaces')).toEqual([])
   })
 
   it('keeps mark slots unique, moves a taken slot, and clears it on archive', async () => {
-    const { store, input, dataFile } = fixture()
+    const { store, input, profileDir } = fixture()
     const { project, workspace: main } = await store.createLocalProject(input)
     const other = await store.createLocalWorkspace({ projectId: project.id, name: 'Other' })
     store.updateLocalWorkspace({ workspaceId: main.id, updates: { markSlot: 2 } })
@@ -353,7 +358,7 @@ describe('local Project persistence in the existing profile Store', () => {
       ).toThrow()
     }
     store.freezeWrites()
-    const reopened = new Store({ dataFile })
+    const reopened = openLocalProjectsTestStore(profileDir)
     stores.push(reopened)
     expect(reopened.getLocalProjectsSnapshot().workspaces[1]).toMatchObject({ markSlot: 2 })
   })

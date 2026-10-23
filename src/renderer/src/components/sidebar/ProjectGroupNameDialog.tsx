@@ -18,6 +18,7 @@ type ProjectGroupNameDialogProps = {
   description: string
   initialName: string
   confirmLabel: string
+  // Ether seam: local-projects — local Project rename reuses this dialog with its own label and errors.
   nameLabel?: string
   onOpenChange: (open: boolean) => void
   onSubmit: (name: string) => Promise<void> | void
@@ -115,6 +116,7 @@ export function ProjectGroupNameDialog({
               className="h-8 text-xs"
             />
           </div>
+          {/* Ether seam: local-projects */}
           {errorMessage && (
             <p role="alert" className="text-xs text-destructive">
               {errorMessage}

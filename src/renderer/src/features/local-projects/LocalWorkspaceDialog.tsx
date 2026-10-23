@@ -25,11 +25,11 @@ import {
   readLocalWorkspaceComposerIssue,
   usesLocalWorkspaceComposer
 } from './local-workspace-composer-intent'
+import { translate } from '@/i18n/i18n'
 
 export function LocalWorkspaceDialog(): React.JSX.Element {
   const modalData = useAppStore((s) => s.modalData)
-  const activeRuntimeEnvironmentId = useAppStore((s) => s.settings?.activeRuntimeEnvironmentId)
-  return usesLocalWorkspaceComposer(modalData, activeRuntimeEnvironmentId) ? (
+  return usesLocalWorkspaceComposer(modalData) ? (
     <LocalWorkspaceForm />
   ) : (
     <NewWorkspaceComposerModal />
@@ -107,27 +107,52 @@ function LocalWorkspaceForm(): React.JSX.Element {
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>New Workspace</DialogTitle>
+          <DialogTitle>
+            {translate(
+              'auto.features.local.projects.LocalWorkspaceDialog.cf3c0f1a3a',
+              'New Workspace'
+            )}
+          </DialogTitle>
           <DialogDescription>
-            A separate set of tabs, drafts, and sessions over your Project&apos;s directories.
+            {translate(
+              'auto.features.local.projects.LocalWorkspaceDialog.4ee804fde0',
+              "A separate set of tabs, drafts, and sessions over your Project's directories."
+            )}
           </DialogDescription>
         </DialogHeader>
         {projects.length === 0 ? (
           <div className="space-y-3">
-            <p className="text-sm">Create a Project to choose your directories first.</p>
+            <p className="text-sm">
+              {translate(
+                'auto.features.local.projects.LocalWorkspaceDialog.2fcadaa4b7',
+                'Create a Project to choose your directories first.'
+              )}
+            </p>
             <Button onClick={() => openModal('add-repo', { workspaceComposerIntent: modalData })}>
-              New Project
+              {translate(
+                'auto.features.local.projects.LocalWorkspaceDialog.59300f057f',
+                'New Project'
+              )}
             </Button>
           </div>
         ) : (
           <form onSubmit={submit} className="space-y-4">
             {issueLabel && (
               <p className="text-sm" role="status">
-                Link {issueLabel}. The issue will be verified before this Workspace is created.
+                {translate(
+                  'localProjects.workspaceDialog.linkIssue',
+                  'Link {{issue}}. The issue will be verified before this Workspace is created.',
+                  { issue: issueLabel }
+                )}
               </p>
             )}
             <div className="space-y-2">
-              <Label htmlFor="local-workspace-project">Project</Label>
+              <Label htmlFor="local-workspace-project">
+                {translate(
+                  'auto.features.local.projects.LocalWorkspaceDialog.b99c22962e',
+                  'Project'
+                )}
+              </Label>
               <Select
                 value={projectId}
                 onValueChange={(id) => {
@@ -150,13 +175,23 @@ function LocalWorkspaceForm(): React.JSX.Element {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="local-workspace-copy-files">Copy saved file tabs from</Label>
+              <Label htmlFor="local-workspace-copy-files">
+                {translate(
+                  'auto.features.local.projects.LocalWorkspaceDialog.283b1b5b83',
+                  'Copy saved file tabs from'
+                )}
+              </Label>
               <Select value={copySource} onValueChange={setCopySource} disabled={disabled}>
                 <SelectTrigger id="local-workspace-copy-files">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Do not copy</SelectItem>
+                  <SelectItem value="none">
+                    {translate(
+                      'auto.features.local.projects.LocalWorkspaceDialog.49d62ba8f0',
+                      'Do not copy'
+                    )}
+                  </SelectItem>
                   {catalog.workspaces
                     .filter(
                       (workspace) => workspace.projectId === projectId && !workspace.isArchived
@@ -170,15 +205,20 @@ function LocalWorkspaceForm(): React.JSX.Element {
               </Select>
               {copySource !== 'none' && (
                 <p className="text-xs text-muted-foreground">
-                  Copies clean saved file tabs and their split arrangement. Unsaved edits, previews,
-                  terminals, agents, browsers, and transient tabs are excluded. Files keep their
-                  physical paths; tabs outside the new Workspace&apos;s directories are excluded,
-                  not moved to an alternate checkout.
+                  {translate(
+                    'auto.features.local.projects.LocalWorkspaceDialog.241b5a08f1',
+                    "Copies clean saved file tabs and their split arrangement. Unsaved edits, previews, terminals, agents, browsers, and transient tabs are excluded. Files keep their physical paths; tabs outside the new Workspace's directories are excluded, not moved to an alternate checkout."
+                  )}
                 </p>
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="local-workspace-name">Workspace name</Label>
+              <Label htmlFor="local-workspace-name">
+                {translate(
+                  'auto.features.local.projects.LocalWorkspaceDialog.83f1f3437b',
+                  'Workspace name'
+                )}
+              </Label>
               <Input
                 id="local-workspace-name"
                 autoFocus
@@ -189,7 +229,10 @@ function LocalWorkspaceForm(): React.JSX.Element {
             </div>
             <ul
               className="space-y-1 text-xs text-muted-foreground"
-              aria-label="Workspace directories"
+              aria-label={translate(
+                'auto.features.local.projects.LocalWorkspaceDialog.2dacefc4d7',
+                'Workspace directories'
+              )}
             >
               {project?.roots.map((root) => (
                 <li key={root.id} className="truncate" title={root.path}>
@@ -209,7 +252,10 @@ function LocalWorkspaceForm(): React.JSX.Element {
               />
             )}
             <p className="text-xs text-muted-foreground">
-              Directories without an alternate worktree share files and branches.
+              {translate(
+                'auto.features.local.projects.LocalWorkspaceDialog.d4aa96af90',
+                'Directories without an alternate worktree share files and branches.'
+              )}
             </p>
             {error && (
               <p role="alert" className="text-sm text-destructive">
@@ -218,10 +264,21 @@ function LocalWorkspaceForm(): React.JSX.Element {
             )}
             <DialogFooter>
               <Button type="button" variant="ghost" disabled={disabled} onClick={closeModal}>
-                Cancel
+                {translate(
+                  'auto.features.local.projects.LocalWorkspaceDialog.5d478044fa',
+                  'Cancel'
+                )}
               </Button>
               <Button type="submit" disabled={disabled || !name.trim() || !project}>
-                {busy ? 'Creating…' : 'Create Workspace'}
+                {busy
+                  ? translate(
+                      'auto.features.local.projects.LocalWorkspaceDialog.8adb875422',
+                      'Creating…'
+                    )
+                  : translate(
+                      'auto.features.local.projects.LocalWorkspaceDialog.49711a9513',
+                      'Create Workspace'
+                    )}
               </Button>
             </DialogFooter>
           </form>

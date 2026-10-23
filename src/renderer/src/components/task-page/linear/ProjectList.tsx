@@ -38,6 +38,7 @@ export function TaskPageLinearProjectList({
         <LinearProjectTable
           projects={linearProjectsResult.items}
           loading={linearProjectsLoading}
+          // Ether seam: linear — a whole-request failure (e.g. a timeout) also reads as an error.
           hasError={!!linearProjectsError || !!linearProjectsResult.errors?.length}
           workspaceSelection={selectedLinearWorkspaceId}
           onSelectProject={openLinearProjectContext}

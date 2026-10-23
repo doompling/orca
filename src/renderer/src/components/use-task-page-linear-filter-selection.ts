@@ -20,8 +20,7 @@ import {
   linkedLinearIssueRefsSignature
 } from '@/components/task-page/linear/task-page-linear-in-orca-issues'
 // Ether seam: linear
-import { localWorkspaceLinearTaskRefs } from '@/features/local-projects/local-workspace-linear-task-refs'
-import { getProviderRuntimeContextKey } from '@/lib/provider-runtime-context'
+import { localWorkspaceLinearTaskRefsForStatus } from '@/features/local-projects/local-workspace-linear-task-refs'
 export function useTaskPageLinearFilterSelection(model: TaskPageLinearListSelectionPreludeModel) {
   const {
     allWorktrees,
@@ -129,12 +128,12 @@ export function useTaskPageLinearFilterSelection(model: TaskPageLinearListSelect
         workspaceId: selectedLinearWorkspaceId,
         workspaces: linearStatus.workspaces ?? []
       }),
-      ...localWorkspaceLinearTaskRefs({
+      // Ether seam: linear
+      ...localWorkspaceLinearTaskRefsForStatus({
         catalog: localProjects,
-        accounts:
-          linearStatusChecked && linearStatusContextKey === getProviderRuntimeContextKey(null)
-            ? (linearStatus.workspaces ?? [])
-            : [],
+        accounts: linearStatus.workspaces ?? [],
+        statusChecked: linearStatusChecked,
+        statusContextKey: linearStatusContextKey,
         selectedAccountId: selectedLinearWorkspaceId,
         sourceContext: linearTaskSourceContext
       })

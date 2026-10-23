@@ -16,15 +16,14 @@ const launchConfig = { agentArgs: '', agentEnv: {}, localWorkspaceScope: scope }
 describe('Local Workspace PTY request', () => {
   afterEach(() => vi.unstubAllGlobals())
 
-  it('pins a cold-resume snapshot cwd instead of the current tab path or fallback', async () => {
+  it('pins a cold-resume snapshot cwd instead of the current tab path', async () => {
     const spawn = vi.fn().mockResolvedValue({ id: 'pty' })
     vi.stubGlobal('window', { api: { pty: { spawn } } })
     await spawnIpcPty(
-      { worktreeId: 'folder:workspace', cwd: '/changed', cwdFallback: 'worktree' },
+      { worktreeId: 'folder:workspace', cwd: '/changed' },
       { launchConfig, url: '', callbacks: {} }
     )
     expect(spawn).toHaveBeenCalledWith(expect.objectContaining({ cwd: '/saved/b', launchConfig }))
-    expect(spawn.mock.calls[0]?.[0]).not.toHaveProperty('cwdFallback')
   })
 
   it.each([

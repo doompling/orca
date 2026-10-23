@@ -8,25 +8,13 @@ import {
   destroyWebviewsRemovedFromStore
 } from '../store/slices/browser-webview-cleanup'
 import type { TerminalActivationController } from './use-terminal-activation-actions'
+// Ether seam: editor — restorable local Workspace drafts do not block window close.
 import {
   dirtyFilesRequiringWindowCloseConfirmation,
   flushPendingLocalWorkspaceDrafts
 } from '@/features/local-projects/local-workspace-draft-close'
 
-type TerminalWindowLifecycleController = Pick<
-  TerminalActivationController,
-  | 'activeBrowserTabId'
-  | 'activeTabType'
-  | 'activeWorktreeBrowserTabIdsKey'
-  | 'proceedToNativeWindowClose'
-  | 'queueEditorCloseRequests'
-  | 'renderedActiveWorktreeId'
-  | 'setActiveBrowserTab'
-  | 'setActiveTabType'
-  | 'windowCloseAfterDirtyRef'
->
-
-export function useTerminalWindowLifecycle(controller: TerminalWindowLifecycleController): void {
+export function useTerminalWindowLifecycle(controller: TerminalActivationController): void {
   const {
     activeBrowserTabId,
     activeTabType,

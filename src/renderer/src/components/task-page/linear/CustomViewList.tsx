@@ -35,6 +35,7 @@ export function TaskPageLinearCustomViewList({
         <LinearCustomViewTable
           views={linearCustomViewsResult.items}
           loading={linearCustomViewsLoading}
+          // Ether seam: linear — a whole-request failure (e.g. a timeout) also reads as an error.
           hasError={!!linearCustomViewsError || !!linearCustomViewsResult.errors?.length}
           workspaceSelection={selectedLinearWorkspaceId}
           onSelectView={openLinearCustomViewContext}

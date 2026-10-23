@@ -9,7 +9,7 @@ import {
   listProjects,
   listProjectsByExactName
 } from './projects'
-import { getIssue, searchIssues } from './linear-issue-lookups'
+import { searchIssues } from './linear-issue-lookups'
 
 vi.mock('./linear-workspace-registry', () => ({
   getWorkspaceState: () => ({
@@ -40,8 +40,8 @@ const reads = [
   { name: 'issue views', run: () => listCustomViews('issue', 36, account) },
   { name: 'project views', run: () => listCustomViews('project', 36, account) },
   { name: 'view detail', run: () => getCustomView('view-a', 'issue', account) },
-  { name: 'issue search', run: () => searchIssues('release', 20, account) },
-  { name: 'issue detail', run: () => getIssue('ISS-1', account) }
+  // Issue detail has upstream's own deadline (linear-issue-detail-deadline.test.ts).
+  { name: 'issue search', run: () => searchIssues('release', 20, account) }
 ]
 
 function stalledFetch() {

@@ -118,7 +118,7 @@ function FileExplorerFiles({ root }: { root?: LocalProjectRoot }): React.JSX.Ele
     nameFilterFiles,
     nameFilterSource,
     handleClearNameFilter
-  } = useFileExplorerNameFilter({ isFilesViewActive, activeWorktreeId, rootPath: root?.path })
+  } = useFileExplorerNameFilter({ isFilesViewActive, activeWorktreeId })
 
   const {
     rowProjection,

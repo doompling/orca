@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { basename } from '@/lib/path'
+import { createBrowserUuid } from '@/lib/browser-uuid'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,6 +12,7 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import type { LocalProjectRoot } from '../../../../shared/local-projects/types'
+import { translate } from '@/i18n/i18n'
 
 export function LocalProjectRootFields({
   roots,
@@ -32,7 +34,7 @@ export function LocalProjectRootFields({
   const [directory, setDirectory] = useState('')
   const addDirectories = (paths: string[]) => {
     const additions = paths.map((path) => ({
-      id: crypto.randomUUID(),
+      id: createBrowserUuid(),
       label: basename(path),
       path
     }))
@@ -60,7 +62,12 @@ export function LocalProjectRootFields({
   return (
     <>
       <div className="space-y-2">
-        <Label htmlFor="local-project-directory">Directory path</Label>
+        <Label htmlFor="local-project-directory">
+          {translate(
+            'auto.features.local.projects.LocalProjectRootFields.2ff988ecbc',
+            'Directory path'
+          )}
+        </Label>
         <Input
           id="local-project-directory"
           value={directory}
@@ -74,7 +81,10 @@ export function LocalProjectRootFields({
             disabled={disabled || !directory.trim() || roots.length >= 64}
             onClick={() => addDirectories([directory.trim()])}
           >
-            Add directory
+            {translate(
+              'auto.features.local.projects.LocalProjectRootFields.c18754a651',
+              'Add directory'
+            )}
           </Button>
           <Button
             type="button"
@@ -82,20 +92,30 @@ export function LocalProjectRootFields({
             disabled={disabled || roots.length >= 64}
             onClick={() => void browse()}
           >
-            Browse folders
+            {translate(
+              'auto.features.local.projects.LocalProjectRootFields.3c52b9898e',
+              'Browse folders'
+            )}
           </Button>
         </div>
       </div>
       <ul
         className="max-h-64 space-y-3 overflow-auto scrollbar-sleek"
-        aria-label="Project directories"
+        aria-label={translate(
+          'auto.features.local.projects.LocalProjectRootFields.9750de9554',
+          'Project directories'
+        )}
       >
         {roots.map((root, index) => (
           <li key={root.id} className="space-y-2">
             {editing ? (
               <>
                 <div className="space-y-1">
-                  <Label htmlFor={`local-root-label-${root.id}`}>Directory label {index + 1}</Label>
+                  <Label htmlFor={`local-root-label-${root.id}`}>
+                    {translate('localProjects.rootFields.label', 'Directory label {{number}}', {
+                      number: index + 1
+                    })}
+                  </Label>
                   <Input
                     id={`local-root-label-${root.id}`}
                     value={root.label}
@@ -111,7 +131,11 @@ export function LocalProjectRootFields({
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor={`local-root-path-${root.id}`}>
-                    {root.label || 'Directory'} path
+                    {root.label
+                      ? translate('localProjects.rootFields.pathLabel', '{{label}} path', {
+                          label: root.label
+                        })
+                      : translate('localProjects.rootFields.directoryPath', 'Directory path')}
                   </Label>
                   <Input
                     id={`local-root-path-${root.id}`}
@@ -143,20 +167,34 @@ export function LocalProjectRootFields({
                     variant="ghost"
                     size="sm"
                     disabled={disabled || index === 0}
-                    aria-label={`Move ${root.label} up`}
+                    aria-label={translate(
+                      'auto.features.local.projects.LocalProjectRootFields.1ef392b5c2',
+                      'Move {{value0}} up',
+                      { value0: root.label }
+                    )}
                     onClick={() => move(index, -1)}
                   >
-                    Up
+                    {translate(
+                      'auto.features.local.projects.LocalProjectRootFields.9cd06db4ce',
+                      'Up'
+                    )}
                   </Button>
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     disabled={disabled || index === roots.length - 1}
-                    aria-label={`Move ${root.label} down`}
+                    aria-label={translate(
+                      'localProjects.rootFields.moveDown',
+                      'Move {{value0}} down',
+                      { value0: root.label }
+                    )}
                     onClick={() => move(index, 1)}
                   >
-                    Down
+                    {translate(
+                      'auto.features.local.projects.LocalProjectRootFields.b0be344f38',
+                      'Down'
+                    )}
                   </Button>
                 </>
               )}
@@ -165,7 +203,11 @@ export function LocalProjectRootFields({
                 variant="ghost"
                 size="sm"
                 disabled={disabled}
-                aria-label={`Remove ${root.label}`}
+                aria-label={translate(
+                  'auto.features.local.projects.LocalProjectRootFields.f66d43d536',
+                  'Remove {{value0}}',
+                  { value0: root.label }
+                )}
                 onClick={() => {
                   onRootsChange(roots.filter((entry) => entry.id !== root.id))
                   if (defaultRootId === root.id) {
@@ -173,7 +215,7 @@ export function LocalProjectRootFields({
                   }
                 }}
               >
-                Remove
+                {translate('localProjects.rootFields.remove', 'Remove')}
               </Button>
             </div>
           </li>
@@ -181,10 +223,20 @@ export function LocalProjectRootFields({
       </ul>
       {roots.length > 0 && (
         <div className="space-y-2">
-          <Label htmlFor="local-project-default-root">Default command directory</Label>
+          <Label htmlFor="local-project-default-root">
+            {translate(
+              'auto.features.local.projects.LocalProjectRootFields.30080518e6',
+              'Default command directory'
+            )}
+          </Label>
           <Select value={defaultRootId} onValueChange={onDefaultChange} disabled={disabled}>
             <SelectTrigger id="local-project-default-root">
-              <SelectValue placeholder="Choose a directory" />
+              <SelectValue
+                placeholder={translate(
+                  'auto.features.local.projects.LocalProjectRootFields.65213e1f05',
+                  'Choose a directory'
+                )}
+              />
             </SelectTrigger>
             <SelectContent>
               {roots.map((root) => (
@@ -195,7 +247,10 @@ export function LocalProjectRootFields({
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
-            Agents receive every directory, regardless of this default.
+            {translate(
+              'auto.features.local.projects.LocalProjectRootFields.a8ab562bc8',
+              'Agents receive every directory, regardless of this default.'
+            )}
           </p>
         </div>
       )}

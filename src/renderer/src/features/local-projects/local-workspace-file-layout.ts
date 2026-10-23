@@ -67,8 +67,6 @@ function cleanFile(state: FileLayoutState, tab: Tab, workspaceKey: string): Open
     file.mirroredFromRuntimeSession ||
     file.markdownPreviewSourceFileId ||
     file.pendingOwnerMigration ||
-    file.pendingDiskBaselineVerification ||
-    file.pendingLiveDiskVerification ||
     file.pendingSelfMoveEcho ||
     (file.operationProvenance &&
       file.operationProvenance.generation.route.executionHostId !== 'local') ||

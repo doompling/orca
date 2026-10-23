@@ -32,8 +32,9 @@ vi.mock('./use-integration-provider-status-refresh', () => ({
   useIntegrationProviderStatusRefresh: vi.fn()
 }))
 
-vi.mock('./TaskSourceLinearSetup', () => ({
-  TaskSourceLinearSetup: (props: {
+// Ether seam: linear — TasksPane renders the fork's optional-skill Linear setup.
+vi.mock('@/features/linear-optional-skill/LinearOptionalSkillTaskSourceSetup', () => ({
+  LinearOptionalSkillTaskSourceSetup: (props: {
     connected: boolean
     checking: boolean
     onOpenIntegrations: () => void
@@ -129,7 +130,7 @@ describe('TasksPane', () => {
     mocks.readiness = {
       github: { connected: true, checking: false, visible: true },
       gitlab: { connected: true, checking: false, visible: true },
-      // Browsing is ready even though the optional skill is absent.
+      // Ether seam: linear — browsing is ready even though the optional skill is absent.
       linear: {
         connected: true,
         checking: false,
@@ -152,6 +153,7 @@ describe('TasksPane', () => {
     container = null
   })
 
+  // Ether seam: linear
   it('treats the Linear agent skill as optional without a setup warning', () => {
     const markup = renderPane()
 
@@ -212,6 +214,7 @@ describe('TasksPane', () => {
   })
 
   it('passes context-safe readiness into the expanded Linear setup', () => {
+    // Ether seam: linear — only an unconnected Linear is incomplete once the skill is optional.
     mocks.readiness.linear.connected = false
     renderPane()
 
@@ -222,6 +225,7 @@ describe('TasksPane', () => {
 
   it('deep-links connected Linear credential management to its integration card', async () => {
     await renderInteractivePane()
+    // Ether seam: linear — ready Linear no longer auto-expands, so open it.
     await act(async () => {
       container?.querySelector<HTMLButtonElement>('[aria-label="Show Linear setup steps"]')?.click()
     })
@@ -280,6 +284,7 @@ describe('TasksPane', () => {
 
   it('keeps Linear setup mounted while a skill recheck is in flight after auto-expand', async () => {
     // Same component instance keeps the sticky auto-expand ref across rechecks.
+    // Ether seam: linear — only an unconnected Linear is incomplete once the skill is optional.
     mocks.readiness.linear.connected = false
     await renderInteractivePane()
     expect(container?.querySelector('[data-testid="linear-setup"]')).not.toBeNull()
@@ -299,6 +304,7 @@ describe('TasksPane', () => {
   })
 
   it('keeps the auto-expanded card open after hiding it instead of popping another open', async () => {
+    // Ether seam: linear — only an unconnected Linear is incomplete once the skill is optional.
     mocks.readiness.linear.connected = false
     await renderInteractivePane()
     expect(container?.querySelector('[data-testid="linear-setup"]')).not.toBeNull()
@@ -333,7 +339,7 @@ describe('TasksPane', () => {
     await renderInteractivePane()
     expect(container?.querySelector('[data-testid="linear-setup"]')).toBeNull()
 
-    // Linear resolves as unconnected first, so its setup auto-expands.
+    // Ether seam: linear — Linear resolves as unconnected first, so its setup auto-expands.
     mocks.readiness.linear = {
       connected: false,
       checking: false,

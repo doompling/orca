@@ -90,6 +90,7 @@ export type TerminalActions = {
       forceHostRuntime?: boolean
     }
   ) => TerminalTab
+  // Ether seam: local-projects — `rootId` opens the terminal in a chosen Workspace root.
   openNewTerminalTabInActiveWorkspace: (
     groupId: string,
     options?: { rootId?: string }

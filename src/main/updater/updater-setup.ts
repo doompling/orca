@@ -38,30 +38,18 @@ export type UpdaterSetupOptions = {
 /** Initializes electron-updater and attaches lifecycle/event bridges. */
 export class UpdaterSetup extends UpdaterDownloadInstall {
   checkForUpdates(): void {
-    if (this.refuseEtherUpdate()) {
-      return
-    }
     this.checkForUpdatesInBackground()
   }
 
   checkForUpdatesFromMenu(options?: UpdateCheckOptions): void {
-    if (this.refuseEtherUpdate(true)) {
-      return
-    }
     super.checkForUpdatesFromMenu(options)
   }
 
   downloadUpdate(): void {
-    if (this.refuseEtherUpdate(true)) {
-      return
-    }
     super.downloadUpdate()
   }
 
   quitAndInstall(): void {
-    if (this.refuseEtherUpdate(true)) {
-      return
-    }
     super.quitAndInstall()
   }
 
@@ -112,9 +100,6 @@ export class UpdaterSetup extends UpdaterDownloadInstall {
     channel: ReleaseChannel,
     options?: ReleaseBuildListOptions
   ): Promise<ReleaseBuild[]> {
-    if (this.refuseEtherUpdate(true)) {
-      return []
-    }
     return super.listAvailableReleaseBuilds(channel, options)
   }
 
@@ -129,10 +114,6 @@ export class UpdaterSetup extends UpdaterDownloadInstall {
   setupAutoUpdater(mainWindow: BrowserWindow | null, opts?: UpdaterSetupOptions): void {
     // Why keep: headless serve sets up without a window; a later window attach must not be undone.
     this.mainWindowRef = mainWindow ?? this.mainWindowRef
-    // Ether seam: identity
-    if (this.refuseEtherUpdate()) {
-      return
-    }
     this.onBeforeQuitCleanup = opts?.onBeforeQuit ?? null
     this.onBeforeQuitFailure = opts?.onBeforeQuitFailure ?? 'continue'
     this.persistLastUpdateCheckAt = opts?.setLastUpdateCheckAt ?? null

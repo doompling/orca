@@ -2,7 +2,11 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { linearListIssues, linearSearchIssues, linearStatus } from '@/runtime/runtime-linear-client'
+import {
+  linearListIssues,
+  linearSearchIssuesForTarget,
+  linearStatusForTarget
+} from '@/runtime/runtime-linear-client'
 import type { LocalProjectsState, LocalWorkspace } from '../../../../shared/local-projects/types'
 import { LocalProjectsSidebar } from './LocalProjectsSidebar'
 import { LocalSidebarMarks } from './LocalSidebarMarks'
@@ -39,8 +43,8 @@ vi.mock('./use-local-root-git', () => ({
   })
 }))
 vi.mock('@/runtime/runtime-linear-client', () => ({
-  linearStatus: vi.fn(),
-  linearSearchIssues: vi.fn(),
+  linearStatusForTarget: vi.fn(),
+  linearSearchIssuesForTarget: vi.fn(),
   linearListIssues: vi.fn()
 }))
 vi.mock('@/store', () => ({
@@ -113,9 +117,9 @@ describe('Local Projects sidebar', () => {
     ])
     render(sidebar())
     expect(within(rowButton(/^Main/)).getByText(/APP-1/).textContent).toBe('APP-1 +1')
-    expect(linearStatus).not.toHaveBeenCalled()
+    expect(linearStatusForTarget).not.toHaveBeenCalled()
     expect(linearListIssues).not.toHaveBeenCalled()
-    expect(linearSearchIssues).not.toHaveBeenCalled()
+    expect(linearSearchIssuesForTarget).not.toHaveBeenCalled()
   })
 
   it('sorts Workspaces by live activity and opens them through the shared activation path', () => {

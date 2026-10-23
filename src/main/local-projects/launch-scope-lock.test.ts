@@ -4,7 +4,7 @@ import { captureLocalWorkspaceLaunchScope } from '../../shared/local-projects/ag
 import { WorktreeTerminalMutationLock } from '../runtime/worktree-terminal-mutation-lock'
 import { hostTestAttachParams } from '../native-chat/agent-session-wire/structured-agent-session-host-test-data'
 import {
-  acquireLocalWorkspacePtyLaunch,
+  assertLocalWorkspacePtyLaunchUnderLock,
   acquireLocalWorkspaceStructuredLaunch
 } from './launch-scope-lock'
 
@@ -42,11 +42,20 @@ function fixture() {
     }
   }
 }
+// Upstream's PTY spawn path: take the spawn lock, then run our check under it.
+async function acquirePtyLaunch(
+  f: ReturnType<typeof fixture>,
+  args: Parameters<typeof assertLocalWorkspacePtyLaunchUnderLock>[1]
+): Promise<() => void> {
+  const release = await f.runtime.acquireWorktreeTerminalSpawn(args.worktreeId)
+  assertLocalWorkspacePtyLaunchUnderLock(f.store, args, release)
+  return release
+}
 describe('local Workspace launch versus scope edits', () => {
   it('checks the fresh PTY snapshot after a queued scope edit releases its exclusive lock', async () => {
     const f = fixture()
     const releaseEdit = await f.lock.acquire('folder:workspace', 'exclusive')
-    const launch = acquireLocalWorkspacePtyLaunch(f.store, f.runtime, {
+    const launch = acquirePtyLaunch(f, {
       worktreeId: 'folder:workspace',
       cwd: '/a',
       launchConfig: {
@@ -65,13 +74,13 @@ describe('local Workspace launch versus scope edits', () => {
     const f = fixture()
     f.change()
     await expect(
-      acquireLocalWorkspacePtyLaunch(f.store, f.runtime, {
+      acquirePtyLaunch(f, {
         worktreeId: 'folder:workspace',
         cwd: '/a'
       })
     ).rejects.toThrow('no longer inside')
     const scope = captureLocalWorkspaceLaunchScope(f.original)
-    const release = await acquireLocalWorkspacePtyLaunch(f.store, f.runtime, {
+    const release = await acquirePtyLaunch(f, {
       worktreeId: 'folder:workspace',
       cwd: '/a',
       resumeProviderSession: { id: 'old' },

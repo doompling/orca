@@ -9,8 +9,7 @@ import { localAndSshTwinRows } from '@/lib/workspace-twin-rows.test-fixture'
 const mocks = vi.hoisted(() => ({
   getConnectionId: vi.fn(),
   getState: vi.fn(),
-  searchRuntimeFiles: vi.fn(),
-  statRuntimePath: vi.fn()
+  searchRuntimeFiles: vi.fn()
 }))
 
 vi.mock('@/lib/connection-context', () => ({
@@ -63,7 +62,6 @@ describe('useFileSearchRunner result ownership', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     mocks.getConnectionId.mockReturnValue(null)
-    mocks.statRuntimePath.mockResolvedValue({ size: 0, isDirectory: true, mtime: 1 })
   })
 
   afterEach(() => {

@@ -2,6 +2,7 @@ import React from 'react'
 import type { LocalProjectRoot } from '../../../../../shared/local-projects/types'
 import { useActiveLocalWorkspace } from '../use-active-local-workspace'
 import { LocalWorkspaceRootBar } from '../LocalWorkspaceRootBar'
+import { LocalWorkspaceRootContext } from '../root-scope'
 
 /** Explorer frame for a multi-root Workspace: a root bar above a tree scoped to the chosen root.
  *  Any other workspace renders `children(undefined)` unchanged. */
@@ -24,7 +25,9 @@ export function LocalWorkspaceExplorerRoots({
           onSelect={setSelectedRootId}
         />
       )}
-      {children(root)}
+      <LocalWorkspaceRootContext.Provider value={root}>
+        {children(root)}
+      </LocalWorkspaceRootContext.Provider>
     </>
   )
 }

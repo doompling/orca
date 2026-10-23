@@ -69,6 +69,7 @@ export function registerRepoHandlers(
   registerRepoCreationHandlers(mainWindow, store)
   registerProjectGroupHandlers(mainWindow, store)
   registerFolderWorkspaceHandlers(mainWindow, store, runtime)
+  // Ether seam: local-projects
   registerLocalProjectHandlers(mainWindow, store, runtime)
   registerNestedRepoImportHandler(mainWindow, store)
   registerRepoUpdateHandler(mainWindow, store)

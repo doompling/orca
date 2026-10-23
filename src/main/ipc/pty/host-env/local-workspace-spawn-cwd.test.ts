@@ -3,6 +3,7 @@ import { mkdir, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { ResolvedLocalWorkspace } from '../../../../shared/local-projects/types'
+import type { Store } from '../../../persistence'
 import { assertFolderWorkspacePtyPathUsable, resolvePtySpawnStartupCwd } from './spawn-cwd'
 import { captureLocalWorkspaceLaunchScope } from '../../../../shared/local-projects/agent-launch-scope'
 
@@ -16,10 +17,11 @@ const workspace: ResolvedLocalWorkspace = {
   ]
 }
 
+// oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: these tests exercise only getFolderWorkspace and resolveLocalWorkspace.
 const store = {
   getFolderWorkspace: () => undefined,
   resolveLocalWorkspace: (id: string) => (id === workspace.workspaceId ? workspace : null)
-}
+} as unknown as Store
 
 describe('Local Workspace terminal cwd', () => {
   it('uses the declared default, never array order, when no cwd is provided', () => {

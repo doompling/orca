@@ -14,12 +14,12 @@ const { read, stage, unstage, commit, openDiff, openFile } = vi.hoisted(() => ({
   openDiff: vi.fn(),
   openFile: vi.fn()
 }))
-vi.mock('@/runtime/runtime-git-client', () => ({
-  getRuntimeGitStatus: read,
+vi.mock('@/runtime/runtime-git-status-client', () => ({ getRuntimeGitStatus: read }))
+vi.mock('@/runtime/runtime-git-working-tree-client', () => ({
   stageRuntimeGitPath: stage,
-  unstageRuntimeGitPath: unstage,
-  commitRuntimeGit: commit
+  unstageRuntimeGitPath: unstage
 }))
+vi.mock('@/runtime/runtime-git-sync-client', () => ({ commitRuntimeGit: commit }))
 vi.mock('@/store', () => ({ useAppStore: { getState: () => ({ openDiff, openFile }) } }))
 const workspace: ResolvedLocalWorkspace = {
   workspaceId: 'workspace',

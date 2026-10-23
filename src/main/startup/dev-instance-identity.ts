@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import path from 'node:path'
 import type { AppIdentity } from '../../shared/app-identity'
+// Ether seam: identity
 import type { EtherProduct } from '../ether-build'
 
 const BASE_APP_NAME = 'Orca'
@@ -67,6 +68,7 @@ export function getDevInstanceIdentity(
   env: NodeJS.ProcessEnv = process.env,
   etherProduct: EtherProduct | null = null
 ): DevInstanceIdentity {
+  // Ether seam: identity — a packaged Ether names itself.
   if (!isDev) {
     return {
       name: etherProduct?.name ?? BASE_APP_NAME,

@@ -13,6 +13,7 @@ import {
 import { STATUS_COLORS, STATUS_LABELS } from '@/components/right-sidebar/status-display'
 import type { GitStatusEntry } from '../../../../shared/git-status-types'
 import type { LocalProjectRoot } from '../../../../shared/local-projects/types'
+import { translate } from '@/i18n/i18n'
 
 export function LocalRootGitChanges({
   workspaceId,
@@ -78,10 +79,19 @@ export function LocalRootGitChanges({
             <SectionHeader
               label={
                 area === 'staged'
-                  ? 'Staged changes'
+                  ? translate(
+                      'auto.features.local.projects.LocalRootGitChanges.3830b99ae1',
+                      'Staged changes'
+                    )
                   : area === 'unstaged'
-                    ? 'Changes'
-                    : 'Untracked files'
+                    ? translate(
+                        'auto.features.local.projects.LocalRootGitChanges.d507ed282c',
+                        'Changes'
+                      )
+                    : translate(
+                        'auto.features.local.projects.LocalRootGitChanges.58716f1a89',
+                        'Untracked files'
+                      )
               }
               count={rows.length}
               isCollapsed={Boolean(collapsed[area])}
@@ -103,9 +113,15 @@ export function LocalRootGitChanges({
                   >
                     {entry.path}
                     {entry.conflictStatus === 'unresolved'
-                      ? ' (conflict)'
+                      ? translate(
+                          'auto.features.local.projects.LocalRootGitChanges.43c4ed3038',
+                          '(conflict)'
+                        )
                       : entry.submodule
-                        ? ' (submodule)'
+                        ? translate(
+                            'auto.features.local.projects.LocalRootGitChanges.1d685a1ccc',
+                            '(submodule)'
+                          )
                         : ''}
                   </button>
                   <DiffLineCounts added={entry.added} removed={entry.removed} />
@@ -117,14 +133,22 @@ export function LocalRootGitChanges({
                     entry.conflictStatus !== 'unresolved' && (
                       <ActionButton
                         icon={File}
-                        title={`Open ${entry.path}`}
+                        title={translate(
+                          'auto.features.local.projects.LocalRootGitChanges.e6149af01a',
+                          'Open {{value0}}',
+                          { value0: entry.path }
+                        )}
                         onClick={() => open(entry, true)}
                       />
                     )}
                   {canStageStatusEntry(entry) && (
                     <ActionButton
                       icon={Plus}
-                      title={`Stage ${entry.path}`}
+                      title={translate(
+                        'auto.features.local.projects.LocalRootGitChanges.0a6a3bbec4',
+                        'Stage {{value0}}',
+                        { value0: entry.path }
+                      )}
                       disabled={busy}
                       onClick={() => {
                         void stage(entry.path)
@@ -134,7 +158,11 @@ export function LocalRootGitChanges({
                   {canUnstageStatusEntry(entry) && (
                     <ActionButton
                       icon={Minus}
-                      title={`Unstage ${entry.path}`}
+                      title={translate(
+                        'auto.features.local.projects.LocalRootGitChanges.88ad5c2e14',
+                        'Unstage {{value0}}',
+                        { value0: entry.path }
+                      )}
                       disabled={busy}
                       onClick={() => {
                         void unstage(entry.path)

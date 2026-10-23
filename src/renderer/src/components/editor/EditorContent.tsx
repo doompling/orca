@@ -94,7 +94,9 @@ export function EditorContent({
   reloadContent: (file: OpenFile) => void
 }): React.JSX.Element {
   const editorViewStateKey =
-    viewStateScopeId === activeFile.id ? activeFile.id : `${activeFile.id}::${viewStateScopeId}`
+    viewStateScopeId === activeFile.id
+      ? activeFile.filePath
+      : `${activeFile.filePath}::${viewStateScopeId}`
   const diffViewStateKey =
     viewStateScopeId === activeFile.id ? activeFile.id : `${activeFile.id}::${viewStateScopeId}`
   const markdownPreviewViewStateKey =
@@ -104,8 +106,8 @@ export function EditorContent({
   // Why: only the single-pane edit path gets PDF scroll memory — diff and conflict review mount several viewers on one path.
   const pdfViewStateKey =
     viewStateScopeId === activeFile.id
-      ? `${activeFile.id}:pdf`
-      : `${activeFile.id}::${viewStateScopeId}:pdf`
+      ? `${activeFile.filePath}:pdf`
+      : `${activeFile.filePath}::${viewStateScopeId}:pdf`
   // Why: the same absolute path can exist in different worktrees, paired
   // runtimes, or SSH targets; durable PDF zoom must not cross those owners.
   const pdfPreferenceKey = buildPdfScalePreferenceKey(activeFile)

@@ -16,6 +16,7 @@ import {
 } from '../../../shared/tui-agent-startup-shell'
 import type { TuiAgent } from '../../../shared/tui-agent'
 import type { AgentLaunchRoute } from './agent-launch-routing'
+import { translate } from '@/i18n/i18n'
 
 type LocalWorkspaceAgentLaunch =
   | { kind: 'legacy' }
@@ -42,8 +43,10 @@ export function prepareLocalWorkspaceAgentLaunch(args: {
   if (args.isRemote || !supportsLocalWorkspaceAgent(args.agent)) {
     return {
       kind: 'refused',
-      message:
+      message: translate(
+        'auto.lib.local.workspace.agent.launch.9e04aa4c54',
         'This Workspace supports local Codex and Claude sessions. Other providers do not yet receive all roots.'
+      )
     }
   }
   try {
@@ -78,7 +81,10 @@ export function allowLocalWorkspaceAgentRoute(
   }
   if (launch.kind === 'local' && route !== 'terminal-tui' && route !== 'structured-native-chat') {
     toast.error(
-      'This agent mode does not receive all Workspace roots. Use a local Codex or Claude terminal or built-in chat.'
+      translate(
+        'auto.lib.local.workspace.agent.launch.6246fc3eb7',
+        'This agent mode does not receive all Workspace roots. Use a local Codex or Claude terminal or built-in chat.'
+      )
     )
     return false
   }

@@ -2,7 +2,8 @@ import { mkdirSync, mkdtempSync, realpathSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { Store } from '../persistence/loading-store/store'
+import type { Store } from '../persistence/loading-store/store'
+import { openLocalProjectsTestStore } from './local-projects-store.test-support'
 import { folderWorkspaceKey } from '../../shared/workspace-scope'
 import {
   LocalWorkspaceLinearIssuesSchema,
@@ -54,14 +55,14 @@ async function fixture() {
   directories.push(directory)
   const root = join(directory, 'source')
   mkdirSync(root)
-  const dataFile = join(directory, 'profile.json')
-  const store = new Store({ dataFile })
+  const profileDir = directory
+  const store = openLocalProjectsTestStore(profileDir)
   stores.push(store)
   const { project, workspace } = await store.createLocalProject({
     name: 'Project',
     roots: [{ path: root }]
   })
-  return { store, dataFile, root, project, workspace }
+  return { store, profileDir, root, project, workspace }
 }
 
 describe('Workspace Linear link persistence', () => {
@@ -123,7 +124,7 @@ describe('Workspace Linear link persistence', () => {
   })
 
   it('persists links across restart without changing saved tabs or drafts', async () => {
-    const { store, workspace, root, dataFile } = await fixture()
+    const { store, workspace, root, profileDir } = await fixture()
     const key = folderWorkspaceKey(workspace.id)
     const session = {
       ...store.getWorkspaceSession(),
@@ -144,8 +145,9 @@ describe('Workspace Linear link persistence', () => {
     store.setWorkspaceSession(session)
     store.attachLocalWorkspaceLinearIssue(workspace.id, issue)
     expect(store.getWorkspaceSession()).toEqual(session)
+    store.flushOrThrow()
     store.freezeWrites()
-    const reopened = new Store({ dataFile })
+    const reopened = openLocalProjectsTestStore(profileDir)
     stores.push(reopened)
     expect(reopened.getLocalProjectsSnapshot().workspaces[0].linearIssues).toEqual([issue])
     expect(reopened.getWorkspaceSession()).toEqual(session)

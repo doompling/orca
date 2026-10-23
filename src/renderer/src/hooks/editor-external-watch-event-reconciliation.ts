@@ -4,7 +4,6 @@ import { basename } from '@/lib/path'
 import { canAutoSaveOpenFile } from '@/components/editor/editor-autosave'
 import { indexEditorExternalWatchBatchPaths } from '@/components/editor/editor-external-watch-path-index'
 import { getRecentSelfWrite } from '@/components/editor/editor-self-write-registry'
-import { getExternalFileChangeRelativePath } from '@/components/right-sidebar/useFileExplorerWatch'
 import {
   hasActiveEditorPathMoves,
   isActiveMoveSourcePath
@@ -70,7 +69,7 @@ export function buildEditorExternalWatchEventHandler(
     absolutePath: string
   ): string => `${worktreeId}::${runtimeEnvironmentId ?? 'client'}::${absolutePath}`
 
-  const handleTargetChanged = (
+  const handleFsChanged = (
     payload: FsChangedPayload,
     runtimeEnvironmentId: string | null = null,
     onlyTarget?: EditorExternalWatchTarget
@@ -115,13 +114,14 @@ export function buildEditorExternalWatchEventHandler(
       }
     }
 
+    const deletedOpenEditorsRaw = batchPaths.deletedOpenEditors
     // Only pay the per-id lookup to suppress a move's own source-delete while a move is live; otherwise the batch stays O(deletes).
     const deletedOpenEditors = hasActiveEditorPathMoves()
-      ? batchPaths.deletedOpenEditors.filter(
+      ? deletedOpenEditorsRaw.filter(
           ({ file }) =>
             !isActiveMoveSourcePath(target.worktreeId, target.runtimeEnvironmentId, file.filePath)
         )
-      : batchPaths.deletedOpenEditors
+      : deletedOpenEditorsRaw
     const deletedOpenEditorIds = deletedOpenEditors.map(({ file }) => file.id)
     const hasPairedCreate =
       deletedOpenEditorIds.length > 0 &&
@@ -234,11 +234,7 @@ export function buildEditorExternalWatchEventHandler(
           continue
         }
       }
-      const recentSelfWrite = getRecentSelfWrite(
-        change.absolutePath,
-        target.runtimeEnvironmentId,
-        target.worktreeId
-      )
+      const recentSelfWrite = getRecentSelfWrite(change.absolutePath, target.runtimeEnvironmentId)
       if (recentSelfWrite) {
         scheduleSelfWriteAwareEditorExternalReload(
           target,
@@ -249,27 +245,6 @@ export function buildEditorExternalWatchEventHandler(
         continue
       }
       scheduleDebouncedEditorExternalReload(notification)
-    }
-  }
-
-  const handleFsChanged = (
-    payload: FsChangedPayload,
-    runtimeEnvironmentId: string | null = null
-  ): void => {
-    const found = findTarget(payload.worktreePath, runtimeEnvironmentId)
-    const targets = Array.isArray(found) ? found : found ? [found] : []
-    if (targets.length === 0) {
-      return
-    }
-    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
-      window.dispatchEvent(
-        new CustomEvent<WorktreeFileChangeEventDetail>(ORCA_WORKTREE_FILE_CHANGE_EVENT, {
-          detail: { payload, runtimeEnvironmentId }
-        })
-      )
-    }
-    for (const target of targets) {
-      handleTargetChanged(payload, target)
     }
   }
 

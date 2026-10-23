@@ -15,6 +15,7 @@ import { shouldHideTaskPageListChrome } from '@/components/task-page-list-chrome
 import { getJiraIssueWorkspaceSeed } from './task-page-source-context'
 import { findJiraIssueDefaultRepo } from '../../../shared/jira-project-reference'
 import { getRepoWorkspaceCreationTargetHint } from '@/lib/project-host-workspace-target'
+import { localWorkspaceComposerIssueData } from '@/features/local-projects/local-workspace-composer-intent'
 export function useTaskPageComposerActions(model: TaskPageJiraListEffectsModel) {
   const {
     setTaskResumeState,
@@ -65,9 +66,8 @@ export function useTaskPageComposerActions(model: TaskPageJiraListEffectsModel) 
       const linkedWorkItem = buildLinearIssueLinkedWorkItem(issue)
       openModal('new-workspace-composer', {
         linkedWorkItem,
-        ...(issue.workspaceId
-          ? { linearIssue: { linearWorkspaceId: issue.workspaceId, issueId: issue.id } }
-          : {}),
+        // Ether seam: linear — a local Workspace created here links this issue.
+        ...localWorkspaceComposerIssueData(issue),
         taskSourceContext: linearTaskSourceContext,
         prefilledName: getLinearIssueWorkspaceName(issue),
         telemetrySource: 'sidebar'

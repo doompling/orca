@@ -36,6 +36,8 @@ import { resolveQoderTerminalCommand } from './qoder-terminal-command-resolution
 import { resolveStartupShell } from '../../shared/tui-agent-startup-shell'
 import { resolveWslSessionContext } from '../daemon/wsl-session-context'
 import { isTuiAgentEnabled } from '../../shared/tui-agent-selection'
+// Ether seam: agent-launch
+import { assertRuntimeAgentEntrypointSupportsWorkspace } from '../local-projects/runtime-agent-entrypoint'
 
 /** No launch command could be built for a requested `startupAgent`. */
 export class AgentLaunchUnbuildableError extends Error {}
@@ -59,6 +61,10 @@ export async function resolveAgentTerminalCreateOptions(
   host: AgentTerminalPlanHost
 ): Promise<TerminalCreateOptions> {
   const store = host.store ?? undefined
+  // Ether seam: agent-launch — unadapted managed launches would drop a local Workspace's other roots.
+  if (opts.startupAgent || opts.launchAgent || opts.launchConfig || opts.resumeProviderSession) {
+    assertRuntimeAgentEntrypointSupportsWorkspace(store, workspace.id)
+  }
   // Why: raw shell commands like `codex exec` must remain user-authored shell.
   // Only unmanaged, repo-backed, bare agent launches get Settings defaults.
   const callerSuppliedLaunch =

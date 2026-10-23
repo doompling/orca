@@ -78,24 +78,6 @@ afterEach(() => {
 })
 
 describe('MonacoEditor content ownership', () => {
-  it('uses distinct models for independently owned views of one file', () => {
-    const props = {
-      filePath: '/repo/shared.ts',
-      viewStateKey: 'pane:file',
-      relativePath: 'shared.ts',
-      content: 'draft',
-      language: 'typescript',
-      onContentChange: vi.fn(),
-      onSave: vi.fn()
-    }
-    const { rerender } = render(<MonacoEditor {...props} fileId="first-workspace-file" />)
-    const firstModel = editorProps.current?.path
-    rerender(<MonacoEditor {...props} fileId="second-workspace-file" />)
-    expect(editorProps.current?.path).not.toBe(firstModel)
-    rerender(<MonacoEditor {...props} fileId="first-workspace-file" viewStateKey="other-pane" />)
-    expect(editorProps.current?.path).toBe(firstModel)
-  })
-
   it('initializes the wrapper without a controlled value updater', () => {
     render(
       <MonacoEditor

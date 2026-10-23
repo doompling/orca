@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { LocalProjectRoot } from '../../../../shared/local-projects/types'
 import { LocalRootWorktreeCreation } from './LocalRootWorktreeCreation'
+import { translate } from '@/i18n/i18n'
 
 export function LocalWorkspaceCheckoutChoices({
   projectId,
@@ -30,20 +31,28 @@ export function LocalWorkspaceCheckoutChoices({
       <CollapsibleTrigger asChild>
         <Button type="button" variant="ghost" size="sm" disabled={disabled}>
           <ChevronRight />
-          Choose worktrees
+          {translate(
+            'auto.features.local.projects.LocalWorkspaceCheckoutChoices.fab9cd3c2c',
+            'Choose worktrees'
+          )}
         </Button>
       </CollapsibleTrigger>
       <CollapsibleContent>
         <div className="space-y-3 pt-3">
           <p className="text-xs text-muted-foreground">
-            Optional: select an existing worktree or explicitly create a new one for a Git
-            directory. Leave a path empty to share the Project&apos;s directory. Plain folders
-            remain shared.
+            {translate(
+              'auto.features.local.projects.LocalWorkspaceCheckoutChoices.bcc7ee06d6',
+              "Optional: select an existing worktree or explicitly create a new one for a Git directory. Leave a path empty to share the Project's directory. Plain folders remain shared."
+            )}
           </p>
           {roots.map((root) => (
             <div key={root.id} className="space-y-1">
               <Label htmlFor={`local-worktree-${root.id}`}>
-                {root.label} existing worktree path
+                {root.label}{' '}
+                {translate(
+                  'auto.features.local.projects.LocalWorkspaceCheckoutChoices.0440338700',
+                  'existing worktree path'
+                )}
               </Label>
               <Input
                 id={`local-worktree-${root.id}`}

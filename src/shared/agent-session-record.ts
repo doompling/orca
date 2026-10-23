@@ -7,6 +7,7 @@ import {
   type PersistedAgentSessionLease,
   type PersistedAgentSessionRecord
 } from './agent-session-legacy-handoff-lease'
+// Ether seam: agent-launch
 import type { LocalWorkspaceLaunchScope } from './local-projects/agent-launch-scope'
 import { isLocalWorkspaceSessionScope } from './local-projects/agent-session-scope'
 /**
@@ -165,6 +166,7 @@ export type AgentSessionRecord = {
   /** When the user's Sleep stopped this chat; the next admitted send clears it. */
   sleptAt?: number
   launchArgs?: AgentSessionLaunchArgs
+  // Ether seam: agent-launch — roots frozen when the chat was created.
   localWorkspaceScope?: LocalWorkspaceLaunchScope
   lease: AgentSessionLease
   createdAt: number

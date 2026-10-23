@@ -60,7 +60,7 @@ describe('Local Workspace agent launch routing', () => {
     expect(allowLocalWorkspaceAgentRoute(launch, 'structured-native-chat')).toBe(true)
   })
 
-  it.each(['legacy-native-chat', 'host-published'] as const)(
+  it.each(['host-published'] as const)(
     'refuses unadapted %s mode rather than narrowing the scope',
     (route) => {
       const launch = prepareLocalWorkspaceAgentLaunch({

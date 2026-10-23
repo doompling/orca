@@ -153,6 +153,7 @@ export function useEditorPanelDiffContentLoader({
                       compareAgainstHead
                     }
                   )
+          ) as Promise<DiffContent>
           pending = { externalEventGeneration: options?.externalEventGeneration, promise }
           inFlightDiffReads.set(key, pending)
           queueMicrotask(() => {

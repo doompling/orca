@@ -16,6 +16,7 @@ export type AppRestartPrepOptions = {
   awaitCheckpoint: () => Promise<void>
 }
 
+// Ether seam: editor — window close reuses this backup for restorable local drafts.
 export function requestEditorHotExitBackup(eventTarget: EventTarget): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     let claimed = false

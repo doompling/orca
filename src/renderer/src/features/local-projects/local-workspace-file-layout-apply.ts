@@ -1,5 +1,5 @@
 import type { AppState } from '@/store/types'
-import { flushPendingEditorChange } from '@/components/editor/editor-pending-flush'
+import { flushPendingEditorBuffer } from '@/components/editor/editor-pending-flush'
 import { buildOwnedEditorFileId } from '@/store/slices/editor/file-ids/editor-file-ids'
 import { folderWorkspaceKey } from '../../../../shared/workspace-scope'
 import type { TabGroupLayoutNode } from '../../../../shared/tab-types'
@@ -11,7 +11,7 @@ import {
 export function flushLocalWorkspaceFileTabs(get: () => AppState, workspaceId: string): void {
   const key = folderWorkspaceKey(workspaceId)
   for (const file of get().openFiles.filter((entry) => entry.worktreeId === key)) {
-    flushPendingEditorChange(file.id)
+    flushPendingEditorBuffer(get(), file.id)
   }
 }
 

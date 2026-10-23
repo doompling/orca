@@ -39,6 +39,11 @@ const UNIQUE_FOLDER_ID = 'folder workspace ids are minted UUIDs, one row per id 
 
 /** Matches exempt by method, with the reason. Keep each reason true. */
 export const NOT_HOST_TWINNED = new Map([
+  // Ether seam: local-projects
+  ...['attachLocalWorkspaceLinearIssue', 'resolveLocalWorkspace'].map((method) => [
+    `LocalProjectsPersistence.${method}`,
+    'local Workspace ids are minted UUIDs, and local Workspaces exist only on this host'
+  ]),
   ['AutomationPersistence.advanceAutomationNextRun', 'automation ids are minted UUIDs'],
   ['AutomationPersistence.deleteAutomation', 'automation ids are minted UUIDs'],
   ['AutomationPersistence.updateAutomation', 'automation ids are minted UUIDs'],

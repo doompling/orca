@@ -87,10 +87,6 @@ describe('local Workspace ticket intent', () => {
 
   it('leaves explicit remote, unresolved URL, and other-provider intents on the existing composer', () => {
     expect(usesLocalWorkspaceComposer(intent())).toBe(true)
-    expect(usesLocalWorkspaceComposer({ ...intent(), taskSourceContext: null }, 'remote')).toBe(
-      false
-    )
-    expect(usesLocalWorkspaceComposer(intent(), 'remote')).toBe(true)
     expect(usesLocalWorkspaceComposer({})).toBe(true)
     for (const data of [
       { ...intent(), taskSourceContext: { ...localLinearSource, hostId: 'ssh:other' } },

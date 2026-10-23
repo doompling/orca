@@ -31,6 +31,7 @@ import {
   requestLocalWorkspaceLinearIssues,
   toggleLocalWorkspaceMark
 } from './local-workspace-sidebar-actions'
+import { translate } from '@/i18n/i18n'
 
 type MenuEntry =
   | {
@@ -98,7 +99,14 @@ export function LocalContextActions({
     try {
       await update({ isArchived: !record.isArchived })
     } catch (cause) {
-      toast.error(`Could not ${record.isArchived ? 'restore' : 'archive'} ${record.name}.`, {
+      const message = record.isArchived
+        ? translate('localProjects.contextActions.restoreFailed', 'Could not restore {{name}}.', {
+            name: record.name
+          })
+        : translate('localProjects.contextActions.archiveFailed', 'Could not archive {{name}}.', {
+            name: record.name
+          })
+      toast.error(message, {
         description: cause instanceof Error ? cause.message : String(cause)
       })
     }
@@ -118,13 +126,24 @@ export function LocalContextActions({
       },
       {
         kind: 'item',
-        label: 'Linear issues…',
+        label: translate(
+          'auto.features.local.projects.LocalContextActions.c5de27090f',
+          'Linear issues…'
+        ),
         onSelect: () => requestLocalWorkspaceLinearIssues(workspace.id)
       }
     )
   }
   entries.push(
-    { kind: 'item', label: `Rename ${kind}`, onSelect: () => setRenaming(true) },
+    {
+      kind: 'item',
+      label: translate(
+        'auto.features.local.projects.LocalContextActions.d43e838a8c',
+        'Rename {{value0}}',
+        { value0: kind }
+      ),
+      onSelect: () => setRenaming(true)
+    },
     {
       kind: 'item',
       label: kind === 'Project' ? 'Edit Project roots…' : 'Edit Workspace checkouts…',
@@ -141,7 +160,13 @@ export function LocalContextActions({
     }
   )
   if (projectArchiveBlocked) {
-    entries.push({ kind: 'note', label: 'Switch away before archiving.' })
+    entries.push({
+      kind: 'note',
+      label: translate(
+        'auto.features.local.projects.LocalContextActions.fb5a99b7c0',
+        'Switch away before archiving.'
+      )
+    })
   }
 
   const dialogs = (
@@ -149,8 +174,15 @@ export function LocalContextActions({
       <ProjectGroupNameDialog
         open={renaming}
         onOpenChange={setRenaming}
-        title={`Rename ${kind}`}
-        description="This changes the label only. Files, branches, and saved state stay where they are."
+        title={translate(
+          'auto.features.local.projects.LocalContextActions.d43e838a8c',
+          'Rename {{value0}}',
+          { value0: kind }
+        )}
+        description={translate(
+          'auto.features.local.projects.LocalContextActions.14ed041f1e',
+          'This changes the label only. Files, branches, and saved state stay where they are.'
+        )}
         initialName={record.name}
         nameLabel={`${kind} name`}
         confirmLabel="Save name"
@@ -179,7 +211,11 @@ export function LocalContextActions({
           variant="ghost"
           size="icon-xs"
           className={className}
-          aria-label={`${kind} actions for ${record.name}`}
+          aria-label={translate(
+            'auto.features.local.projects.LocalContextActions.d1c729222c',
+            '{{value0}} actions for {{value1}}',
+            { value0: kind, value1: record.name }
+          )}
         >
           <MoreHorizontal />
         </Button>

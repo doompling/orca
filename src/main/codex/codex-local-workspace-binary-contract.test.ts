@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, realpath, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { isAbsolute, join } from 'node:path'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { runProcess } from '../../shared/child-process/run-process'
+import { runProcess } from '@orca/process-host'
 import { captureLocalWorkspaceLaunchScope } from '../../shared/local-projects/agent-launch-scope'
 import {
   openCodexAppServerConnection,
@@ -10,6 +10,7 @@ import {
 } from './codex-app-server-connection'
 import { CodexAppServerHandshakeExitUnprovenError } from './codex-app-server-handshake-exit-proof'
 import { openCodexThread } from './codex-structured-thread-open'
+import { codexStructuredPermissionPolicy } from './codex-structured-permission-policy'
 
 const binary = process.env.ORCA_CODEX_CONTRACT_BINARY
 const expectedVersion = process.env.ORCA_CODEX_CONTRACT_VERSION
@@ -141,7 +142,7 @@ describe.runIf(Boolean(binary))(
           {
             cwd: scope.cwd,
             resumeThreadId: null,
-            permissionPolicy: { sandbox: 'workspace-write', approvalPolicy: 'on-request' },
+            permissionPolicy: codexStructuredPermissionPolicy('ask'),
             localWorkspaceScope: scope
           },
           REQUEST_TIMEOUT_MS

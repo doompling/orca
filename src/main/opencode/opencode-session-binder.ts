@@ -1,4 +1,3 @@
-import { statSync } from 'node:fs'
 import { resolveOpenCodeDataDirectory } from './opencode-data-directory'
 import {
   bindOpenCodeSession,

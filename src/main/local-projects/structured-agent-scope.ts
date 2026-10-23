@@ -49,10 +49,11 @@ export async function readStructuredLocalWorkspaceScope(
   assertLocalWorkspaceLaunchScopeOwner(scope, record.location.workspaceId)
   await Promise.all(
     [...new Set([...scope.roots.map((root) => root.path), scope.cwd])].map(async (path) => {
-      const status = await getFolderWorkspacePathStatusForPath(
-        { folderPath: path, repos: [], projectGroups: [] },
-        { getSshFilesystemProvider: () => undefined }
-      )
+      const status = await getFolderWorkspacePathStatusForPath({
+        folderPath: path,
+        repos: [],
+        projectGroups: []
+      })
       assertFolderWorkspacePathUsable(status)
     })
   )

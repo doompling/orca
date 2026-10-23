@@ -17,6 +17,7 @@ import {
   readLocalWorkspaceLinkedIssue,
   requireLocalWorkspaceLinearAccount
 } from './local-workspace-linear-issue-reads'
+import { translate } from '@/i18n/i18n'
 
 export function LocalWorkspaceLinearIssues({
   workspaceId,
@@ -77,8 +78,16 @@ function LocalWorkspaceLinearIssuePopover({
         aria-label={
           sidebar
             ? issue
-              ? `Linear issue ${issue.identifier}: ${issue.title} for ${workspaceName}`
-              : `Link Linear issue to ${workspaceName}`
+              ? translate(
+                  'auto.features.local.projects.LocalWorkspaceLinearIssues.49c0f1c6e0',
+                  'Linear issue {{value0}}: {{value1}} for {{value2}}',
+                  { value0: issue.identifier, value1: issue.title, value2: workspaceName }
+                )
+              : translate(
+                  'auto.features.local.projects.LocalWorkspaceLinearIssues.122cc3bd24',
+                  'Link Linear issue to {{value0}}',
+                  { value0: workspaceName }
+                )
             : undefined
         }
       >
@@ -90,10 +99,21 @@ function LocalWorkspaceLinearIssuePopover({
               <span className="min-w-0 truncate text-muted-foreground">{issue.title}</span>
             </>
           ) : (
-            <span className="truncate text-muted-foreground">Link Linear issue</span>
+            <span className="truncate text-muted-foreground">
+              {translate(
+                'auto.features.local.projects.LocalWorkspaceLinearIssues.5400eefe20',
+                'Link Linear issue'
+              )}
+            </span>
           )
         ) : (
-          <>Linear issues ({count})</>
+          <>
+            {translate(
+              'auto.features.local.projects.LocalWorkspaceLinearIssues.53ad8a3ef1',
+              'Linear issues ('
+            )}
+            {count})
+          </>
         )}
       </Button>
     </PopoverTrigger>
@@ -180,15 +200,37 @@ export function LocalWorkspaceLinearIssuesContent({
   return (
     <div className={cn('space-y-3', padded && 'p-4')}>
       <div className="space-y-1">
-        <h3 className="text-sm font-medium">Workspace Linear issues</h3>
+        <h3 className="text-sm font-medium">
+          {translate(
+            'auto.features.local.projects.LocalWorkspaceLinearIssues.59ceaa5f63',
+            'Workspace Linear issues'
+          )}
+        </h3>
         <p className="text-xs text-muted-foreground">
-          {workspace?.name ?? 'Workspace unavailable'}. Linking does not change Linear status,
-          files, or sessions.
+          {workspace?.name ??
+            translate(
+              'auto.features.local.projects.LocalWorkspaceLinearIssues.109b3bcd12',
+              'Workspace unavailable'
+            )}
+          {translate(
+            'auto.features.local.projects.LocalWorkspaceLinearIssues.96b2e2ee66',
+            '. Linking does not change Linear status, files, or sessions.'
+          )}
         </p>
       </div>
-      {links.length === 0 && <p className="text-xs text-muted-foreground">No linked issues.</p>}
+      {links.length === 0 && (
+        <p className="text-xs text-muted-foreground">
+          {translate(
+            'auto.features.local.projects.LocalWorkspaceLinearIssues.00bf4a91dd',
+            'No linked issues.'
+          )}
+        </p>
+      )}
       <ul
-        aria-label="Linked Linear issues"
+        aria-label={translate(
+          'auto.features.local.projects.LocalWorkspaceLinearIssues.72d8c43484',
+          'Linked Linear issues'
+        )}
         className="max-h-64 space-y-3 overflow-y-auto scrollbar-sleek"
       >
         {links.map((link) => (
@@ -198,13 +240,22 @@ export function LocalWorkspaceLinearIssuesContent({
             </p>
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="secondary">{link.state.name}</Badge>
-              <span className="text-xs text-muted-foreground">Saved snapshot</span>
+              <span className="text-xs text-muted-foreground">
+                {translate(
+                  'auto.features.local.projects.LocalWorkspaceLinearIssues.55f576317c',
+                  'Saved snapshot'
+                )}
+              </span>
             </div>
             <div className="flex flex-wrap gap-1">
               <Button
                 variant="outline"
                 size="xs"
-                aria-label={`Open ${link.identifier} in Ether`}
+                aria-label={translate(
+                  'auto.features.local.projects.LocalWorkspaceLinearIssues.f43cfb4231',
+                  'Open {{value0}} in Ether',
+                  { value0: link.identifier }
+                )}
                 disabled={busy || switching}
                 onClick={() =>
                   void run(async () => {
@@ -230,12 +281,19 @@ export function LocalWorkspaceLinearIssuesContent({
                   }, 'Loading issue…')
                 }
               >
-                Open issue
+                {translate(
+                  'auto.features.local.projects.LocalWorkspaceLinearIssues.b0ab5e3730',
+                  'Open issue'
+                )}
               </Button>
               <Button
                 variant="ghost"
                 size="xs"
-                aria-label={`Open ${link.identifier} in Linear`}
+                aria-label={translate(
+                  'localProjects.linearIssues.openInLinear',
+                  'Open {{value0}} in Linear',
+                  { value0: link.identifier }
+                )}
                 onClick={() =>
                   void window.api.shell
                     .openUrl(link.url)
@@ -245,12 +303,19 @@ export function LocalWorkspaceLinearIssuesContent({
                 }
                 disabled={busy || switching}
               >
-                Open in Linear
+                {translate(
+                  'auto.features.local.projects.LocalWorkspaceLinearIssues.32b5ad0411',
+                  'Open in Linear'
+                )}
               </Button>
               <Button
                 variant="ghost"
                 size="xs"
-                aria-label={`Refresh ${link.identifier} details`}
+                aria-label={translate(
+                  'auto.features.local.projects.LocalWorkspaceLinearIssues.9922ccec18',
+                  'Refresh {{value0}} details',
+                  { value0: link.identifier }
+                )}
                 disabled={busy || switching || workspace?.isArchived || project?.isArchived}
                 onClick={() =>
                   void run(async () => {
@@ -266,12 +331,16 @@ export function LocalWorkspaceLinearIssuesContent({
                   }, 'Refreshing saved details…')
                 }
               >
-                Refresh
+                {translate('localProjects.linearIssues.refresh', 'Refresh')}
               </Button>
               <Button
                 variant="ghost"
                 size="xs"
-                aria-label={`Unlink ${link.identifier}`}
+                aria-label={translate(
+                  'auto.features.local.projects.LocalWorkspaceLinearIssues.82ee7f1db1',
+                  'Unlink {{value0}}',
+                  { value0: link.identifier }
+                )}
                 onClick={() =>
                   void run(() =>
                     detach({
@@ -283,7 +352,7 @@ export function LocalWorkspaceLinearIssuesContent({
                 }
                 disabled={busy || switching}
               >
-                Unlink
+                {translate('localProjects.linearIssues.unlink', 'Unlink')}
               </Button>
             </div>
           </li>
@@ -318,7 +387,10 @@ export function LocalWorkspaceLinearIssuesContent({
         />
       ) : (
         <p className="text-xs text-muted-foreground">
-          Open an active Workspace to link another issue.
+          {translate(
+            'auto.features.local.projects.LocalWorkspaceLinearIssues.9095fa7983',
+            'Open an active Workspace to link another issue.'
+          )}
         </p>
       )}
     </div>

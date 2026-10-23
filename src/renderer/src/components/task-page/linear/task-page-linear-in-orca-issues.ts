@@ -11,6 +11,7 @@ import { normalizeLinearIdentifier } from '../../../lib/linear-issue-workspace-a
 
 export type LinkedLinearIssueRef = {
   identifier: string
+  // Ether seam: linear — local Workspace links read by saved UUID and organization.
   issueId?: string
   organizationId?: string
   workspaceId: string | null
@@ -157,36 +158,11 @@ export function linkedLinearIssueRefsSignature(refs: readonly LinkedLinearIssueR
   return refs
     .map((ref) => {
       const sourceScope = ref.sourceContext ? getTaskSourceCacheScope(ref.sourceContext) : ''
+      // Ether seam: linear
       return `${ref.issueId ?? ref.identifier.toUpperCase()}::${ref.organizationId ?? ''}::${ref.workspaceId ?? ''}::${ref.organizationUrlKey?.toLowerCase() ?? ''}::${sourceScope}`
     })
     .sort()
     .join('|')
-}
-
-type LinkedIssueReader = (
-  id: string,
-  workspaceId?: string | null,
-  options?: { sourceContext?: TaskSourceContext | null }
-) => Promise<LinearIssue | null>
-
-export async function readLinkedLinearIssueRef(
-  ref: LinkedLinearIssueRef,
-  options: {
-    fetch: LinkedIssueReader
-    refresh: LinkedIssueReader
-    forceRefresh: boolean
-    workspaceId?: string | null
-    sourceContext: TaskSourceContext | null
-  }
-): Promise<LinearIssue | null> {
-  const read = options.forceRefresh ? options.refresh : options.fetch
-  const result = await read(ref.issueId ?? ref.identifier, ref.workspaceId ?? options.workspaceId, {
-    sourceContext: ref.sourceContext ?? options.sourceContext
-  })
-  if (ref.issueId && (result?.id !== ref.issueId || result.workspaceId !== ref.workspaceId)) {
-    return null
-  }
-  return result
 }
 
 export async function readLinkedLinearIssuesWithLimit(

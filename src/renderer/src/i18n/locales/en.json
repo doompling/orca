@@ -995,6 +995,14 @@
               "edc1908653": "Opening remote paths in the local OS is not available."
             }
           }
+        },
+        "workspace": {
+          "agent": {
+            "launch": {
+              "6246fc3eb7": "This agent mode does not receive all Workspace roots. Use a local Codex or Claude terminal or built-in chat.",
+              "9e04aa4c54": "This Workspace supports local Codex and Claude sessions. Other providers do not yet receive all roots."
+            }
+          }
         }
       },
       "open": {
@@ -1128,7 +1136,8 @@
           }
         },
         "activation": {
-          "cannotOpenFolderWorkspace": "Cannot open folder workspace"
+          "cannotOpenFolderWorkspace": "Cannot open folder workspace",
+          "68993c4bad": "Could not remember this Workspace."
         },
         "creation": {
           "flow": {
@@ -1344,6 +1353,15 @@
                 "wslDetectionFailed": "Orca could not check which agents are installed in WSL. Make sure the distro starts, then retry.",
                 "unknown": "Orca could not install the skills."
               }
+            }
+          }
+        }
+      },
+      "sleeping": {
+        "agent": {
+          "session": {
+            "launch": {
+              "fa1b9bc264": "This saved agent has no complete Workspace roots. Start a new agent session."
             }
           }
         }
@@ -8935,7 +8953,8 @@
           "linearTitle": "Linear",
           "linearDescription": "How Linear works in Orca, setup checklist, agent skill, and example prompts.",
           "tasksDescription": "Connect providers, install the Linear skill, and choose what appears in Tasks.",
-          "remoteServersDescription": "Run Orca on another machine and work on it from here."
+          "remoteServersDescription": "Run Orca on another machine and work on it from here.",
+          "taskSourcesOptionalSkillDescription": "Connect providers and choose what appears in Tasks. The Linear agent skill is optional."
         },
         "SettingsFormControls": {
           "42a4d15a30": "No matching fonts.",
@@ -9203,7 +9222,10 @@
           "integrationsHint": "Credentials for all providers also live under",
           "integrationsLink": "Integrations",
           "skillHint": ". After Linear is connected, usage examples stay under Settings → Linear.",
-          "incompleteBannerBodyWithLinear": "Hide providers you do not use, or expand a card and finish its steps. For Linear: API access, the agent skill, and Show in Tasks."
+          "incompleteBannerBodyWithLinear": "Hide providers you do not use, or expand a card and finish its steps. For Linear: API access, the agent skill, and Show in Tasks.",
+          "linearBrowsingDescription": "Browse Linear issues and link them to Workspaces. The agent skill is optional.",
+          "browsingSetupDescription": "Connect providers and choose what appears in Tasks. Linear browsing and Workspace links do not require an agent skill. At least one provider must stay visible.",
+          "browsingProvidersDescription": "Each card covers connection and visibility. Linear also offers an optional agent skill."
         },
         "TerminalAppearanceSection": {
           "a14a427ae4": "Thickness of the pane divider line.",
@@ -11107,7 +11129,8 @@
             "setup": "setup",
             "apiKey": "api key",
             "skill": "skill",
-            "connect": "connect"
+            "connect": "connect",
+            "optionalSkillProvidersDescription": "Connect task providers, choose what appears in Tasks, and optionally install the Linear agent skill."
           }
         },
         "terminal": {
@@ -12035,7 +12058,8 @@
           "howToUse": "Example prompts",
           "howToUseDescription": "Click a card to copy a prompt. Use these in a Linear-linked worktree after the skill is installed.",
           "manageConnectionHint": "Review connected Linear workspaces and API keys in",
-          "manageConnectionLink": "Integrations"
+          "manageConnectionLink": "Integrations",
+          "browsingDescription": "Browse Linear issues and link them to Workspaces. Optionally install /orca-linear for agents that support skills."
         },
         "MobileRelayBetaNotice": {
           "notice": "Orca Relay is in beta."
@@ -12394,7 +12418,13 @@
           "noteVisibilityTitle": "Hiding ≠ disconnect",
           "noteVisibilityBody": "Hiding Linear in Task Sources only removes it from the picker. It does not remove your key or skill.",
           "setupChecking": "Checking…",
-          "setupUnverified": "Cannot verify"
+          "setupUnverified": "Cannot verify",
+          "browsingReady": "Ready",
+          "browsingSetupBody": "Connect Linear and show it in Tasks to browse issues and link Workspaces. The agent skill below is optional.",
+          "browsingConnectBody": "Personal API key to browse Linear issues and link them to Workspaces.",
+          "browsingVisibleTitle": "2. Show Linear in Tasks",
+          "optionalSkillTitle": "Optional: Linear agent skill",
+          "optionalSkillBody": "Adds /orca-linear for agents that support skills. Browsing issues and linking Workspaces work without it."
         },
         "TaskSourceLinearSetup": {
           "connectTitle": "Connect Linear",
@@ -12407,7 +12437,10 @@
           "skillDescription": "Gives agents /orca-linear to read tickets, post updates, move states, and attach pull or merge requests.",
           "skillBlocked": "Connect Linear first, then install the skill for agents.",
           "skillPanelTitle": "Linear skill",
-          "showDescription": "Include Linear in the Tasks page source picker and sidebar shortcuts."
+          "showDescription": "Include Linear in the Tasks page source picker and sidebar shortcuts.",
+          "connectBrowsingDescription": "Add a Personal API key to browse Linear issues and link them to Workspaces.",
+          "optionalSkillTitle": "Optional: Linear agent skill",
+          "optionalSkillDescription": "Adds /orca-linear for agents that support skills. Browsing issues and linking Workspaces work without it."
         },
         "TaskSourceProviderCard": {
           "statusChecking": "Checking…",
@@ -18715,6 +18748,261 @@
         "title": "Orca refused this browser",
         "retry": "Try again"
       }
+    },
+    "features": {
+      "local": {
+        "projects": {
+          "local": {
+            "workspace": {
+              "quick": {
+                "actions": {
+                  "bd1d9140b7": "Archive this Workspace and open the previous one. Files, tabs, and sessions are kept.",
+                  "ba194febec": "Archive Workspace",
+                  "61c84e40fa": "Return to the Workspace you used before this one. Hold Ctrl and press ` to go further back.",
+                  "2d01d6e2a8": "Previous Workspace",
+                  "4b51101421": "Reorder, assign, or clear mark slots 1–9.",
+                  "90d5169aeb": "Edit Workspace Marks…",
+                  "9e5f64baf9": "Add this Workspace to the next free mark slot, or remove its mark.",
+                  "8920543f56": "Mark or Unmark Workspace",
+                  "eb06b48907": "Link, open, or unlink Linear issues for this Workspace.",
+                  "68ce369ec9": "Linear Issues…"
+                }
+              },
+              "sidebar": {
+                "actions": {
+                  "a2ae908ca8": "Could not restore the Workspace.",
+                  "b32bb4687c": "Undo",
+                  "8fcd51cfec": "Could not archive {{value0}}.",
+                  "09abc9000b": "Edit marks",
+                  "ebf5728e24": "Clear one to mark this Workspace.",
+                  "2aa0c29acd": "Could not update the mark."
+                }
+              }
+            }
+          },
+          "LocalContextActions": {
+            "d1c729222c": "{{value0}} actions for {{value1}}",
+            "14ed041f1e": "This changes the label only. Files, branches, and saved state stay where they are.",
+            "d43e838a8c": "Rename {{value0}}",
+            "fb5a99b7c0": "Switch away before archiving.",
+            "c5de27090f": "Linear issues…"
+          },
+          "LocalIssueWorkspaceActions": {
+            "670dd517dc": "New Workspace for issue",
+            "84ba0284ba": "No matching Workspaces.",
+            "4671128302": "Search Workspaces…",
+            "5602f7513d": "Attach Workspace",
+            "af9b835edb": "Workspaces ({{value0}})",
+            "aec92e896e": "Workspaces for {{value0}}"
+          },
+          "LocalIssueWorkspaceLinks": {
+            "34febc4d86": "Workspaces",
+            "0c7d222f2e": "Linked Workspaces"
+          },
+          "LocalProjectDialog": {
+            "f76ce54b0c": "Create Project",
+            "103291f36d": "Save roots",
+            "d943359ab7": "Creating…",
+            "e7c430ff61": "Saving…",
+            "3ebb5d7a4e": "Cancel",
+            "93549fc86f": "Changing directories or the default requires all affected Workspaces to have no unsaved edits or running sessions. Labels and order can change at any time. Removing a directory also removes its Workspace checkout choices; a removed Workspace default will inherit the selected Project default.",
+            "b2ee617f70": "Project name",
+            "fea2007f79": "Choose the existing directories that belong together. Files stay where they are.",
+            "7b73a0bcfc": "Directories for {{value0}}. Clean tabs outside the new directories will close. Files stay where they are.",
+            "3d057c670f": "New Project",
+            "284599def7": "Edit Project roots"
+          },
+          "LocalProjectRootFields": {
+            "a8ab562bc8": "Agents receive every directory, regardless of this default.",
+            "65213e1f05": "Choose a directory",
+            "30080518e6": "Default command directory",
+            "f66d43d536": "Remove {{value0}}",
+            "b0be344f38": "Down",
+            "1ef392b5c2": "Move {{value0}} up",
+            "9cd06db4ce": "Up",
+            "9750de9554": "Project directories",
+            "3c52b9898e": "Browse folders",
+            "c18754a651": "Add directory",
+            "2ff988ecbc": "Directory path"
+          },
+          "LocalProjectsLanding": {
+            "caac2ae5a0": "Projects group directories. Workspaces remember how you are working in them.",
+            "0b97a9f042": "New Project",
+            "32afc3fcf8": "Bring related directories together. Keep a separate working context for each task.",
+            "1322c1d9f2": "Select a Workspace to return to its files, tabs, and sessions.",
+            "ac7f5ecdef": "Your local Projects"
+          },
+          "LocalProjectsSidebar": {
+            "7027add1c8": "Show archived",
+            "55a32d35d0": "Hide archived",
+            "a525ed2b5d": "New Project",
+            "6b885bf2a3": "Group your local directories in a Project.",
+            "0967322087": "Loading Projects…",
+            "5f45a83183": "Retry",
+            "6619ee4b63": "Local Projects",
+            "89f6e97480": "New Workspace",
+            "9e93984811": "New Workspace in {{value0}}",
+            "2adf183d70": "(Archived)",
+            "fdbf8ce8ba": "Open the last Workspace used in this Project"
+          },
+          "LocalRootGitChanges": {
+            "88ad5c2e14": "Unstage {{value0}}",
+            "0a6a3bbec4": "Stage {{value0}}",
+            "e6149af01a": "Open {{value0}}",
+            "1d685a1ccc": "(submodule)",
+            "43c4ed3038": "(conflict)",
+            "58716f1a89": "Untracked files",
+            "d507ed282c": "Changes",
+            "3830b99ae1": "Staged changes"
+          },
+          "LocalRootWorktreeCreation": {
+            "b91a580eab": "Create worktree",
+            "62769c7775": "Creating worktree…",
+            "bdd267726d": "Use an absolute path that does not exist, inside an existing local directory. Creating a worktree does not save the Workspace. Cancelling later leaves it on disk.",
+            "baf9dd60b9": "new worktree directory",
+            "4f7b921cbf": "new branch",
+            "787c2285d5": ". It does not start from a Workspace alternate or copy uncommitted edits. No Orca setup or agent is started.",
+            "7db5cec376": "Creates a new branch from this Project checkout&apos;s current committed HEAD:"
+          },
+          "LocalSidebarMarks": {
+            "1b498dd9c2": "Marks",
+            "fca1536727": "Edit marks",
+            "f13ea2ec47": "; {{value0}} jumps to a mark",
+            "3332414ac6": "marks the open Workspace"
+          },
+          "LocalSidebarNav": {
+            "97215c5d8e": "Search",
+            "bea08363ff": "Search worktrees and browser tabs",
+            "6b99e20b7a": "Orca Mobile",
+            "80845a6916": "Automations",
+            "4360dd50cf": "Skills",
+            "fc33db74d1": "Artifacts",
+            "1a20bc0a52": "Tasks"
+          },
+          "LocalSidebarScopeFooter": {
+            "7c3d3f2b87": "Open Workspace directories",
+            "e5719d3e1d": "{{value0}}{{value1}}. Edit Workspace checkouts"
+          },
+          "LocalSidebarWorkspaceRow": {
+            "6e73f35c99": "{{value0}} idle agent{{value1}}",
+            "202ad7ce04": "{{value0}} uses {{value1}}",
+            "50284216f0": ", new activity",
+            "06d2bd0718": "(Archived)",
+            "f42a4b95d7": "New activity"
+          },
+          "LocalWorkspaceCheckoutChoices": {
+            "0440338700": "existing worktree path",
+            "bcc7ee06d6": "Optional: select an existing worktree or explicitly create a new one for a Git directory. Leave a path empty to share the Project&apos;s directory. Plain folders remain shared.",
+            "fab9cd3c2c": "Choose worktrees"
+          },
+          "LocalWorkspaceCheckoutDialog": {
+            "1f578c0418": "Save checkouts",
+            "5ec9c90086": "Saving…",
+            "e12d21ef1f": "Cancel",
+            "fae505d00d": "Save or discard unsaved edits and close running terminals and agents in this Workspace before changing these choices. Other Workspaces keep their checkout choices.",
+            "efb785fa5c": "Use Project default",
+            "cbffb0dde9": "Default command directory",
+            "23aefebea5": "Edit Workspace checkouts"
+          },
+          "LocalWorkspaceDialog": {
+            "49711a9513": "Create Workspace",
+            "8adb875422": "Creating…",
+            "5d478044fa": "Cancel",
+            "d4aa96af90": "Directories without an alternate worktree share files and branches.",
+            "2dacefc4d7": "Workspace directories",
+            "83f1f3437b": "Workspace name",
+            "241b5a08f1": "Copies clean saved file tabs and their split arrangement. Unsaved edits, previews, terminals, agents, browsers, and transient tabs are excluded. Files keep their physical paths; tabs outside the new Workspace&apos;s directories are excluded, not moved to an alternate checkout.",
+            "49d62ba8f0": "Do not copy",
+            "283b1b5b83": "Copy saved file tabs from",
+            "b99c22962e": "Project",
+            "59300f057f": "New Project",
+            "2fcadaa4b7": "Create a Project to choose your directories first.",
+            "4ee804fde0": "A separate set of tabs, drafts, and sessions over your Project&apos;s directories.",
+            "cf3c0f1a3a": "New Workspace"
+          },
+          "LocalWorkspaceLinearIssuePicker": {
+            "f54b50de50": "Showing up to {{value0}} results. Select issues to link them.",
+            "69f46c1507": "No issues returned. Try another search or check the connection.",
+            "bc6c39f45a": "Searching Linear…",
+            "c1025ce8b3": "Enter at least two characters, an issue identifier, or a Linear URL.",
+            "9f1f5903af": "Choose a Linear account.",
+            "6edee8b286": "· Linked",
+            "b5c186ea24": "Linear issue results",
+            "779136fd9c": "Search by title, issue identifier, or Linear URL",
+            "29a4286a94": "Search Linear issues…",
+            "5461af67b1": "Choose an account",
+            "e5b927d933": "Linear account",
+            "5c0ac79bcb": "Open Linear settings",
+            "9d62f1b6a0": "Connect a local Linear account to link issues. Saved links remain available.",
+            "430d2a773e": "Checking Linear access…",
+            "b6faeb01f6": "Refresh issues",
+            "8306c684bb": "Uses Linear access on this device."
+          },
+          "LocalWorkspaceLinearIssues": {
+            "9095fa7983": "Open an active Workspace to link another issue.",
+            "82ee7f1db1": "Unlink {{value0}}",
+            "9922ccec18": "Refresh {{value0}} details",
+            "32b5ad0411": "Open in Linear",
+            "f43cfb4231": "Open {{value0}} in Ether",
+            "b0ab5e3730": "Open issue",
+            "55f576317c": "Saved snapshot",
+            "72d8c43484": "Linked Linear issues",
+            "00bf4a91dd": "No linked issues.",
+            "96b2e2ee66": ". Linking does not change Linear status, files, or sessions.",
+            "109b3bcd12": "Workspace unavailable",
+            "59ceaa5f63": "Workspace Linear issues",
+            "53ad8a3ef1": "Linear issues (",
+            "5400eefe20": "Link Linear issue",
+            "122cc3bd24": "Link Linear issue to {{value0}}",
+            "49c0f1c6e0": "Linear issue {{value0}}: {{value1}} for {{value2}}"
+          },
+          "LocalWorkspaceMarksDialog": {
+            "c569b3d704": "Empty",
+            "fb8dcc3ab8": "Mark slots",
+            "d57fd0930a": "Slots keep their numbers when others are cleared.",
+            "76f08f888e": "{{value0}} opens a slot. ",
+            "025e3fc67d": "Workspace marks"
+          },
+          "LocalWorkspaceQuickOpen": {
+            "e94018d4ff": "Search files in all directories…",
+            "d6b2404e64": "Search every directory in this Workspace",
+            "667629d829": "Go to file",
+            "5d0076a5c7": "More files are available. Refine your search.",
+            "28e9b55970": "No matching files.",
+            "e0522ef1f5": "Loading files…"
+          },
+          "LocalWorkspaceRecentSwitcher": {
+            "2afd0cb5cd": "Recent Workspaces",
+            "6612b0cefd": "Switch Workspace"
+          },
+          "LocalWorkspaceRootBar": {
+            "cfc92313f8": "Terminal in this directory",
+            "b0de98ffd9": "Browse directory",
+            "c75df58001": "Workspace directories"
+          },
+          "LocalWorkspaceSourceControl": {
+            "9f3ef03278": "Git directory",
+            "6576350164": "Workspace Source Control",
+            "6debb50136": "Workspace root unavailable.",
+            "903a0515db": "No changes in this root.",
+            "499b07ab73": "Commit staged changes",
+            "c02019c36c": "Working…",
+            "ce213ef8cd": "Commit message",
+            "c76147ca01": "Resolve conflicts in this checkout before committing.",
+            "1de452884a": "Only part of this root’s changes could be listed. Commit is unavailable.",
+            "f2e15aeced": "Reading Git status…",
+            "3aa8114bf1": "Refresh Git status",
+            "0fff044cb8": "Git status",
+            "831b0df7ae": "Unborn branch",
+            "173cd1c58b": "Detached {{value0}}"
+          },
+          "seams": {
+            "LocalWorkspaceSearchIncompleteBanner": {
+              "ea75e36f02": "Search incomplete"
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -21099,5 +21387,47 @@
     "restartLocal": "Restart local daemon",
     "killAllLocal": "Kill all local sessions",
     "killFailed": "The terminal could not be ended. Last-observed sessions are retained."
+  },
+  "localProjects": {
+    "contextActions": {
+      "restoreFailed": "Could not restore {{name}}.",
+      "archiveFailed": "Could not archive {{name}}."
+    },
+    "linearIssues": {
+      "refresh": "Refresh",
+      "unlink": "Unlink",
+      "openInLinear": "Open {{value0}} in Linear"
+    },
+    "rootFields": {
+      "remove": "Remove",
+      "label": "Directory label {{number}}",
+      "pathLabel": "{{label}} path",
+      "directoryPath": "Directory path",
+      "moveDown": "Move {{value0}} down"
+    },
+    "worktreeCreation": {
+      "toggle": "Create new worktree for {{label}}",
+      "created": "Created branch {{branch}} at {{path}}. Save the Workspace to use it. Cancelling or a failed save leaves this worktree intact; select its path as an existing worktree to use it later."
+    },
+    "checkoutDialog": {
+      "description": "Directory choices for {{name}}. Clean tabs from replaced checkouts will close. Files stay where they are."
+    },
+    "workspaceDialog": {
+      "linkIssue": "Link {{issue}}. The issue will be verified before this Workspace is created."
+    },
+    "marksDialog": {
+      "hint": "1–9 or Enter opens · Enter on an empty slot or A puts the open Workspace there · {{move}}↑↓ moves · {{clear}} clears"
+    },
+    "rootBar": {
+      "defaultDirectory": "Default command directory: {{label}}",
+      "sharedOne": "Shared with 1 other Workspace. Saved files change in every view; drafts stay separate.",
+      "sharedMany": "Shared with {{count}} other Workspaces. Saved files change in every view; drafts stay separate."
+    },
+    "shortcuts": {
+      "linearTitle": "Linear issues for {{name}}"
+    },
+    "sourceControl": {
+      "commitHelp": "Commits staged changes in {{label}} only."
+    }
   }
 }

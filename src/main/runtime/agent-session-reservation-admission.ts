@@ -51,11 +51,7 @@ import type { AgentSessionStoreState } from './agent-session-store-state'
 import { agentSessionRecordIdentityFields } from './agent-session-record-founding'
 import { agentSessionAccountHomesEqual } from '../../shared/agent-session-account-home'
 // Ether seam: chat-scope
-import {
-  localWorkspaceLaunchScopesEqual,
-  type LocalWorkspaceLaunchScope
-} from '../../shared/local-projects/agent-launch-scope'
-import { isLocalWorkspaceSessionScope } from '../../shared/local-projects/agent-session-scope'
+import * as chatScope from '../local-projects/seams/chat-scope-seam'
 
 export type AgentSessionReserveRequest = {
   /** Host-resolved floating directory committed with the first owner reservation. */
@@ -76,7 +72,7 @@ export type AgentSessionReserveRequest = {
    *  another session's tab holds is refused here, before anything is spawned. */
   surfaceTabId?: string
   // Ether seam: chat-scope
-  localWorkspaceScope?: LocalWorkspaceLaunchScope
+  localWorkspaceScope?: chatScope.LocalWorkspaceLaunchScope
   /** Set only when this create adopts an existing provider conversation. Seeds the handle chain so
    *  the adapter resumes; without it a new record has never proved a thread and starts a fresh one. */
   adoptedHandleLink?: AgentSessionProviderHandleLink
@@ -178,9 +174,7 @@ export function applyAgentSessionReservation(
 } {
   validateAgentSessionReservationInput(request)
   // Ether seam: chat-scope
-  if (!isLocalWorkspaceSessionScope(request.localWorkspaceScope, request.location)) {
-    throw new Error('agent_session_operation_invalid')
-  }
+  chatScope.assertReservationScope(request, state.records.get(request.sessionId))
   const reservation: AgentSessionReservation = {
     spawnToken:
       typeof request.spawnToken === 'function' ? request.spawnToken() : request.spawnToken,
@@ -208,10 +202,7 @@ export function applyAgentSessionReservation(
   if (
     !agentSessionExecutionLocationsEqual(existing.location, request.location) ||
     existing.provider !== request.provider ||
-    !agentSessionAccountHomesEqual(existing.accountHome, request.accountHome) ||
-    // Ether seam: chat-scope
-    (request.localWorkspaceScope &&
-      !localWorkspaceLaunchScopesEqual(existing.localWorkspaceScope, request.localWorkspaceScope))
+    !agentSessionAccountHomesEqual(existing.accountHome, request.accountHome)
   ) {
     // Why: location, provider, and account are the session identity; changing one is a fork.
     throw agentSessionRefusalError('agent_session_conflict', { reason: 'identityMismatch' })

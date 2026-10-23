@@ -8,6 +8,7 @@ import { useNow } from '@/hooks/use-now'
 import { LocalSidebarWorkspaceRow } from './LocalSidebarWorkspaceRow'
 import { useLocalSidebarModel } from './LocalProjectsSidebar'
 import { requestLocalWorkspaceMarksList } from './local-workspace-sidebar-actions'
+import { translate } from '@/i18n/i18n'
 
 const MARKS_INTRODUCED_KEY = 'ether.sidebar.marksIntroduced'
 
@@ -48,8 +49,19 @@ export function LocalSidebarMarks(): React.JSX.Element | null {
   if (marks.length === 0) {
     return introduced || !markShortcut || !hasLocalWorkspaceOpen ? null : (
       <p className="mx-4 mt-2 shrink-0 text-xs text-muted-foreground">
-        {markShortcut} marks the open Workspace
-        {jumpShortcut ? `; ${jumpShortcut.replace(/1$/, '1–9')} jumps to a mark` : ''}.
+        {markShortcut}{' '}
+        {translate(
+          'auto.features.local.projects.LocalSidebarMarks.3332414ac6',
+          'marks the open Workspace'
+        )}
+        {jumpShortcut
+          ? translate(
+              'auto.features.local.projects.LocalSidebarMarks.f13ea2ec47',
+              '; {{value0}} jumps to a mark',
+              { value0: jumpShortcut.replace(/1$/, '1–9') }
+            )
+          : ''}
+        .
       </p>
     )
   }
@@ -57,7 +69,7 @@ export function LocalSidebarMarks(): React.JSX.Element | null {
     <div className="flex max-h-[35%] shrink-0 flex-col border-b border-worktree-sidebar-border pb-1">
       <div className="mt-2 flex h-8 items-center justify-between px-2">
         <span className="select-none pl-2 text-xs font-semibold text-muted-foreground/80">
-          Marks
+          {translate('auto.features.local.projects.LocalSidebarMarks.1b498dd9c2', 'Marks')}
         </span>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -65,21 +77,27 @@ export function LocalSidebarMarks(): React.JSX.Element | null {
               variant="ghost"
               size="icon-xs"
               className="text-muted-foreground"
-              aria-label="Edit marks"
+              aria-label={translate(
+                'auto.features.local.projects.LocalSidebarMarks.fca1536727',
+                'Edit marks'
+              )}
               onClick={requestLocalWorkspaceMarksList}
             >
               <Bookmark className="size-3.5" strokeWidth={2.25} />
             </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom" sideOffset={6}>
-            Edit marks
+            {translate('auto.features.local.projects.LocalSidebarMarks.fca1536727', 'Edit marks')}
             {listShortcut ? (
               <span className="ml-1.5 text-background/60">{listShortcut}</span>
             ) : null}
           </TooltipContent>
         </Tooltip>
       </div>
-      <ul className="min-h-0 space-y-px overflow-y-auto px-2 scrollbar-sleek" aria-label="Marks">
+      <ul
+        className="min-h-0 space-y-px overflow-y-auto px-2 scrollbar-sleek"
+        aria-label={translate('auto.features.local.projects.LocalSidebarMarks.1b498dd9c2', 'Marks')}
+      >
         {marks.map((row) => (
           <LocalSidebarWorkspaceRow key={row.workspace.id} row={row} now={now} showProjectName />
         ))}

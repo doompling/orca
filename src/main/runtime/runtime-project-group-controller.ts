@@ -26,6 +26,7 @@ import {
   isLocalWslMoveRow,
   shouldDropWslMoveProjectUpdate
 } from '../persistence/moving-wsl-projects/wsl-move-scope-guard'
+import { refuseLocalWorkspaceRemoval } from '../local-projects/seams/folder-workspace-seam'
 
 type RuntimeProjectGroupDependencies = {
   getStore: () => RuntimeStore | null
@@ -254,9 +255,8 @@ export class RuntimeProjectGroupController {
     if (!store?.removeFolderWorkspace) {
       throw new Error('runtime_unavailable')
     }
-    if (store.resolveLocalWorkspace?.(folderWorkspaceId)) {
-      throw new Error('Archive this local Workspace instead of deleting its saved context.')
-    }
+    // Ether seam: local-projects
+    refuseLocalWorkspaceRemoval(store, folderWorkspaceId)
     const workspace = store.getFolderWorkspaces?.().find((entry) => entry.id === folderWorkspaceId)
     if (workspace && isLocalWslMoveRow(workspace)) {
       assertWslMoveProjectWritable(store, { folderWorkspaceId })

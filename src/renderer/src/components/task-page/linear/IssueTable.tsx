@@ -9,6 +9,7 @@ import { translate } from '@/i18n/i18n'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { formatRelativeTime } from '../../task-page-source-context'
 import { Button } from '@/components/ui/button'
+// Ether seam: linear
 import { LocalIssueWorkspaceActions } from '@/features/local-projects/LocalIssueWorkspaceActions'
 export function TaskPageLinearIssueTable({
   model
@@ -24,6 +25,7 @@ export function TaskPageLinearIssueTable({
     effectiveLinearDisplayProperties,
     linearIssueGridStyle,
     linearIssueListRows,
+    // Ether seam: linear
     handleUseLinearItem,
     handleOpenOrUseLinearItem
   } = model
@@ -204,6 +206,7 @@ export function TaskPageLinearIssueTable({
             ) : null}
 
             <div className="flex shrink-0 items-center justify-end gap-1">
+              {/* Ether seam: linear — local Workspace links wrap the Start/Open action. */}
               <LocalIssueWorkspaceActions
                 issue={issue}
                 sourceContext={linearTaskSourceContext}

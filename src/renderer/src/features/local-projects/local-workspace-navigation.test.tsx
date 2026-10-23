@@ -129,7 +129,7 @@ describe('local Workspace navigation projections', () => {
     const { result, rerender } = renderHook(() =>
       useWorktreeJumpPaletteStoreState({ visible: true, lingering: true })
     )
-    expect(result.current.allWorktrees).toHaveLength(4)
+    expect(result.current.workspaces).toHaveLength(4)
     useAppStore.setState({
       localProjects: {
         ...state,
@@ -137,10 +137,10 @@ describe('local Workspace navigation projections', () => {
       }
     })
     rerender()
-    expect(result.current.allWorktrees[0].displayName).toBe('Application renamed / Main')
+    expect(result.current.workspaces[0].displayName).toBe('Application renamed / Main')
     desktop.enabled = false
     rerender()
-    expect(result.current.allWorktrees).toEqual([])
+    expect(result.current.workspaces).toEqual([])
   })
 })
 

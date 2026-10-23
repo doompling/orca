@@ -10,10 +10,12 @@ import { LocalSidebarScopeFooter } from './LocalSidebarScopeFooter'
 import { LocalSidebarWorkspaceRow } from './LocalSidebarWorkspaceRow'
 import { buildLocalSidebarModel, holdRowOrder, type LocalSidebarRow } from './local-sidebar-model'
 import { openLocalWorkspace } from './local-workspace-sidebar-actions'
+import { translate } from '@/i18n/i18n'
+import { selectFolderWorkspaces } from '@/store/workspace-record-selectors'
 
 export function useLocalSidebarModel(showArchived: boolean) {
   const catalog = useAppStore((s) => s.localProjects)
-  const folderWorkspaces = useAppStore((s) => s.folderWorkspaces)
+  const folderWorkspaces = useAppStore((s) => selectFolderWorkspaces(s))
   return useMemo(
     () => buildLocalSidebarModel(catalog, folderWorkspaces, { showArchived }),
     [catalog, folderWorkspaces, showArchived]
@@ -44,12 +46,20 @@ function LocalSidebarProjectSection({
           type="button"
           disabled={project.isArchived || !reopenId}
           className="flex h-full min-w-0 flex-1 items-center rounded-md px-2 text-left text-[13px] font-semibold text-worktree-sidebar-foreground outline-none hover:bg-worktree-sidebar-accent focus-visible:ring-2 focus-visible:ring-worktree-sidebar-ring disabled:hover:bg-transparent"
-          title="Open the last Workspace used in this Project"
+          title={translate(
+            'auto.features.local.projects.LocalProjectsSidebar.fdbf8ce8ba',
+            'Open the last Workspace used in this Project'
+          )}
           onClick={() => reopenId && openLocalWorkspace(reopenId)}
         >
           <span className="truncate">
             {project.name}
-            {project.isArchived ? ' (Archived)' : ''}
+            {project.isArchived
+              ? translate(
+                  'auto.features.local.projects.LocalProjectsSidebar.2adf183d70',
+                  '(Archived)'
+                )
+              : ''}
           </span>
         </button>
         <span className="flex shrink-0 items-center opacity-0 focus-within:opacity-100 group-hover/project:opacity-100 has-[[data-state=open]]:opacity-100">
@@ -58,7 +68,11 @@ function LocalSidebarProjectSection({
               <Button
                 variant="ghost"
                 size="icon-xs"
-                aria-label={`New Workspace in ${project.name}`}
+                aria-label={translate(
+                  'auto.features.local.projects.LocalProjectsSidebar.9e93984811',
+                  'New Workspace in {{value0}}',
+                  { value0: project.name }
+                )}
                 disabled={project.isArchived}
                 onClick={() => openModal('new-workspace-composer', { localProjectId: project.id })}
               >
@@ -66,7 +80,10 @@ function LocalSidebarProjectSection({
               </Button>
             </TooltipTrigger>
             <TooltipContent side="top" sideOffset={4}>
-              New Workspace
+              {translate(
+                'auto.features.local.projects.LocalProjectsSidebar.89f6e97480',
+                'New Workspace'
+              )}
             </TooltipContent>
           </Tooltip>
           <LocalContextActions kind="Project" record={project} />
@@ -117,7 +134,10 @@ export function LocalProjectsSidebar(): React.JSX.Element {
     <div className="flex min-h-0 flex-1 flex-col">
       <div
         className="min-h-0 flex-1 overflow-y-auto px-2 pb-3 scrollbar-sleek"
-        aria-label="Local Projects"
+        aria-label={translate(
+          'auto.features.local.projects.LocalProjectsSidebar.6619ee4b63',
+          'Local Projects'
+        )}
         onPointerEnter={() => hold('pointer', true)}
         onPointerLeave={() => hold('pointer', false)}
         onFocus={() => hold('focus', true)}
@@ -137,20 +157,31 @@ export function LocalProjectsSidebar(): React.JSX.Element {
               size="sm"
               onClick={() => void refresh().catch(() => undefined)}
             >
-              Retry
+              {translate('auto.features.local.projects.LocalProjectsSidebar.5f45a83183', 'Retry')}
             </Button>
           </div>
         ) : null}
         {!loaded && !loadError ? (
-          <p className="p-2 text-xs text-muted-foreground">Loading Projects…</p>
+          <p className="p-2 text-xs text-muted-foreground">
+            {translate(
+              'auto.features.local.projects.LocalProjectsSidebar.0967322087',
+              'Loading Projects…'
+            )}
+          </p>
         ) : null}
         {loaded && model.projects.length === 0 ? (
           <div className="space-y-3 p-2">
             <p className="text-xs text-muted-foreground">
-              Group your local directories in a Project.
+              {translate(
+                'auto.features.local.projects.LocalProjectsSidebar.6b885bf2a3',
+                'Group your local directories in a Project.'
+              )}
             </p>
             <Button size="sm" onClick={() => openModal('add-repo')}>
-              New Project
+              {translate(
+                'auto.features.local.projects.LocalProjectsSidebar.a525ed2b5d',
+                'New Project'
+              )}
             </Button>
           </div>
         ) : null}
@@ -169,7 +200,15 @@ export function LocalProjectsSidebar(): React.JSX.Element {
             className="mt-3"
             onClick={() => setShowArchived(!showArchived)}
           >
-            {showArchived ? 'Hide archived' : 'Show archived'}
+            {showArchived
+              ? translate(
+                  'auto.features.local.projects.LocalProjectsSidebar.55a32d35d0',
+                  'Hide archived'
+                )
+              : translate(
+                  'auto.features.local.projects.LocalProjectsSidebar.7027add1c8',
+                  'Show archived'
+                )}
           </Button>
         ) : null}
       </div>

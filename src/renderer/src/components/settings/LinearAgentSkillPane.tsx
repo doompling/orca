@@ -12,7 +12,8 @@ import { useLinearProviderConnected } from '@/hooks/useLinearProviderConnected'
 import { normalizeVisibleTaskProviders } from '../../../../shared/task-providers'
 import { getProviderRuntimeContextKey } from '@/lib/provider-runtime-context'
 import { AgentSkillSetupPanel } from './AgentSkillSetupPanel'
-import { LinearAgentSkillGuide } from './LinearAgentSkillGuide'
+// Ether seam: linear
+import { LinearOptionalSkillGuide } from '@/features/linear-optional-skill/LinearOptionalSkillGuide'
 import { LinearAgentSkillNotes } from './LinearAgentSkillNotes'
 import { getLinearAgentSkillPaneSearchEntries } from './linear-agent-skill-search'
 import { SearchableSetting } from './SearchableSetting'
@@ -33,7 +34,7 @@ function resolveLinearExampleIcon(example: SkillUsageExample): LucideIcon {
   return LINEAR_EXAMPLE_ICONS[example.id] ?? LinearIcon
 }
 
-// Browsing setup and optional agent tooling share the existing connection.
+// Checklist owns connect + skill + visibility; examples and notes sit below.
 export function LinearAgentSkillPane(): React.JSX.Element {
   const openSettingsPage = useAppStore((state) => state.openSettingsPage)
   const openSettingsTarget = useAppStore((state) => state.openSettingsTarget)
@@ -85,6 +86,7 @@ export function LinearAgentSkillPane(): React.JSX.Element {
   return (
     <SearchableSetting
       title={translate('auto.components.settings.LinearAgentSkillPane.title', 'Linear')}
+      // Ether seam: linear
       description={translate(
         'auto.components.settings.LinearAgentSkillPane.browsingDescription',
         'Browse Linear issues and link them to Workspaces. Optionally install /orca-linear for agents that support skills.'
@@ -92,7 +94,8 @@ export function LinearAgentSkillPane(): React.JSX.Element {
       keywords={getLinearAgentSkillPaneSearchEntries()[0].keywords}
       className="space-y-6 py-2"
     >
-      <LinearAgentSkillGuide
+      {/* Ether seam: linear */}
+      <LinearOptionalSkillGuide
         readiness={{
           connected: linearConnected,
           checking: connectionChecking,

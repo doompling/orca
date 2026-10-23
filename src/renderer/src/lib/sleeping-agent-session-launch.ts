@@ -57,10 +57,13 @@ export function launchSleepingAgentSession(
   const state = useAppStore.getState()
   const launchConfig = record.launchConfig
   // Ether seam: agent-launch
-  if (
-    !localWorkspaceResumeHasRoots(state, record.worktreeId, launchConfig, record.connectionId)
-  ) {
-    toast.error('This saved agent has no complete Workspace roots. Start a new agent session.')
+  if (!localWorkspaceResumeHasRoots(state, record.worktreeId, launchConfig, record.connectionId)) {
+    toast.error(
+      translate(
+        'auto.lib.sleeping.agent.session.launch.fa1b9bc264',
+        'This saved agent has no complete Workspace roots. Start a new agent session.'
+      )
+    )
     return false
   }
   const resumeTarget = getResumeLaunchTarget(record.worktreeId)

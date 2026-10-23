@@ -5,6 +5,10 @@ import type { DiffSource } from '../../../../../../shared/editor-tab-view-types'
 import { buildDiffEditorFileId, withDiffContentReloadRequest } from '../file-ids/editor-file-ids'
 import { resolveDiffRuntimeEnvironmentId } from '../git/diff-runtime-owner'
 import {
+  localRootDiffFileId,
+  localRootOpenFileFields
+} from '@/features/local-projects/seams/local-root-diff-tab-seam'
+import {
   buildEditorActiveResult,
   resolveEditorOpenTargetGroupId
 } from '../tabs/editor-open-target-group'
@@ -32,15 +36,11 @@ export function createOpenUnstagedDiff(
           options?.runtimeEnvironmentId
         )
         const diffSource: DiffSource = staged ? 'staged' : 'unstaged'
-        const baseId = buildDiffEditorFileId(
-          worktreeId,
-          diffSource,
-          relativePath,
-          runtimeEnvironmentId
+        // Ether seam: git
+        const id = localRootDiffFileId(
+          buildDiffEditorFileId(worktreeId, diffSource, relativePath, runtimeEnvironmentId),
+          options?.localRoot
         )
-        const id = options?.localRoot
-          ? `${baseId}:root:${encodeURIComponent(options.localRoot.rootId)}`
-          : baseId
         editorItemFileId = id
         const targetGroupId =
           resolveEditorOpenTargetGroupId(s, worktreeId, options?.targetGroupId) ?? undefined
@@ -78,7 +78,8 @@ export function createOpenUnstagedDiff(
           conflictReview: undefined,
           isPreview: isPreview || undefined,
           runtimeEnvironmentId,
-          ...(options?.localRoot ? { localRoot: { ...options.localRoot } } : {})
+          // Ether seam: git
+          ...localRootOpenFileFields(options?.localRoot)
         }
         if (isPreview) {
           const replaceablePreviewId = getReplaceablePreviewFileId(s, worktreeId, targetGroupId)

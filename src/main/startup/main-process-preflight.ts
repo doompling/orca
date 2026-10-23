@@ -32,7 +32,8 @@ import {
   installRemoteServerUpdate,
   isQuittingForUpdate
 } from '../updater'
-import { getDevInstanceIdentity, shouldApplyPreReadyAppName } from './dev-instance-identity'
+// Ether seam: identity
+import { getDevInstanceIdentity, shouldApplyPreReadyAppName } from './ether-dev-instance-identity'
 import { enableRendererHeapHeadroom } from './renderer-heap-headroom'
 import { configureLinuxDevShmUsage } from './linux-dev-shm-policy'
 import { isStartupDiagnosticsEnabled, logStartupDiagnostic } from './startup-diagnostics'
@@ -111,8 +112,6 @@ import {
   handleMainProcessPreflightFailure
 } from './main-process-preflight-failure'
 import { ensureWindowsAppDataPath } from './windows-app-data-path'
-// Ether seam: identity
-import { getPackagedEtherProduct } from '../ether-build'
 
 export type MainProcessPreflightOptions = {
   focusExistingWindow: () => void
@@ -163,8 +162,7 @@ function initializeMainProcessPreflight(options: MainProcessPreflightOptions): b
   if (state.isServeMode) {
     reserveServeStdoutForReadiness()
   }
-  // Ether seam: identity
-  state.devInstanceIdentity = getDevInstanceIdentity(isDev, process.env, getPackagedEtherProduct())
+  state.devInstanceIdentity = getDevInstanceIdentity(isDev)
   state.devAgentHookEndpointNamespace = state.devInstanceIdentity.isDev
     ? state.devInstanceIdentity.appUserModelId
     : undefined

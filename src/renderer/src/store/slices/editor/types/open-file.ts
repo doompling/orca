@@ -1,4 +1,5 @@
 import type { RecentlyClosedTabPosition } from '../../recently-closed-tabs'
+// Ether seam: git — the local Workspace root a tab's Git calls target.
 import type { LocalWorkspaceGitRoot } from '../../../../../../shared/local-projects/git-root'
 import type { EditorFileOperationProvenance } from '@/lib/editor-file-operation-owner'
 import type {

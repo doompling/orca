@@ -1,7 +1,8 @@
 import type { AppState } from '@/store'
 import type { OpenFile } from '@/store/slices/editor'
 import { shouldPersistWorkspaceSession } from '@/lib/workspace-session'
-import { flushPendingEditorChange } from '@/components/editor/editor-pending-flush'
+import { flushPendingEditorBuffer } from '@/components/editor/editor-pending-flush'
+import type { EditorBufferViewIndex } from '@/store/slices/editor/buffers/editor-buffer-views'
 import { resolveLocalWorkspaceKey } from '../../../../shared/local-projects/workspace-resolution'
 
 type DraftCloseState = Pick<
@@ -24,11 +25,11 @@ function isLocalWorkspaceEditableFile(
 }
 
 export function flushPendingLocalWorkspaceDrafts(
-  state: Pick<AppState, 'localProjects' | 'openFiles'>
+  state: Pick<AppState, 'localProjects' | 'openFiles'> & EditorBufferViewIndex
 ): void {
   for (const file of state.openFiles) {
     if (file.isDirty && isLocalWorkspaceEditableFile(state, file)) {
-      flushPendingEditorChange(file.id)
+      flushPendingEditorBuffer(state, file.id)
     }
   }
 }

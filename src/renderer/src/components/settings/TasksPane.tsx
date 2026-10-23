@@ -14,7 +14,6 @@ import { useAppStore } from '@/store'
 import { SearchableSetting } from './SearchableSetting'
 import { SettingsSubsectionHeader } from './SettingsFormControls'
 import { CodeHostSetupSteps, JiraSetupSteps } from './TaskSourceSimpleSetup'
-import { TaskSourceLinearSetup } from './TaskSourceLinearSetup'
 import { TaskSourceProviderCard } from './TaskSourceProviderCard'
 import {
   getStalledVisibleTaskProviders,
@@ -28,6 +27,9 @@ import { getTasksPaneSearchKeywords } from './tasks-search'
 import { useIntegrationProviderStatusRefresh } from './use-integration-provider-status-refresh'
 import { useTaskSourceProviderReadiness } from './use-task-source-provider-readiness'
 import { translate } from '@/i18n/i18n'
+// Ether seam: linear
+import { LinearOptionalSkillTaskSourceSetup } from '@/features/linear-optional-skill/LinearOptionalSkillTaskSourceSetup'
+import { withOptionalLinearSkill } from '@/features/linear-optional-skill/linear-optional-skill-readiness'
 
 type TasksPaneProps = {
   settings: GlobalSettings
@@ -71,6 +73,7 @@ const PROVIDER_META: Record<
       return translate('auto.components.settings.TasksPane.09ae2d7c51', 'Linear')
     },
     get description() {
+      // Ether seam: linear
       return translate(
         'auto.components.settings.TasksPane.linearBrowsingDescription',
         'Browse Linear issues and link them to Workspaces. The agent skill is optional.'
@@ -98,7 +101,10 @@ export function TasksPane({ settings, updateSettings }: TasksPaneProps): React.J
   const openSettingsTarget = useAppStore((s) => s.openSettingsTarget)
   const checkJiraConnection = useAppStore((s) => s.checkJiraConnection)
   const refreshPreflightStatus = useAppStore((s) => s.refreshPreflightStatus)
-  const readinessByProvider = useTaskSourceProviderReadiness(visibleProviders)
+  // Ether seam: linear — the agent skill is optional, so it never stalls Linear setup.
+  const readinessByProvider = withOptionalLinearSkill(
+    useTaskSourceProviderReadiness(visibleProviders)
+  )
   useIntegrationProviderStatusRefresh()
 
   // Warn only about started-then-stalled setup; untouched providers are the default.
@@ -150,6 +156,7 @@ export function TasksPane({ settings, updateSettings }: TasksPaneProps): React.J
             'auto.components.settings.TasksPane.setupTitle',
             'Task management setup'
           )}
+          // Ether seam: linear
           description={translate(
             'auto.components.settings.TasksPane.browsingSetupDescription',
             'Connect providers and choose what appears in Tasks. Linear browsing and Workspace links do not require an agent skill. At least one provider must stay visible.'
@@ -164,17 +171,25 @@ export function TasksPane({ settings, updateSettings }: TasksPaneProps): React.J
                 'Some visible providers still need setup'
               )}
             </p>
+            {/* Linear is the only multi-step provider today; the generic body
+                covers any future provider that can stall the same way. */}
             <p className="mt-1">
-              {translate(
-                'auto.components.settings.TasksPane.incompleteBannerBody',
-                'Hide providers you do not use, or expand a card and finish its steps.'
-              )}
+              {stalledVisible.includes('linear')
+                ? translate(
+                    'auto.components.settings.TasksPane.incompleteBannerBodyWithLinear',
+                    'Hide providers you do not use, or expand a card and finish its steps. For Linear: API access, the agent skill, and Show in Tasks.'
+                  )
+                : translate(
+                    'auto.components.settings.TasksPane.incompleteBannerBody',
+                    'Hide providers you do not use, or expand a card and finish its steps.'
+                  )}
             </p>
           </div>
         ) : null}
 
         <SearchableSetting
           title={translate('auto.components.settings.TasksPane.f71d8a9dd3', 'Task Providers')}
+          // Ether seam: linear
           description={translate(
             'auto.components.settings.TasksPane.browsingProvidersDescription',
             'Each card covers connection and visibility. Linear also offers an optional agent skill.'
@@ -202,7 +217,8 @@ export function TasksPane({ settings, updateSettings }: TasksPaneProps): React.J
                 onToggleVisible={() => toggleProvider(provider)}
               >
                 {provider === 'linear' ? (
-                  <TaskSourceLinearSetup
+                  // Ether seam: linear
+                  <LinearOptionalSkillTaskSourceSetup
                     connected={readiness.connected}
                     checking={readiness.checking}
                     visible={visible}

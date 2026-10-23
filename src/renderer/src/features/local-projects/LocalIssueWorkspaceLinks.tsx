@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import type { LinearIssue } from '../../../../shared/linear/issue-types'
 import type { TaskSourceContext } from '../../../../shared/task-source-context'
 import { useLocalLinearIssueWorkspaces } from './use-local-linear-issue-workspaces'
+import { translate } from '@/i18n/i18n'
 
 export function LocalIssueWorkspaceLinks({
   issue,
@@ -22,8 +23,19 @@ export function LocalIssueWorkspaceLinks({
     return <>{children}</>
   }
   return (
-    <section aria-label="Linked Workspaces" className="space-y-2">
-      <h3 className="text-sm font-medium">Workspaces</h3>
+    <section
+      aria-label={translate(
+        'auto.features.local.projects.LocalIssueWorkspaceLinks.0c7d222f2e',
+        'Linked Workspaces'
+      )}
+      className="space-y-2"
+    >
+      <h3 className="text-sm font-medium">
+        {translate(
+          'auto.features.local.projects.LocalIssueWorkspaceLinks.34febc4d86',
+          'Workspaces'
+        )}
+      </h3>
       {attached.map(({ workspace, label }) => (
         <Button
           key={workspace.id}

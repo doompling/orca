@@ -12,6 +12,7 @@ import {
   nextFreeMarkSlot,
   pickLocalWorkspaceSuccessor
 } from './local-sidebar-model'
+import { translate } from '@/i18n/i18n'
 
 const OPEN_LINEAR_ISSUES_EVENT = 'ether:local-workspace-linear-issues'
 const OPEN_MARKS_LIST_EVENT = 'ether:local-workspace-marks-list'
@@ -56,7 +57,13 @@ export async function setLocalWorkspaceMarkSlot(
     await useAppStore.getState().updateLocalWorkspace({ workspaceId, updates: { markSlot } })
     return true
   } catch (cause) {
-    toast.error('Could not update the mark.', { description: errorMessage(cause) })
+    toast.error(
+      translate(
+        'auto.features.local.projects.local.workspace.sidebar.actions.2aa0c29acd',
+        'Could not update the mark.'
+      ),
+      { description: errorMessage(cause) }
+    )
     return false
   }
 }
@@ -74,8 +81,17 @@ export async function toggleLocalWorkspaceMark(workspaceId: string): Promise<voi
   }
   if (nextFreeMarkSlot(useAppStore.getState().localProjects) === null) {
     toast('All 9 marks are in use', {
-      description: 'Clear one to mark this Workspace.',
-      action: { label: 'Edit marks', onClick: requestLocalWorkspaceMarksList }
+      description: translate(
+        'auto.features.local.projects.local.workspace.sidebar.actions.ebf5728e24',
+        'Clear one to mark this Workspace.'
+      ),
+      action: {
+        label: translate(
+          'auto.features.local.projects.local.workspace.sidebar.actions.09abc9000b',
+          'Edit marks'
+        ),
+        onClick: requestLocalWorkspaceMarksList
+      }
     })
     return
   }
@@ -126,7 +142,14 @@ export async function archiveLocalWorkspace(workspaceId: string): Promise<void> 
   try {
     await state.updateLocalWorkspace({ workspaceId, updates: { isArchived: true } })
   } catch (cause) {
-    toast.error(`Could not archive ${workspace.name}.`, { description: errorMessage(cause) })
+    toast.error(
+      translate(
+        'auto.features.local.projects.local.workspace.sidebar.actions.8fcd51cfec',
+        'Could not archive {{value0}}.',
+        { value0: workspace.name }
+      ),
+      { description: errorMessage(cause) }
+    )
     return
   }
   toast(`Archived ${workspace.name}`, {
@@ -135,7 +158,10 @@ export async function archiveLocalWorkspace(workspaceId: string): Promise<void> 
         ? `${runningAgents} agent${runningAgents === 1 ? ' is' : 's are'} still working or waiting.`
         : 'Files, tabs, and sessions are kept.',
     action: {
-      label: 'Undo',
+      label: translate(
+        'auto.features.local.projects.local.workspace.sidebar.actions.b32bb4687c',
+        'Undo'
+      ),
       onClick: () => {
         void restoreLocalWorkspace(workspaceId, previousMarkSlot, wasActive)
       }
@@ -157,7 +183,13 @@ async function restoreLocalWorkspace(
       openLocalWorkspace(workspaceId)
     }
   } catch (cause) {
-    toast.error('Could not restore the Workspace.', { description: errorMessage(cause) })
+    toast.error(
+      translate(
+        'auto.features.local.projects.local.workspace.sidebar.actions.a2ae908ca8',
+        'Could not restore the Workspace.'
+      ),
+      { description: errorMessage(cause) }
+    )
   }
 }
 
@@ -229,6 +261,16 @@ export function localWorkspaceArchiveShortcutTarget(): string | null {
  * Local mode routes the delete chord to Archive (with Undo) for the open Workspace. Returns true
  * whenever a local Workspace is open, guarded or not, so upstream's hovered delete never runs on it.
  */
+/** Claims `workspace.delete` to archive the open local Workspace; false when it is not the target. */
+export function claimLocalWorkspaceArchive(
+  claim: (actionId: 'workspace.delete', run: () => void) => boolean
+): boolean {
+  const workspaceId = localWorkspaceArchiveShortcutTarget()
+  return (
+    workspaceId !== null && claim('workspace.delete', () => void archiveLocalWorkspace(workspaceId))
+  )
+}
+
 export function archiveActiveLocalWorkspaceFromShortcut(): boolean {
   const workspaceId = localWorkspaceArchiveShortcutTarget()
   if (workspaceId) {

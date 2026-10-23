@@ -1,8 +1,12 @@
-import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, realpathSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { Store } from '../persistence/loading-store/store'
+import type { Store } from '../persistence/loading-store/store'
+import {
+  openLocalProjectsTestStore,
+  readSavedProfileDomain
+} from './local-projects-store.test-support'
 import { gitExecFileSync } from '../git/runner'
 import {
   localProjectRootScope,
@@ -45,8 +49,8 @@ async function fixture() {
     path: join(directory, id)
   }))
   roots.forEach((root) => mkdirSync(root.path))
-  const dataFile = join(directory, 'profile.json')
-  const store = new Store({ dataFile })
+  const profileDir = directory
+  const store = openLocalProjectsTestStore(profileDir)
   stores.push(store)
   const { project, workspace } = await store.createLocalProject({
     name: 'Application',
@@ -58,7 +62,7 @@ async function fixture() {
     name: 'Task',
     defaultRootId: 'b'
   })
-  return { store, project, workspace, task, roots, directory, dataFile }
+  return { store, project, workspace, task, roots, directory, profileDir }
 }
 describe('guarded local Project root updates', () => {
   it('permits label and order edits without checking processes or touching unavailable roots', async () => {
@@ -81,7 +85,7 @@ describe('guarded local Project root updates', () => {
   })
 
   it('guards every affected Workspace and atomically retains current metadata', async () => {
-    const { store, project, workspace, task, roots, dataFile } = await fixture()
+    const { store, project, workspace, task, roots, profileDir } = await fixture()
     const check = vi.fn(async () => {})
     const guard: LocalWorkspaceScopeMutationGuard = async (ids, operation) => {
       expect(ids).toEqual([workspace.id, task.id])
@@ -104,7 +108,7 @@ describe('guarded local Project root updates', () => {
     expect(snapshot.workspaces[1].name).toBe('Renamed while validating')
     expect(store.resolveLocalWorkspace(workspace.id)?.defaultRootId).toBe('c')
     expect(store.resolveLocalWorkspace(task.id)?.defaultRootId).toBe('b')
-    expect(JSON.parse(readFileSync(dataFile, 'utf8')).localProjects).toEqual(snapshot)
+    expect(readSavedProfileDomain(profileDir, 'localProjects')).toEqual(snapshot)
   })
 
   it('refuses live work and stale edit snapshots without changing the profile', async () => {

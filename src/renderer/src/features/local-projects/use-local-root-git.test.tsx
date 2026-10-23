@@ -10,12 +10,12 @@ const { read, stage, unstage, commit } = vi.hoisted(() => ({
   unstage: vi.fn(),
   commit: vi.fn()
 }))
-vi.mock('@/runtime/runtime-git-client', () => ({
-  getRuntimeGitStatus: read,
+vi.mock('@/runtime/runtime-git-status-client', () => ({ getRuntimeGitStatus: read }))
+vi.mock('@/runtime/runtime-git-working-tree-client', () => ({
   stageRuntimeGitPath: stage,
-  unstageRuntimeGitPath: unstage,
-  commitRuntimeGit: commit
+  unstageRuntimeGitPath: unstage
 }))
+vi.mock('@/runtime/runtime-git-sync-client', () => ({ commitRuntimeGit: commit }))
 afterEach(() => {
   cleanup()
   vi.resetAllMocks()

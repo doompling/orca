@@ -37,20 +37,6 @@ const items: ActivityBarItem[] = [
 ]
 
 describe('getVisibleRightSidebarActivityItems', () => {
-  it('offers selected-root Git for a local Workspace without enabling other Git-only panels', () => {
-    const withChecks: ActivityBarItem[] = [
-      ...items,
-      { id: 'checks', icon: Files, title: 'Checks', shortcut: '', gitOnly: true }
-    ]
-    const visible = getVisibleRightSidebarActivityItems(withChecks, {
-      isFolder: true,
-      isFolderWorkspace: true,
-      hasSshHost: false,
-      isLocalWorkspace: true
-    })
-    expect(visible.some((item) => item.id === 'source-control')).toBe(true)
-    expect(visible.some((item) => item.id === 'checks')).toBe(false)
-  })
   it('shows ports only for workspaces on an SSH host', () => {
     expect(
       getVisibleRightSidebarActivityItems(items, {

@@ -91,8 +91,6 @@ export type StructuredAgentSessionRuntimeDeps = StructuredAgentSessionTransportO
   /** Key id this host's claims are minted under. */
   claimKeyId: string
   resolveWorkspacePath: (workspaceId: string) => Promise<string>
-  // Ether seam: chat-scope
-  acquireWorkspaceScope?: StructuredAgentSessionHostDeps['acquireWorkspaceScope']
   resolveCodexCommand?: (options?: { pathEnv?: string | null; homePath?: string }) => string
   resolveClaudeCommand?: (options?: { pathEnv?: string | null; homePath?: string }) => string
   /** Which version-gated flags a Claude CLI takes; absent never passes one. */
@@ -313,8 +311,6 @@ async function installOnJournal(
     probeOwner: createStructuredAgentSessionOwnerProbe(deps.hostId),
     probeOwners: createStructuredAgentSessionOwnerProbes(deps.hostId),
     resolveWorkspacePath: deps.resolveWorkspacePath,
-    // Ether seam: chat-scope
-    ...(deps.acquireWorkspaceScope ? { acquireWorkspaceScope: deps.acquireWorkspaceScope } : {}),
     logger: deps.logger,
     ...(deps.onSessionStatusChanged ? { onSessionStatusChanged: deps.onSessionStatusChanged } : {}),
     ...(deps.statusSink ? { statusSink: deps.statusSink } : {}),

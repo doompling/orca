@@ -75,6 +75,7 @@ export function resolveCommittedStructuredAgentSessionAdoptionIntent(input: {
     provider: input.agent,
     agent: input.agent,
     accountHome: replay.record.accountHome,
+    // Ether seam: agent-launch
     ...(replay.record.localWorkspaceScope
       ? { localWorkspaceScope: replay.record.localWorkspaceScope }
       : {}),

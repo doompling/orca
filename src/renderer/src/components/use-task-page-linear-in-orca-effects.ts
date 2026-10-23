@@ -2,9 +2,10 @@ import type { TaskPageLinearListEffectsModel } from './use-task-page-linear-list
 import { useEffect } from 'react'
 import {
   readLinkedLinearIssuesWithLimit,
-  readLinkedLinearIssueRef,
   filterLinearIssuesForInOrcaWorkspace
 } from '@/components/task-page/linear/task-page-linear-in-orca-issues'
+// Ether seam: linear
+import { readLinkedLinearIssueRef } from '@/features/local-projects/local-workspace-linear-task-refs'
 import type { LinearIssue } from '../../../shared/linear/issue-types'
 import { translate } from '@/i18n/i18n'
 
@@ -68,6 +69,7 @@ export function useTaskPageLinearInOrcaEffects(model: TaskPageLinearListEffectsM
     setLinearLoading(true)
     // Why: fetchLinearIssue serves anything under the 60s TTL and ignores `force`, so an
     // explicit refresh has to go through refreshLinearIssue or the button does nothing.
+    // Ether seam: linear
     void readLinkedLinearIssuesWithLimit(linkedRefs, (ref) =>
       readLinkedLinearIssueRef(ref, {
         fetch: fetchLinearIssue,

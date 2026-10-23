@@ -1341,6 +1341,9 @@
           "f92fbf11aa": "Not configured",
           "fe4d378dc4": "Verified"
         },
+        "LinearAgentSkillPane": {
+          "description": "How Linear works in Orca: browse issues, start linked workspaces, and let agents update tickets with /orca-linear."
+        },
         "ManageSessionsSection": {
           "9c940434af": "Switch back to the local runtime to restart or kill local daemon sessions.",
           "a06ababda0": "killAll",
@@ -1588,7 +1591,8 @@
           "b5ee17826b": "Pair remote Orca runtimes for persistent sessions, richer remote state, and web or mobile handoff.",
           "dd72ed437a": "Choose which task providers appear in the Tasks page and sidebar.",
           "e1578cd4bc": "Workflows",
-          "mobile_group": "Mobile"
+          "mobile_group": "Mobile",
+          "tasksDescription": "Connect providers, install the Linear skill, and choose what appears in Tasks."
         },
         "SettingsFormControls": {
           "3119c012a5": "string",
@@ -1639,6 +1643,11 @@
         },
         "SshTargetList": {
           "selectGroup": "Select all in this group"
+        },
+        "TasksPane": {
+          "linearDescription": "Connect Linear, install the agent skill, and show it in Tasks.",
+          "providersDescription": "Each card walks through connection (and skill, for Linear) plus whether it appears in Tasks.",
+          "setupDescription": "Finish connect + visibility for each provider in one place. Linear also needs the agent skill so coding agents can read and update tickets. At least one provider must stay visible."
         },
         "TerminalAppearanceSection": {
           "16c471ee03": "on",
@@ -1975,6 +1984,11 @@
                 "connectedWorkspaceSingular": "{{count}} workspace connected"
               }
             }
+          }
+        },
+        "tasks": {
+          "search": {
+            "providersDescription": "Connect task providers, install the Linear agent skill, and choose what appears in Tasks."
           }
         },
         "terminal": {
@@ -2871,6 +2885,22 @@
             "45f6302dbc": "Space",
             "8d0048e1cb": "Workspace disk usage and reclaimable worktree storage.",
             "e8d6ba11ab": "Beta"
+          }
+        }
+      }
+    },
+    "features": {
+      "local": {
+        "projects": {
+          "LocalRootWorktreeCreation": {
+            "7db5cec376": "Creates a new branch from this Project checkout&apos;s current committed HEAD:"
+          },
+          "LocalWorkspaceCheckoutChoices": {
+            "bcc7ee06d6": "Optional: select an existing worktree or explicitly create a new one for a Git directory. Leave a path empty to share the Project&apos;s directory. Plain folders remain shared."
+          },
+          "LocalWorkspaceDialog": {
+            "241b5a08f1": "Copies clean saved file tabs and their split arrangement. Unsaved edits, previews, terminals, agents, browsers, and transient tabs are excluded. Files keep their physical paths; tabs outside the new Workspace&apos;s directories are excluded, not moved to an alternate checkout.",
+            "4ee804fde0": "A separate set of tabs, drafts, and sessions over your Project&apos;s directories."
           }
         }
       }

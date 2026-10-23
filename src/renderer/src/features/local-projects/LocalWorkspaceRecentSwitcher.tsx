@@ -11,6 +11,7 @@ import {
   localWorkspaceVisitedAt,
   openLocalWorkspace
 } from './local-workspace-sidebar-actions'
+import { translate } from '@/i18n/i18n'
 
 const MAX_ITEMS = 9
 
@@ -140,10 +141,16 @@ export function LocalWorkspaceRecentSwitcher(): React.JSX.Element | null {
       <div
         className="w-[min(420px,calc(100vw-48px))] overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground shadow-floating"
         role="listbox"
-        aria-label="Switch Workspace"
+        aria-label={translate(
+          'auto.features.local.projects.LocalWorkspaceRecentSwitcher.6612b0cefd',
+          'Switch Workspace'
+        )}
       >
         <div className="border-b border-border px-3 py-2 text-xs font-semibold text-muted-foreground">
-          Recent Workspaces
+          {translate(
+            'auto.features.local.projects.LocalWorkspaceRecentSwitcher.2afd0cb5cd',
+            'Recent Workspaces'
+          )}
         </div>
         <div className="py-1">
           {switcher.items.map((workspace, index) => (

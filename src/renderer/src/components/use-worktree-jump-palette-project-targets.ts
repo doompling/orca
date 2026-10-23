@@ -48,6 +48,7 @@ export function useWorktreeJumpPaletteProjectTargets({
     () =>
       buildCmdJActionResults([
         ...getCmdJQuickActions(),
+        // Ether seam: sidebar
         ...getLocalWorkspaceQuickActions(),
         ...buildPluginQuickActions(pluginCommands)
       ]),

@@ -101,6 +101,7 @@ export abstract class OrcaRuntimeWithTransitionGraphReloadToTerminalState extend
   }
 
   protected resolveFolderWorkspaceConnectionId(workspace: FolderWorkspace): string | null {
+    // Ether seam: local-projects — local Workspaces never run over SSH.
     if (this.store?.resolveLocalWorkspace?.(workspace.id)) {
       return null
     }

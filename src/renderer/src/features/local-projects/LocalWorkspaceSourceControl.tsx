@@ -22,6 +22,7 @@ import type {
 } from '../../../../shared/local-projects/types'
 import { useLocalRootGit } from './use-local-root-git'
 import { LocalRootGitChanges } from './LocalRootGitChanges'
+import { translate } from '@/i18n/i18n'
 
 function RootGitPanel({
   workspaceId,
@@ -44,12 +45,27 @@ function RootGitPanel({
         <span className="min-w-0 flex-1 truncate">
           {git.status
             ? branchName(git.status.branch ?? '') ||
-              (git.status.head ? `Detached ${git.status.head.slice(0, 8)}` : 'Unborn branch')
-            : 'Git status'}
+              (git.status.head
+                ? translate(
+                    'auto.features.local.projects.LocalWorkspaceSourceControl.173cd1c58b',
+                    'Detached {{value0}}',
+                    { value0: git.status.head.slice(0, 8) }
+                  )
+                : translate(
+                    'auto.features.local.projects.LocalWorkspaceSourceControl.831b0df7ae',
+                    'Unborn branch'
+                  ))
+            : translate(
+                'auto.features.local.projects.LocalWorkspaceSourceControl.0fff044cb8',
+                'Git status'
+              )}
         </span>
         <ActionButton
           icon={RefreshCw}
-          title="Refresh Git status"
+          title={translate(
+            'auto.features.local.projects.LocalWorkspaceSourceControl.3aa8114bf1',
+            'Refresh Git status'
+          )}
           disabled={git.busy}
           onClick={() => {
             void git.refresh()
@@ -62,22 +78,38 @@ function RootGitPanel({
         </p>
       )}
       {!git.status && !git.error && (
-        <p className="px-3 text-xs text-muted-foreground">Reading Git status…</p>
+        <p className="px-3 text-xs text-muted-foreground">
+          {translate(
+            'auto.features.local.projects.LocalWorkspaceSourceControl.f2e15aeced',
+            'Reading Git status…'
+          )}
+        </p>
       )}
       {git.status && (
         <>
           {git.status.didHitLimit && (
             <p className="px-3 text-xs text-muted-foreground">
-              Only part of this root’s changes could be listed. Commit is unavailable.
+              {translate(
+                'auto.features.local.projects.LocalWorkspaceSourceControl.1de452884a',
+                'Only part of this root’s changes could be listed. Commit is unavailable.'
+              )}
             </p>
           )}
           {conflicts && (
             <p className="px-3 text-xs text-muted-foreground">
-              Resolve conflicts in this checkout before committing.
+              {translate(
+                'auto.features.local.projects.LocalWorkspaceSourceControl.c76147ca01',
+                'Resolve conflicts in this checkout before committing.'
+              )}
             </p>
           )}
           <div className="space-y-2 border-b border-border px-3 pb-3">
-            <p className="text-xs font-medium">Commit message</p>
+            <p className="text-xs font-medium">
+              {translate(
+                'auto.features.local.projects.LocalWorkspaceSourceControl.ce213ef8cd',
+                'Commit message'
+              )}
+            </p>
             <CommitMessageComposer
               rows={3}
               commitMessage={message}
@@ -91,7 +123,11 @@ function RootGitPanel({
               onCancelGenerate={() => {}}
             />
             <p id="local-root-commit-help" className="text-xs text-muted-foreground">
-              Commits staged changes in {root.label} only.
+              {translate(
+                'localProjects.sourceControl.commitHelp',
+                'Commits staged changes in {{label}} only.',
+                { label: root.label }
+              )}
             </p>
             <Button
               size="sm"
@@ -106,11 +142,24 @@ function RootGitPanel({
                 })
               }}
             >
-              {git.busy ? 'Working…' : 'Commit staged changes'}
+              {git.busy
+                ? translate(
+                    'auto.features.local.projects.LocalWorkspaceSourceControl.c02019c36c',
+                    'Working…'
+                  )
+                : translate(
+                    'auto.features.local.projects.LocalWorkspaceSourceControl.499b07ab73',
+                    'Commit staged changes'
+                  )}
             </Button>
           </div>
           {!git.status.entries.length && (
-            <p className="p-3 text-xs text-muted-foreground">No changes in this root.</p>
+            <p className="p-3 text-xs text-muted-foreground">
+              {translate(
+                'auto.features.local.projects.LocalWorkspaceSourceControl.903a0515db',
+                'No changes in this root.'
+              )}
+            </p>
           )}
           <LocalRootGitChanges
             workspaceId={workspaceId}
@@ -133,16 +182,31 @@ export function LocalWorkspaceSourceControl({ workspace }: { workspace: Resolved
     (entry) => entry.id === (selected[workspace.workspaceId] ?? workspace.defaultRootId)
   )
   if (!root) {
-    return <p className="p-3 text-xs text-muted-foreground">Workspace root unavailable.</p>
+    return (
+      <p className="p-3 text-xs text-muted-foreground">
+        {translate(
+          'auto.features.local.projects.LocalWorkspaceSourceControl.6debb50136',
+          'Workspace root unavailable.'
+        )}
+      </p>
+    )
   }
   const targetKey = JSON.stringify([workspace.workspaceId, root.id, root.path])
   return (
     <div
       className="min-h-0 flex-1 overflow-auto scrollbar-sleek"
-      aria-label="Workspace Source Control"
+      aria-label={translate(
+        'auto.features.local.projects.LocalWorkspaceSourceControl.6576350164',
+        'Workspace Source Control'
+      )}
     >
       <div className="space-y-2 border-b border-border p-3">
-        <Label htmlFor="local-git-root">Git directory</Label>
+        <Label htmlFor="local-git-root">
+          {translate(
+            'auto.features.local.projects.LocalWorkspaceSourceControl.9f3ef03278',
+            'Git directory'
+          )}
+        </Label>
         <Select
           value={root.id}
           onValueChange={(id) =>

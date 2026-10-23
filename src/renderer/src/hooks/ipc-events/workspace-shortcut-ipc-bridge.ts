@@ -9,6 +9,7 @@ import { isFloatingWorkspacePanelFocused } from '@/lib/floating-workspace-termin
 import { isGitRepoKind } from '../../../../shared/repo-kind'
 import { useAppStore } from '../../store'
 import { toggleAgentDashboardFromShortcut } from './agent-dashboard-command'
+// Ether seam: sidebar
 import { archiveActiveLocalWorkspaceFromShortcut } from '@/features/local-projects/local-workspace-sidebar-actions'
 import { openNewWorkspaceFromShortcut } from './new-workspace-command'
 
@@ -41,6 +42,7 @@ export function registerWorkspaceShortcutIpcBridge(unsubs: (() => void)[]): void
         if (isFloatingWorkspacePanelFocused()) {
           return
         }
+        // Ether seam: sidebar
         if (archiveActiveLocalWorkspaceFromShortcut()) {
           return
         }

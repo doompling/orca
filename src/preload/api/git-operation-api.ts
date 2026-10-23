@@ -5,6 +5,7 @@ import type { GitStageWorktreeScope } from '../../shared/git-stage-worktree-scop
 import type { HostedReviewProvider } from '../../shared/hosted-review'
 import type { ResolvedSourceControlAiGenerationParams } from '../../shared/source-control-ai'
 import type { SourceControlAiSettings } from '../../shared/source-control-ai-types'
+// Ether seam: git — `localRoot` routes a local Workspace root's Git calls.
 import type { LocalWorkspaceGitRoot } from '../../shared/local-projects/git-root'
 
 export type GitOperationApi = {

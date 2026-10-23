@@ -18,7 +18,7 @@ type TaskSourceLinearSetupProps = {
   canHide: boolean
 }
 
-// Browsing setup is independent of the optional agent skill.
+// Keep connection, skill install, and visibility in the same guided flow.
 export function TaskSourceLinearSetup({
   connected,
   checking,
@@ -32,7 +32,13 @@ export function TaskSourceLinearSetup({
   const skillSetup = useLinearAgentSkillSetup()
 
   const connectState = checking ? 'in-progress' : connected ? 'done' : 'pending'
-  // A pending skill scan must not hide an already-installed skill's controls.
+  // Skill install is independent of API connection; only gate the first-time install CTA.
+  const skillState = skillSetup.skillChecking
+    ? 'in-progress'
+    : skillSetup.skillInstalled
+      ? 'done'
+      : 'pending'
+  // Keep the panel visible while scanning so we don't flash "connect first" over an installed skill.
   const skillInstallBlocked = !connected && !skillSetup.skillInstalled && !skillSetup.skillChecking
 
   return (
@@ -46,8 +52,8 @@ export function TaskSourceLinearSetup({
             'Connect Linear'
           )}
           description={translate(
-            'auto.components.settings.TaskSourceLinearSetup.connectBrowsingDescription',
-            'Add a Personal API key to browse Linear issues and link them to Workspaces.'
+            'auto.components.settings.TaskSourceLinearSetup.connectDescription',
+            'Add a Personal API key so Orca can browse issues and open workspaces with ticket context.'
           )}
           action={
             <Button
@@ -91,8 +97,49 @@ export function TaskSourceLinearSetup({
           )}
         </TaskSourceStepRow>
 
-        <TaskSourceShowInTasksStep
+        <TaskSourceStepRow
           index={2}
+          state={skillState}
+          title={translate(
+            'auto.components.settings.TaskSourceLinearSetup.skillTitle',
+            'Install Linear agent skill'
+          )}
+          description={translate(
+            'auto.components.settings.TaskSourceLinearSetup.skillDescription',
+            'Gives agents /orca-linear to read tickets, post updates, move states, and attach pull or merge requests.'
+          )}
+          className={skillInstallBlocked ? 'opacity-60' : undefined}
+        >
+          {skillInstallBlocked ? (
+            <p className="text-[11px] text-muted-foreground">
+              {translate(
+                'auto.components.settings.TaskSourceLinearSetup.skillBlocked',
+                'Connect Linear first, then install the skill for agents.'
+              )}
+            </p>
+          ) : (
+            <AgentSkillSetupPanel
+              variant="inline"
+              hideHeader
+              title={translate(
+                'auto.components.settings.TaskSourceLinearSetup.skillPanelTitle',
+                'Linear skill'
+              )}
+              description={null}
+              skillNames={[ORCA_LINEAR_SKILL_NAME]}
+              installedSkillNames={[skillSetup.updateSkillName]}
+              installed={skillSetup.skillInstalled}
+              loading={skillSetup.skillLoading}
+              error={skillSetup.error}
+              installDisabled={skillSetup.installDisabled}
+              onRecheck={skillSetup.refreshSkill}
+              freshnessSkillName={skillSetup.freshnessSkillName}
+            />
+          )}
+        </TaskSourceStepRow>
+
+        <TaskSourceShowInTasksStep
+          index={3}
           providerLabel={translate('auto.components.settings.TasksPane.09ae2d7c51', 'Linear')}
           visible={visible}
           canHide={canHide}
@@ -103,48 +150,6 @@ export function TaskSourceLinearSetup({
           )}
         />
       </ol>
-      <section className="space-y-3 border-t border-border/50 py-3">
-        <div className="space-y-1">
-          <h3 className="text-sm font-medium">
-            {translate(
-              'auto.components.settings.TaskSourceLinearSetup.optionalSkillTitle',
-              'Optional: Linear agent skill'
-            )}
-          </h3>
-          <p className="text-xs text-muted-foreground">
-            {translate(
-              'auto.components.settings.TaskSourceLinearSetup.optionalSkillDescription',
-              'Adds /orca-linear for agents that support skills. Browsing issues and linking Workspaces work without it.'
-            )}
-          </p>
-        </div>
-        {skillInstallBlocked ? (
-          <p className="text-[11px] text-muted-foreground">
-            {translate(
-              'auto.components.settings.TaskSourceLinearSetup.skillBlocked',
-              'Connect Linear first, then install the skill for agents.'
-            )}
-          </p>
-        ) : (
-          <AgentSkillSetupPanel
-            variant="inline"
-            hideHeader
-            title={translate(
-              'auto.components.settings.TaskSourceLinearSetup.skillPanelTitle',
-              'Linear skill'
-            )}
-            description={null}
-            skillNames={[ORCA_LINEAR_SKILL_NAME]}
-            installedSkillNames={[skillSetup.updateSkillName]}
-            installed={skillSetup.skillInstalled}
-            loading={skillSetup.skillLoading}
-            error={skillSetup.error}
-            installDisabled={skillSetup.installDisabled}
-            onRecheck={skillSetup.refreshSkill}
-            freshnessSkillName={skillSetup.freshnessSkillName}
-          />
-        )}
-      </section>
 
       <LinearApiKeyDialog
         open={dialogOpen}

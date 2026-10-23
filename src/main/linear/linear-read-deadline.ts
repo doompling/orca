@@ -17,3 +17,10 @@ export async function withLinearReadDeadline<T>(
     clearTimeout(timeout)
   }
 }
+
+/** `withLinearReadDeadline` as a thunk, for callers such as `coalesce` that take the read lazily. */
+export function deadlineBoundLinearRead<T>(
+  read: (signal: AbortSignal) => Promise<T>
+): () => Promise<T> {
+  return () => withLinearReadDeadline(read)
+}

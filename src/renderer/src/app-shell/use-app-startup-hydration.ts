@@ -134,10 +134,6 @@ export function useAppStartupHydration(onOnboardingLoaded: (state: OnboardingSta
         // Why: folder workspaces merge against projectGroups (repos.ts fetchFolderWorkspacesForAllHosts),
         // so keep this chain ordered while overlapping it with session-scoped hydration.
         const localCatalogChain = (async () => {
-          // Ether seam: local-projects
-          await timeRendererStartupStep('fetch-local-projects', () =>
-            useAppStore.getState().fetchLocalProjects()
-          )
           await timeRendererStartupStep('fetch-project-groups-local', () =>
             actions.fetchProjectGroupsForAllHosts({ remoteHosts: 'skip' })
           )
