@@ -11,7 +11,7 @@ import {
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import type { Locator, Page } from '@stablyai/playwright-test'
-import { runProcess } from '../../src/shared/child-process/run-process'
+import { runProcess } from '@orca/process-host'
 import { test, expect } from './helpers/orca-app'
 import { createSeededTestRepo } from './helpers/seeded-test-repo'
 import { cleanupTestRepository } from './global-teardown'

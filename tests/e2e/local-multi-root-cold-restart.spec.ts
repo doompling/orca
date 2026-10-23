@@ -3,7 +3,9 @@ import os from 'node:os'
 import path from 'node:path'
 import { z } from 'zod'
 import type { ElectronApplication, Page, TestInfo } from '@stablyai/playwright-test'
-import { isAgentSessionRecord } from '../../src/shared/agent-session-record'
+import { DatabaseSync } from 'node:sqlite'
+import { isPersistedAgentSessionRecord } from '../../src/shared/agent-session-record'
+import { decodePersistedAgentSessionRecord } from '../../src/shared/agent-session-record-stored-form'
 import { agentSessionProviderHandleRoot } from '../../src/shared/agent-session-provider-handle'
 import { PROTOCOL_VERSION } from '../../src/main/daemon/types'
 import { quoteStartupArg } from '../../src/shared/tui-agent-startup-shell'
@@ -40,7 +42,7 @@ import {
 
 const VISIBLE_TABS = '[data-tab-id][data-active]:visible'
 const daemonPidSchema = z.object({ pid: z.number().int().positive() })
-const sessionFileSchema = z.object({ records: z.record(z.string(), z.unknown()) })
+const recordRowSchema = z.object({ record_json: z.string() })
 
 test.skip(process.platform === 'win32', 'This local cold-runtime journey uses POSIX fixture CLIs')
 
@@ -104,13 +106,25 @@ async function proveColdRuntime(
   })
 }
 
+/** The chat's record, read from the host journal database the app commits it to. */
 function readNativeRecord(userDataDir: string, sessionId: string) {
-  const file = path.join(userDataDir, 'agent-sessions', 'agent-sessions.json')
-  const record = sessionFileSchema.parse(JSON.parse(readFileSync(file, 'utf8'))).records[sessionId]
-  if (!isAgentSessionRecord(record)) {
-    throw new Error('Missing valid fixture native session record')
+  const db = new DatabaseSync(path.join(userDataDir, 'agent-session-journal.db'), {
+    readOnly: true
+  })
+  try {
+    const row = recordRowSchema.parse(
+      db
+        .prepare('SELECT record_json FROM agent_session_records WHERE session_id = ?')
+        .get(sessionId)
+    )
+    const record: unknown = JSON.parse(row.record_json)
+    if (!isPersistedAgentSessionRecord(record)) {
+      throw new Error('Missing valid fixture native session record')
+    }
+    return decodePersistedAgentSessionRecord(record).record
+  } finally {
+    db.close()
   }
-  return record
 }
 
 async function pointAtScriptedChat(

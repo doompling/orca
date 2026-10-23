@@ -1,10 +1,7 @@
-import { createJiti } from 'jiti'
+import { runProcess } from '@orca/process-host'
 import product from '../../src/shared/ether-product.json' with { type: 'json' }
 
 async function runCodesign(spec) {
-  const { runProcess } = await createJiti(import.meta.url).import(
-    '../../src/shared/child-process/run-process.ts'
-  )
   return runProcess(spec)
 }
 

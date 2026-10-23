@@ -1,7 +1,7 @@
 # Ether: build, recovery, and maintenance
 
 This is the local Apple Silicon handoff, not an upstream Orca release guide.
-The [active plan](../plans/local-multi-root-workspaces.md) records which user
+The [multi-root plan](../plans/02_local-multi-root-workspaces.md) records which user
 journeys actually passed and any remaining limitations.
 
 ## App and data boundaries
@@ -83,9 +83,9 @@ pnpm build:ether
 
 `build:ether` reuses Orca's build and package checks, packages only the current
 arm64 Mac, signs with the persistent local certificate, and disables publishing. It is not a notarized
-release for other machines. Building another architecture requires the upstream
-[release dependency policy](reference/pnpm-install-policy.md), not just changing
-the output filename.
+release for other machines. Building another architecture requires `pnpm install:release`
+(see Local Setup in [`.github/CONTRIBUTING.md`](../.github/CONTRIBUTING.md)), not just
+changing the output filename.
 
 ### Releases
 
@@ -106,10 +106,22 @@ open -n --env ORCA_DEV_USER_DATA_PATH="$HOME/Library/Application Support/Ether-t
   dist/ether-releases/<release>/Ether.app
 ```
 
-To try it with your Projects, copy only the saved state into that profile before launching
-(`mkdir -p "$HOME/Library/Application Support/Ether-try/profiles/local-default"`, then copy
-`profiles/local-default/orca-data.json`). Don't copy the whole profile folder: it holds the running
-app's single-instance lock and daemon socket. Marks set in the trial profile stay there.
+To try it with your Projects and chats, quit Ether, then copy only the saved state into that
+profile before launching:
+
+```sh
+SRC="$HOME/Library/Application Support/Ether"
+DST="$HOME/Library/Application Support/Ether-try"
+mkdir -p "$DST/profiles/local-default"
+cp -p "$SRC"/profiles/local-default/{orca-data.json,profile-state.db} "$DST/profiles/local-default/" 2>/dev/null
+cp -Rp "$SRC/agent-sessions" "$SRC/agent-session-journal" "$DST/" 2>/dev/null
+cp -p "$SRC/agent-session-journal.db" "$DST/" 2>/dev/null
+```
+
+Each copy is optional: copy whichever files exist (`profile-state.db` and `agent-session-journal.db`
+appear only after a release from 2026-10-23 or later has run). Don't copy the whole profile folder:
+it holds the running app's single-instance lock and daemon socket, and SQLite `-wal`/`-shm` files
+belong to a running app. Marks set in the trial profile stay there.
 
 When changing from the old ad-hoc build to certificate signing, macOS may ask
 once for access to **Ether Safe Storage**. Approve the expected Ether app with
@@ -209,20 +221,58 @@ again; a profile backup is not a copy of the system keychain or all provider dat
 
 Existing automatic recovery is narrower than that full backup:
 
-- `profiles/local-default/orca-data.json` contains the local Projects and saved
-  workspace state, including unsaved file drafts. Its `.bak.0` through `.bak.4`
-  rotate on writes at most once per hour; the loader tries backups when primary
-  state cannot be loaded. They are older snapshots, not continuous versioning.
-- `agent-sessions/agent-sessions.json.bak` is the previous committed native-agent
-  record store. Its existing recovery preserves process-ownership checks.
-- `agent-session-journal/` contains separate native-chat SQLite journals;
-  `terminal-history/` contains terminal recovery data. Browser/profile metadata
-  and other state also live elsewhere under the app-data folder.
+- `profiles/local-default/profile-state.db` (SQLite) contains the local Projects and
+  saved workspace state, including unsaved file drafts. Ether keeps rotating
+  `profile-state.db.backup.<id>.db` copies beside it; they are older snapshots, not
+  continuous versioning. With Ether quit, the bundled CLI lists and restores them:
+  `Ether.app/Contents/Resources/bin/orca profile state exports`, then
+  `… rollback --repair` or `… rollback --backup <id>`.
+- `agent-session-journal.db` (SQLite, in the app-data root) holds native-chat records
+  and history. `terminal-history/` contains terminal recovery data. Browser/profile
+  metadata and other state also live elsewhere under the app-data folder.
+- Releases before 2026-10-23 used `profiles/local-default/orca-data.json` (with
+  `.bak.0`–`.bak.4`), `agent-sessions/agent-sessions.json` and per-chat
+  `agent-session-journal/<workspace>/<chat>/journal.db` files. See the upgrade
+  section below; these files are left in place after the upgrade.
 
 Do not restore one JSON backup and assume it also rolled back journals, browser
 state, or source files. Preserve the full current folder before investigating an
 individual damaged file. There is no new backup service or automatic source
 backup in this fork.
+
+## Upgrading from a release before 2026-10-23 (one-way)
+
+The 2026-10-23 release includes upstream Orca's move to SQLite. On its first launch it:
+
+1. imports `profiles/local-default/orca-data.json` into `profile-state.db`, keeping the
+   JSON file and writing `orca-data.json.sqlite-export.1.json` beside it;
+2. imports the old chat records (`agent-sessions/agent-sessions.json`) and per-chat
+   journals into `agent-session-journal.db`, once. Old built-in OpenCode chats are
+   skipped: that chat mode was removed. The old files are not changed or deleted.
+
+Older releases cannot read the new files, so take the full backup above first. To go
+back, quit Ether and restore that backup folder; opening an older release on the
+upgraded profile is not supported. The chat-history importer is fork code
+(`src/main/native-chat/ether-legacy-chat-import/`); once every Ether profile you use has
+been upgraded and checked, a later merge can delete it.
+
+## Not supported in Ether
+
+SSH and remote hosts. Ether does not build the `orcad` server template, so adding an SSH
+host or pairing a remote Orca server is untested and may fail. Use upstream Orca for
+remote work.
+
+## Developing in this checkout
+
+Follow Local Setup in [`.github/CONTRIBUTING.md`](../.github/CONTRIBUTING.md). Also:
+
+- The macOS build compiles Swift helpers, so install Xcode Command Line Tools
+  (`xcode-select --install`).
+- Development uses an `orca-dev` profile, separate from the packaged app. Set
+  `ORCA_DEV_USER_DATA_PATH` to an absolute directory to isolate a session further.
+- Agents launch apps and tests with `ORCA_BACKGROUND_LAUNCH=1` and check rendered UI over CDP.
+- `pnpm check:ether-fork-surface` lists every upstream file the fork touches. Each must be in
+  `config/ether-fork-surface.json` and carry an `Ether seam:` marker; see Fork touchpoints.
 
 ## Debugging and safe rollback
 

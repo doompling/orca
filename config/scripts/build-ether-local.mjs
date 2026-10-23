@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { appendFileSync, existsSync, mkdirSync, renameSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
-import { createJiti } from 'jiti'
+import { runProcess, spawnProcess } from '@orca/process-host'
 import product from '../../src/shared/ether-product.json' with { type: 'json' }
 import { getLocalBuildIdentity } from './build-mac-local.mjs'
 import { resolvePnpmCliInvocation } from './pnpm-cli-invocation.mjs'
@@ -28,6 +28,10 @@ own profile (it starts empty; see docs/ether-maintenance.md):
 
 Releases before \`2026-10-23-ae81434245\` can't read the Projects list once a Workspace mark is
 set; clear all marks (⌘; then Backspace on each) before going back to one of them.
+
+The first release built on upstream Orca's SQLite profile (after \`2026-10-23-ae81434245\`)
+upgrades the profile in place, one way. Older releases can't open an upgraded profile: back up
+the whole profile folder first, and restore that backup to go back (docs/ether-maintenance.md).
 
 | Release | Version | Commit |
 |---|---|---|
@@ -107,9 +111,6 @@ export function createEtherBuildPlan({
 async function buildEther() {
   const plan = createEtherBuildPlan()
   process.chdir(repoRoot)
-  const { spawnProcess, runProcess } = await createJiti(import.meta.url).import(
-    '../../src/shared/child-process/run-process.ts'
-  )
   const identities = await runProcess({
     program: '/usr/bin/security',
     args: ['find-identity', '-v', '-p', 'codesigning'],
