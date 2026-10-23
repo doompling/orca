@@ -117,8 +117,6 @@ export async function runPackagedAgentChatSmoke(input: ChatSmoke): Promise<void>
       settings: {
         ...seed.settings,
         experimentalNativeChat: true,
-        experimentalStructuredNativeChat: true,
-        openAgentTabsInChatByDefault: true,
         agentDefaultArgs: { [agent]: '' },
         agentYoloDefaultsMigrated: true,
         agentStatusHooksEnabled: false,

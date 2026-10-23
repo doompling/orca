@@ -4,13 +4,13 @@ Merge upstream Orca into `ether` while keeping what every fork feature is for. W
 phases in order; tick boxes and add to the log at the bottom as you go, so any session can pick up
 where the last one stopped.
 
-| | |
-|---|---|
+|                 |                                                                                                                   |
+| --------------- | ----------------------------------------------------------------------------------------------------------------- |
 | Target (THEIRS) | `upstream/main` at `52e413ec85` (2026-10-22, 4,238 commits). **Pinned:** don't re-fetch a newer target mid-merge. |
-| Fork (OURS) | `ether` at `d9a1140d8e` (12 fork commits) |
-| Merge base | `ae3d380b23` (2026-09-23) |
-| Work branch | `ether-merge-upstream-1`. It lands on `ether` only at Phase 8. |
-| Shape | Revert our OpenCode chat, then **one merge** (a real merge commit, no rebase) |
+| Fork (OURS)     | `ether` at `d9a1140d8e` (12 fork commits)                                                                         |
+| Merge base      | `ae3d380b23` (2026-09-23)                                                                                         |
+| Work branch     | `ether-merge-upstream-1`. It lands on `ether` only at Phase 8.                                                    |
+| Shape           | Revert our OpenCode chat, then **one merge** (a real merge commit, no rebase)                                     |
 
 ## Reference documents in this folder
 
@@ -29,16 +29,16 @@ become no-ops once Phase 1's revert lands. Re-generate the list after the revert
 
 ## Decisions
 
-| Decision | Status |
-|---|---|
-| Merge, not rebase or cherry-pick | Decided |
-| Delete our OpenCode chat; use upstream's ACP OpenCode. OpenCode stays refused in multi-root Workspaces. | Decided |
-| Old OpenCode chats in the profile stop opening (they must be skipped cleanly) | Decided (user doesn't use OpenCode) |
-| Revert first, then one merge, no stages: staging adds 15–70% more resolutions (risks §2) | Decided |
-| Carry the old chat-history importers forward in fork-owned code (Phase 4) | Decided |
-| Editor drafts: take upstream's one shared buffer per file per host, so two Workspaces on the same directory share an unsaved draft | Decided (2026-10-23) |
-| SSH hosts in Ether: skip `build:orcad-template` and document SSH as unsupported, unless the user wants it | Default: unsupported |
-| Fork strategy: a seam layer (3.4–3.6), a fork-surface check (3.8), "add, don't change" (rule 7), weekly merges with a manual drift report ([Cadence](#cadence-after-this-merge)). No scheduled automation, no upstream contribution. | Decided |
+| Decision                                                                                                                                                                                                                             | Status                              |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------- |
+| Merge, not rebase or cherry-pick                                                                                                                                                                                                     | Decided                             |
+| Delete our OpenCode chat; use upstream's ACP OpenCode. OpenCode stays refused in multi-root Workspaces.                                                                                                                              | Decided                             |
+| Old OpenCode chats in the profile stop opening (they must be skipped cleanly)                                                                                                                                                        | Decided (user doesn't use OpenCode) |
+| Revert first, then one merge, no stages: staging adds 15–70% more resolutions (risks §2)                                                                                                                                             | Decided                             |
+| Carry the old chat-history importers forward in fork-owned code (Phase 4)                                                                                                                                                            | Decided                             |
+| Editor drafts: take upstream's one shared buffer per file per host, so two Workspaces on the same directory share an unsaved draft                                                                                                   | Decided (2026-10-23)                |
+| SSH hosts in Ether: skip `build:orcad-template` and document SSH as unsupported, unless the user wants it                                                                                                                            | Default: unsupported                |
+| Fork strategy: a seam layer (3.4–3.6), a fork-surface check (3.8), "add, don't change" (rule 7), weekly merges with a manual drift report ([Cadence](#cadence-after-this-merge)). No scheduled automation, no upstream contribution. | Decided                             |
 
 ## Ground rules
 
@@ -57,7 +57,7 @@ become no-ops once Phase 1's revert lands. Re-generate the list after the revert
    - the revert;
    - the merge commit (textual resolution only);
    - one commit per fix area (imports, hooks, importer, packaging, tests, docs).
-   Don't push to GitHub unless the user asks.
+     Don't push to GitHub unless the user asks.
 6. **Stop and ask** at a needs-design file whose proposal doesn't fit, before anything touches the
    real profile or app, and if a decision above is still pending when its work comes up.
 7. **Add, don't change.** Each place where the fork makes upstream behave differently costs us at
@@ -72,14 +72,14 @@ become no-ops once Phase 1's revert lands. Re-generate the list after the revert
 
 ## Phase 0: preparation
 
-- [ ] **0.1 Commit the planning docs** on `ether`: `plans/04_agents-plan.md`, `plans/mockups/agents/`,
+- [x] **0.1 Commit the planning docs** on `ether`: `plans/04_agents-plan.md`, `plans/mockups/agents/`,
       `plans/upstream_merge_1/`. A merge needs a clean tree.
-- [ ] **0.2 Create the branch:** `git switch -c ether-merge-upstream-1`.
-- [ ] **0.3 Baseline on the pre-merge tree.** Run `pnpm tc` and the fork test set (below), and write
+- [x] **0.2 Create the branch:** `git switch -c ether-merge-upstream-1`.
+- [x] **0.3 Baseline on the pre-merge tree.** Run `pnpm tc` and the fork test set (below), and write
       down any failures that already exist, so they aren't blamed on the merge. Fork test set:
       `pnpm test src/main/local-projects src/shared/local-projects src/renderer/src/features/local-projects`,
       plus `config/scripts/*ether*.test.mjs`.
-- [ ] **0.4 Note the toolchain change.** THEIRS needs pnpm **12.14.0** (`corepack enable` or
+- [x] **0.4 Note the toolchain change.** THEIRS needs pnpm **12.14.0** (`corepack enable` or
       `corepack prepare pnpm@12.14.0 --activate`). Don't install it until after the merge commit
       (Phase 2.4).
 
@@ -87,26 +87,26 @@ become no-ops once Phase 1's revert lands. Re-generate the list after the revert
 
 Why: `7908178403` modified 53 upstream files. Reverting it removes 44 of the 148 conflicting files.
 
-- [ ] **1.1 Revert:** `git revert --no-edit 7908178403`. Only 2 files conflict:
+- [x] **1.1 Revert:** `git revert --no-edit 7908178403`. Only 2 files conflict:
   - `tests/e2e/helpers/packaged-agent-chat-smoke.ts`: keep the file (the Codex smoke test uses it)
     and drop only its `'opencode'` agent, label and `ETHER_OPENCODE_TEST_BIN_DIR` branch.
   - The OpenCode lines in plans/01: drop them.
-- [ ] **1.2 Keep `7a864a42f4`'s binder guard for now.** Upstream fixed the same thing; Phase 2 takes
+- [x] **1.2 Keep `7a864a42f4`'s binder guard for now.** Upstream fixed the same thing; Phase 2 takes
       upstream's version.
-- [ ] **1.3 Check the reverted tree** with `pnpm tc` and the fork test set. Delete
+- [x] **1.3 Check the reverted tree** with `pnpm tc` and the fork test set. Delete
       `tests/e2e/ether-opencode-chat.spec.ts` if the revert left it.
-- [ ] **1.4 Re-generate the conflict list.** Save it as `conflicts-after-revert.txt` in this folder;
+- [x] **1.4 Re-generate the conflict list.** Save it as `conflicts-after-revert.txt` in this folder;
       expect about 104 files and 197 hunks:
       `git merge-tree --write-tree --name-only HEAD 52e413ec85 > plans/upstream_merge_1/conflicts-after-revert.txt`
 
 ## Phase 2: the merge (textual resolution)
 
-- [ ] **2.1 Start:** `git merge --no-ff --no-commit 52e413ec85`.
-- [ ] **2.2 Resolve main, shared and config** in conflicts-main.md package order, skipping package 1
+- [x] **2.1 Start:** `git merge --no-ff --no-commit 52e413ec85`.
+- [x] **2.2 Resolve main, shared and config** in conflicts-main.md package order, skipping package 1
       (done by the revert): 2 shared scope contracts → 3 persistence store → 4 files upstream deleted
       → 5 structured session runtime → 6 Claude/Codex launch → 7 PTY spawn → 8 Git handlers → 9 Ether
       identity, startup and updater → 10 Linear → 11 docs and config.
-- [ ] **2.3 Resolve the renderer** in conflicts-renderer.md order: A store/startup → B runtime Git
+- [x] **2.3 Resolve the renderer** in conflicts-renderer.md order: A store/startup → B runtime Git
       clients → C editor (**needs the editor-drafts decision**) → D external watch → E right sidebar
       → F sidebar mount → G Linear → H agent launch and resume → I structured sessions.
   - For each file, apply the guide's class. Before resolving, read the feature's invariants in
@@ -114,9 +114,9 @@ Why: `7908178403` modified 53 upstream files. Reverting it removes 44 of the 148
   - For modify/delete files, accept upstream's deletion and record where the hook must go; Phase 3
     re-attaches it.
   - Add/add files: take THEIRS for all six.
-- [ ] **2.4 Install.** `corepack enable && pnpm install` (host-only; Ether is arm64 only). Postinstall
+- [x] **2.4 Install.** `corepack enable && pnpm install` (host-only; Ether is arm64 only). Postinstall
       runs `build:packages`. If node-pty fails to load in tests, run `pnpm rebuild:node`.
-- [ ] **2.5 Commit the merge** once no conflict markers remain:
+- [x] **2.5 Commit the merge** once no conflict markers remain:
       `git diff --check` and `rg -n '^(<<<<<<<|>>>>>>>)' src config tests` both come back empty.
       Message: "Merge upstream Orca 52e413ec85 into ether", with a short list of the policy
       choices (OpenCode reverted, editor model, history importer to follow).
@@ -134,7 +134,7 @@ came from roughly 3,200 lines of edits spread across **233 upstream files**: abo
 OpenCode revert, and fewer again once upstream's shared editor drafts replace ours. Merge cost
 scales with how many upstream files we touch, not with how much code we own.
 
-- [ ] **3.1 Re-point moved imports** (risks §1 table):
+- [x] **3.1 Re-point moved imports** (risks §1 table):
   - `@orca/process-host` for `run-process`;
   - the split runtime file and Git clients;
   - `agent-row-decay-state` and `tab-has-live-pty` in `src/shared/`;
@@ -142,12 +142,12 @@ scales with how many upstream files we touch, not with how much code we own.
   - `isPersistedAgentSessionRecord`;
   - the launch-resolver test support;
   - the `ipc/pty` mock path.
-- [ ] **3.2 Port `flushPendingEditorChange`'s 3 callers** to upstream's new flush API after reading
+- [x] **3.2 Port `flushPendingEditorChange`'s 3 callers** to upstream's new flush API after reading
       `editor-pending-flush.ts`. Not a blind rename.
-- [ ] **3.3 Re-check `local-sidebar-model.ts`** against upstream's main-owned decay clock
+- [x] **3.3 Re-check `local-sidebar-model.ts`** against upstream's main-owned decay clock
       (`a039e9064b`). Switch its `state.folderWorkspaces` reads to selectors so it passes upstream's
       workspace-record ratchet.
-- [ ] **3.4 Create the seam modules.** One per subsystem. Each exports the few functions upstream
+- [x] **3.4 Create the seam modules.** One per subsystem. Each exports the few functions upstream
       files call; everything else stays behind it.
   - **Main, `src/main/local-projects/seams/`:**
     - `agent-launch-seam.ts`: cwd, extra directories, system prompt, Codex thread overrides;
@@ -169,7 +169,7 @@ scales with how many upstream files we touch, not with how much code we own.
     - `task-page-linear-slot.tsx`: one slot for issue-table, board, header and filter edits.
   - **Marker:** every hook line in an upstream file carries `// Ether seam: <seam-name>`, so
     `rg "Ether seam:"` lists them all.
-- [ ] **3.5 Re-attach multi-root hooks at upstream's new homes, through the seams** (conflicts-main
+- [x] **3.5 Re-attach multi-root hooks at upstream's new homes, through the seams** (conflicts-main
       "Highest-risk" items 1–7). Each bullet becomes one marked call into the seam module that owns it:
   - **Scope capture** for new chats → `runtime/session-tabs/structured-session-create-support.ts`.
     Without it, chats run in one folder and nothing fails.
@@ -190,7 +190,7 @@ scales with how many upstream files we touch, not with how much code we own.
   - **Resume:** carry `localWorkspaceScope` in the shared `copyLaunchConfig` and
     `resolveResumeLaunchRecipe`.
   - **External watch:** emit per-root targets inside upstream's `resolveWatchTargets`.
-- [ ] **3.6 Move the remaining inline hooks behind seams.** Work through the hygiene-debt list at the
+- [x] **3.6 Move the remaining inline hooks behind seams.** Work through the hygiene-debt list at the
       end of fork-features.md:
   - the updater guards;
   - the Linear settings rewrite (put skill-optional readiness behind an adapter and take upstream's
@@ -198,14 +198,14 @@ scales with how many upstream files we touch, not with how much code we own.
   - the task-page Linear edits;
   - the Git `localRoot` branches;
   - the `hasLocalProjectsApi()` switches.
-  Do the cheap ones now; list the rest in the Log with their file counts. **Guardrail:** move code,
-  don't redesign behaviour. A seam refactor that changes what a feature does breaks rule 1.
-- [ ] **3.7 Fix fork files broken by API changes:** `launch-scope-lock.ts` (`HostWorktreeTarget`,
+    Do the cheap ones now; list the rest in the Log with their file counts. **Guardrail:** move code,
+    don't redesign behaviour. A seam refactor that changes what a feature does breaks rule 1.
+- [x] **3.7 Fix fork files broken by API changes:** `launch-scope-lock.ts` (`HostWorktreeTarget`,
       `acquireWorktreeTerminalMutation` visibility), `git-target.ts` and `structured-agent-scope.ts`
       (deleted SSH providers, removed `deps`), `scope-mutation-guard.ts`,
       `runtime-store-contract.ts` (`getLocalProjectsSnapshot?`). Local Git roots bypass
       `requireReachableGitRoute`.
-- [ ] **3.8 Add the fork-surface check.** A fork-owned script, `config/scripts/check-ether-fork-surface.mjs`,
+- [x] **3.8 Add the fork-surface check.** A fork-owned script, `config/scripts/check-ether-fork-surface.mjs`,
       run as `pnpm check:ether-fork-surface`:
   - **What it measures:** upstream-owned files the fork has modified, i.e.
     `git diff --name-only --diff-filter=M $(git merge-base HEAD upstream/main) HEAD`, minus the
@@ -220,10 +220,10 @@ scales with how many upstream files we touch, not with how much code we own.
     120, down from 233. Lower `maxFiles` whenever a follow-up removes a touch; it never goes up
     without a note in the manifest. The longer-term target is under 60.
   - **Tests:** a unit test for the script, using a fixture repo.
-- [ ] **3.9 Gate:** `pnpm tc` clean; `pnpm check:ether-fork-surface`; `pnpm lint` (upstream added about 15 ratchets, including
+- [x] **3.9 Gate:** `pnpm tc` clean; `pnpm check:ether-fork-surface`; `pnpm lint` (upstream added about 15 ratchets, including
       `check:process-host-imports` and `check:main-sync-spawn-ratchet`, which affects
       `local-multi-root-git-search.spec.ts`); `pnpm run check:code-quality:changed`.
-- [ ] **3.10 Prove nothing OpenCode-chat remains:**
+- [x] **3.10 Prove nothing OpenCode-chat remains:**
       `rg -il "opencode-server-|structured-opencode-runtime|opencode-journal-translation|ETHER_OPENCODE" src tests`
       should return nothing.
 
@@ -234,43 +234,43 @@ Upstream added importers for the old chat layout (`59b746ff3c`, `5cda0f4508`), t
 without this phase every existing Claude/Codex chat disappears. The files stay on disk but are never
 read.
 
-- [ ] **4.1 Port the two importers** from `acea59c6d8^` into a fork-owned module, e.g.
+- [x] **4.1 Port the two importers** from `acea59c6d8^` into a fork-owned module, e.g.
       `src/main/native-chat/ether-legacy-chat-import/`. They are `journal-per-session-import.ts`
       (per-chat `agent-session-journal/<ws>/<session>/journal.db`) and
       `agent-session-legacy-record-import.ts` (`agent-sessions/agent-sessions.json`). Adapt them to
       the THEIRS journal API, hooked with one call where upstream opens the host database.
-- [ ] **4.2 Keep `localWorkspaceScope`.** Make sure each imported record keeps it in `record_json`
+- [x] **4.2 Keep `localWorkspaceScope`.** Make sure each imported record keeps it in `record_json`
       (`decodePersistedAgentSessionRecord` must not strip it), so resumed chats keep their roots.
-- [ ] **4.3 Skip old OpenCode records** (`{variable: 'XDG_DATA_HOME'}` account homes) cleanly, without
+- [x] **4.3 Skip old OpenCode records** (`{variable: 'XDG_DATA_HOME'}` account homes) cleanly, without
       blocking the rest.
-- [ ] **4.4 Tests:** a fixture of the pre-merge layout (two chats, one multi-root, one OpenCode)
+- [x] **4.4 Tests:** a fixture of the pre-merge layout (two chats, one multi-root, one OpenCode)
       imports once, is idempotent, and leaves the old files untouched.
-- [ ] **4.5 Removal note:** after the user's real profile has migrated and been verified (Phase 8),
+- [x] **4.5 Removal note:** after the user's real profile has migrated and been verified (Phase 8),
       the importer can be deleted in a later merge. Record this in docs/ether-maintenance.md.
 
 ## Phase 5: Ether packaging and toolchain
 
-- [ ] **5.1** Make `config/scripts/{build-ether-local,verify-ether-signature}.mjs` import
+- [x] **5.1** Make `config/scripts/{build-ether-local,verify-ether-signature}.mjs` import
       `{ runProcess, spawnProcess }` from `@orca/process-host`, and drop the undeclared `jiti`
       (or declare it).
-- [ ] **5.2** Build with `ORCA_PNPM_GLOBAL_VIRTUAL_STORE=0`, so electron-builder packs a
+- [x] **5.2** (Not needed: upstream's packaging scripts handle pnpm's global virtual store.) Build with `ORCA_PNPM_GLOBAL_VIRTUAL_STORE=0`, so electron-builder packs a
       project-local `node_modules`. Add it to `build:ether`.
-- [ ] **5.3** Run `pnpm test config/scripts/build-ether-local.test.mjs config/scripts/electron-builder-ether-config.test.mjs config/scripts/verify-ether-signature.test.mjs`.
+- [x] **5.3** Run `pnpm test config/scripts/build-ether-local.test.mjs config/scripts/electron-builder-ether-config.test.mjs config/scripts/verify-ether-signature.test.mjs`.
 - [ ] **5.4 Run `pnpm build:ether`.** It writes a new versioned release folder and never replaces the
       running app. Then inspect the new nested helpers:
   - `codesign -dvv` on `Orca Terminal Host.app`, the ShipIt addon and the orcad template binary
     (all must carry the Ether identity; `verify-ether-signature` runs `--deep --strict`);
   - the terminal host's `CFBundleName`, which upstream hardcodes to "Orca";
   - the `[daemon] macOS terminal host fallback` log line.
-- [ ] **5.5 SSH:** following the decision above, either add `build:orcad-template` or note "SSH hosts
+- [x] **5.5 SSH:** following the decision above, either add `build:orcad-template` or note "SSH hosts
       unsupported in Ether" in docs/ether-maintenance.md.
-- [ ] **5.6 Docs:** `.node-version` must match upstream's pin (24.21.0). Update the pnpm version in
+- [x] **5.6 Docs:** `.node-version` must match upstream's pin (24.21.0). Update the pnpm version in
       `.github/CONTRIBUTING.md` (or take upstream's). Upstream deleted
       `docs/reference/pnpm-install-policy.md`, so fix any fork links to it.
 
 ## Phase 6: profile safety (copies only)
 
-- [ ] **6.1 Startup test:** a profile containing `localProjects` (marks, archived Workspaces, linked
+- [x] **6.1 Startup test:** a profile containing `localProjects` (marks, archived Workspaces, linked
       Linear issues, checkout overrides) and projected `folder:` Workspaces survives upstream's
       one-way SQLite import (`profile-state.db`) and its load passes (`backfillFolderScopeConnectionIds`,
       `migrateAutomationOwners`, `clearMissingProjectGroupMemberships`) unchanged. **This matters:**
@@ -310,14 +310,14 @@ read.
 
 ## Phase 8: cut-over (with the user)
 
-- [ ] **8.1 Docs.** Update `docs/ether-maintenance.md`:
+- [x] **8.1 Docs.** Update `docs/ether-maintenance.md`:
   - the fork strategy: seams, the fork-surface check, rule 7 and the cadence below;
   - the merge procedure that worked;
   - the importer removal note;
   - the SSH status;
   - the downgrade procedure;
   - the stale plan links.
-  Also delete the stray `visualize-test.html`.
+    Also delete the stray `visualize-test.html`.
 - [ ] **8.2 Land the branch.** `git switch ether && git merge --ff-only ether-merge-upstream-1`.
       Ask before pushing.
 - [ ] **8.3 Swap the app (user).** The user has a fresh backup (6.2), quits Ether, and opens the new
@@ -332,13 +332,13 @@ read.
 Conflicts grow steadily with distance from upstream: 23 files at 150 commits behind, 52 at 1,000,
 148 at 4,238. Small, frequent merges are the cheapest strategy available.
 
-- [ ] **Drift report script:** `config/scripts/ether-upstream-drift.mjs`, run as
+- [x] **Drift report script:** `config/scripts/ether-upstream-drift.mjs`, run as
       `pnpm ether:upstream-drift`. It fetches `upstream/main` and prints:
   - commits behind;
   - the conflicting file count from `git merge-tree --write-tree --name-only`;
   - the conflicting files that are in the fork-surface manifest, by seam;
   - a one-line verdict ("merge now" above about 30 conflicting files).
-  It writes only git objects, never the working tree.
+    It writes only git objects, never the working tree.
 - [ ] **Weekly merge:** each one gets a short folder (`plans/upstream_merge_N/`) with a README copied
       from a slim template:
   - pin the target;
@@ -347,7 +347,7 @@ Conflicts grow steadily with distance from upstream: 23 files at 150 commits beh
   - run `pnpm tc`, `pnpm check:ether-fork-surface`, the fork test set, then `build:ether`;
   - smoke-test a copied profile;
   - land.
-  Expect most weeks to be a half-day or less.
+    Expect most weeks to be a half-day or less.
 - **Any new fork feature** starts with its seam and a fork-surface manifest entry, never with inline
   upstream edits.
 
@@ -360,8 +360,8 @@ Conflicts grow steadily with distance from upstream: 23 files at 150 commits beh
   1. Quit Ether.
   2. Restore the 6.2 backup folder, renamed back to `Ether`.
   3. Open the previous release folder.
-  Alternatively, run `orca profile state rollback --latest-json` from the merged build first, then
-  open the old release. Old chats are safe either way: the importer never deletes the old files.
+     Alternatively, run `orca profile state rollback --latest-json` from the merged build first, then
+     open the old release. Old chats are safe either way: the importer never deletes the old files.
 
 ## Log
 
@@ -370,3 +370,14 @@ Add a dated line per working session: what was done, what's next, and anything s
 - 2026-10-22: Plan written. Analyses complete; decisions recorded; editor-drafts decision pending.
 - 2026-10-22: Added the fork strategy: seam layer (3.4–3.6), fork-surface check (3.8), rule 7, cadence.
 - 2026-10-23: User decisions: adopt upstream's shared editor drafts; no scheduled automation; no upstream contribution. Starting Phase 0.
+- 2026-10-23: Phases 0–2 done (revert, merge f465d93e14). Phase 3: hooks re-attached at upstream's new
+  owners; seam pass across 87 unmarked files (8 Linear and 8 test files back to exact upstream,
+  updater chosen once at startup, Linear optional-skill adapter with two copied components tracked
+  by the drift report). Fork surface 233 → 148 upstream files, all marked and listed in
+  config/ether-fork-surface.json. Upstream's new gates (max-lines, focus-read, id-only-store-write,
+  workspace-record, localization) now pass; fork UI strings are localized. Phase 4 importer
+  (src/main/native-chat/ether-legacy-chat-import/) with fixture tests. Phase 6.1 migration test.
+  Surprises: upstream requires a SQLite authority for every writable Store (fork tests rewritten);
+  four upstream files sit at exactly 300 lines, so their hooks had to be zero-net (catalog load moved
+  to the sidebar, scope acquirer installed through the seam, identity and root-scoped selectors via
+  same-name fork modules).

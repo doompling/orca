@@ -262,8 +262,6 @@ test('cold native chat keeps its history and frozen roots, then continues in a n
     await first.page.evaluate(async () => {
       await window.__store?.getState().updateSettings({
         experimentalNativeChat: true,
-        experimentalStructuredNativeChat: true,
-        openAgentTabsInChatByDefault: true,
         agentDefaultArgs: { claude: '' }
       })
     })

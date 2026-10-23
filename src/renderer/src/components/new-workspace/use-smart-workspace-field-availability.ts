@@ -59,7 +59,9 @@ export function useSmartWorkspaceFieldAvailability({
       }),
     [gitlabSourceAvailable, linearStatus.connected]
   )
-  const linearAvailable = availableTaskProviders.includes('linear')
+  // Ether seam: linear — Tasks lists Linear before it connects; searching it still needs a connection.
+  const linearAvailable =
+    availableTaskProviders.includes('linear') && linearStatus.connected === true
   const availableModes = getSmartWorkspaceNameModes().filter((item) => {
     if (textOnly) {
       return item.id === 'text'

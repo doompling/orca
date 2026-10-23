@@ -154,8 +154,6 @@ test('copies only clean saved-file splits into independent Workspaces and retain
     await page.evaluate(async () => {
       await window.__store?.getState().updateSettings({
         experimentalNativeChat: true,
-        experimentalStructuredNativeChat: true,
-        openAgentTabsInChatByDefault: true,
         agentDefaultArgs: { claude: '' }
       })
     })

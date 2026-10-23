@@ -120,8 +120,6 @@ test('packaged Ether Codex chat reads both fixture roots and restores the conver
       settings: {
         ...seed.settings,
         experimentalNativeChat: true,
-        experimentalStructuredNativeChat: true,
-        openAgentTabsInChatByDefault: true,
         agentDefaultArgs: { codex: '' },
         agentYoloDefaultsMigrated: true,
         agentStatusHooksEnabled: false,

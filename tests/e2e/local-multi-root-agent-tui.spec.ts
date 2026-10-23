@@ -109,7 +109,6 @@ for (const { id, menuItemName } of GOLDEN_STUB_AGENTS) {
           agentCmdOverrides: { codex, claude },
           agentDefaultArgs: { codex: '--golden-capture-launch', claude: '--golden-capture-launch' },
           experimentalNativeChat: false,
-          openAgentTabsInChatByDefault: false,
           ...(windows ? { terminalWindowsShell: 'cmd.exe' } : {})
         })
       },

@@ -2,7 +2,7 @@
   "$comment": "Upstream files the Ether fork may touch. Run `pnpm check:ether-fork-surface`. Lower maxFiles when a touch is removed; raise it only with a note here. copiedUpstream maps fork-owned copies to the upstream component they replace; the drift report flags upstream changes to those originals.",
   "upstreamRef": "upstream/main",
   "ignoredPrefixes": ["docs", "plans"],
-  "maxFiles": 148,
+  "maxFiles": 151,
   "seams": {
     "agent-launch": "Every agent started in a local Workspace gets all of its roots (fork-features §3, §4).",
     "chat-history-import": "One-time import of pre-SQLite chat records and journals (Phase 4).",
@@ -34,6 +34,9 @@
       "seam": "local-projects"
     },
     "config/scripts/install-dev-cli.mjs": {
+      "seam": "packaging"
+    },
+    "config/scripts/macos-terminal-host-bundle.cjs": {
       "seam": "packaging"
     },
     "package.json": {
@@ -227,6 +230,9 @@
       "seam": "linear"
     },
     "src/renderer/src/components/linear-issue-workspace-sidebar.tsx": {
+      "seam": "linear"
+    },
+    "src/renderer/src/components/new-workspace/use-smart-workspace-field-availability.ts": {
       "seam": "linear"
     },
     "src/renderer/src/components/quick-open-file-list.ts": {
@@ -467,6 +473,9 @@
     },
     "src/shared/wsl-move/wsl-move-dispositions.ts": {
       "seam": "persistence"
+    },
+    "src/shared/wsl-move/wsl-move-storage-dispositions.ts": {
+      "seam": "local-projects"
     },
     "tests/e2e/fixtures/golden-stub-agent/golden-stub-agent.js": {
       "seam": "local-projects"

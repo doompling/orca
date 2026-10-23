@@ -51,8 +51,6 @@ test('normal built-in Claude chat carries both local roots through the real SDK 
     }
     await state.updateSettings({
       experimentalNativeChat: true,
-      experimentalStructuredNativeChat: true,
-      openAgentTabsInChatByDefault: true,
       agentDefaultArgs: { claude: '' }
     })
   })

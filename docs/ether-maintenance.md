@@ -76,8 +76,9 @@ From this checkout on the supported Apple Silicon Mac:
 
 ```sh
 pnpm install
+pnpm --dir mobile install --frozen-lockfile   # the build bundles the mobile web client
 pnpm tc
-pnpm run check:code-quality:changed
+pnpm check:ether-fork-surface
 pnpm build:ether
 ```
 

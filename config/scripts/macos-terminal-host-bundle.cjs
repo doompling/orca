@@ -195,8 +195,9 @@ function buildMacTerminalHostInfo({ appInfo, usageDescriptions, minimumOs }) {
   return {
     ...usageDescriptions,
     CFBundleIdentifier: appInfo.CFBundleIdentifier,
-    CFBundleName: 'Orca',
-    CFBundleDisplayName: 'Orca',
+    // Ether seam: packaging — the helper carries the app's own name in prompts and Activity Monitor.
+    CFBundleName: appInfo.CFBundleName ?? 'Orca',
+    CFBundleDisplayName: appInfo.CFBundleName ?? 'Orca',
     CFBundleExecutable: MAC_TERMINAL_HOST_EXECUTABLE,
     CFBundlePackageType: 'APPL',
     CFBundleInfoDictionaryVersion: '6.0',
