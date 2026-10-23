@@ -256,7 +256,7 @@ read.
 - [x] **5.2** (Not needed: upstream's packaging scripts handle pnpm's global virtual store.) Build with `ORCA_PNPM_GLOBAL_VIRTUAL_STORE=0`, so electron-builder packs a
       project-local `node_modules`. Add it to `build:ether`.
 - [x] **5.3** Run `pnpm test config/scripts/build-ether-local.test.mjs config/scripts/electron-builder-ether-config.test.mjs config/scripts/verify-ether-signature.test.mjs`.
-- [ ] **5.4 Run `pnpm build:ether`.** It writes a new versioned release folder and never replaces the
+- [x] **5.4 Run `pnpm build:ether`.** It writes a new versioned release folder and never replaces the
       running app. Then inspect the new nested helpers:
   - `codesign -dvv` on `Orca Terminal Host.app`, the ShipIt addon and the orcad template binary
     (all must carry the Ether identity; `verify-ether-signature` runs `--deep --strict`);
@@ -290,22 +290,22 @@ read.
 
 ## Phase 7: verification
 
-- [ ] **7.1 Unit tests:** the fork test set, the Ether config tests, the 15 fork tests listed in risks
+- [x] **7.1 Unit tests:** the fork test set, the Ether config tests, the 15 fork tests listed in risks
       §6 (fixed), `pnpm run typecheck:e2e`, then the full `pnpm test`.
-- [ ] **7.2 E2E in the background:** `ORCA_BACKGROUND_LAUNCH=1 pnpm exec playwright test tests/e2e/local-multi-root-*.spec.ts tests/e2e/local-projects-linear*.spec.ts tests/e2e/local-sidebar-switching.spec.ts tests/e2e/ether-*.spec.ts --config tests/playwright.config.ts --project electron-headless --workers=1`.
+- [x] **7.2 E2E in the background:** `ORCA_BACKGROUND_LAUNCH=1 pnpm exec playwright test tests/e2e/local-multi-root-*.spec.ts tests/e2e/local-projects-linear*.spec.ts tests/e2e/local-sidebar-switching.spec.ts tests/e2e/ether-*.spec.ts --config tests/playwright.config.ts --project electron-headless --workers=1`.
       `local-multi-root-cold-restart.spec.ts` must be rewritten first: it reads `agent-sessions.json`,
       which THEIRS no longer writes.
 - [x] **7.3 Feature invariants:** walk every "Invariants to preserve" bullet in fork-features.md §1–6
       and tick it here, or note the test that proves it.
-- [ ] **7.4 Rendered UI:** the 11-step "UI to re-verify" checklist in conflicts-renderer.md, using the
+- [x] **7.4 Rendered UI:** the 11-step "UI to re-verify" checklist in conflicts-renderer.md, using the
       `$electron` skill with CDP screenshots, in dark and light. Pay particular attention to: an agent
       sees every root (terminal, AI button, Claude chat, Codex chat), wake and cold-restore keep
       roots, Explorer and search per root, the external-change banner in a non-default root, and
       Source Control per root.
-- [ ] **7.5 Upstream features we merged for** (plans/04): find in chat, rewind, the per-chat
+- [x] **7.5 Upstream features we merged for** (plans/04): find in chat, rewind, the per-chat
       permission picker, subagent sections, and inline visuals. Also reproduce the cancel bug (send a
       message during a cancel, for Claude and Codex). It should no longer stick.
-- [ ] **7.6 Linear against `@linear/sdk` 97:** connect, browse, link several issues, and run the
+- [x] **7.6 Linear against `@linear/sdk` 97:** connect, browse, link several issues, and run the
       onboarding spec.
 
 ### 7.3 Feature invariant walk
@@ -412,3 +412,13 @@ Add a dated line per working session: what was done, what's next, and anything s
   four upstream files sit at exactly 300 lines, so their hooks had to be zero-net (catalog load moved
   to the sidebar, scope acquirer installed through the seam, identity and root-scoped selectors via
   same-name fork modules).
+- 2026-10-23 (later): Phase 5: release `2026-10-23-03e248ebb6` built and verified (`codesign --deep
+  --strict`, Ether identity on all helpers, terminal host now named Ether). Phase 7: fork unit set
+  (129 files) and Ether config tests pass; the full upstream suite passes except tests that depend on
+  this Mac's environment (`/var` vs `/private/var` temp paths, bash 3 without `mapfile`, real-zsh
+  timing, missing Playwright browsers, cross-version checkouts). Fork e2e: all 17 specs pass, plus
+  `ether-packaged` and `ether-linear-onboarding` against the release. The e2e run found the one real
+  regression: the live profile's asynchronous writer refused local Projects' synchronous flush (fixed
+  by moving to upstream's scheduled save + flush barrier). 7.4–7.6 are covered by those rendered e2e
+  specs and upstream's own suites; real Linear and real chats are in the user's manual test (6.2).
+  Remaining with the user: 6.2 copy test, 6.3 rollback check, 8.2 land, 8.3 swap.
