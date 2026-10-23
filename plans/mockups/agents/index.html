@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Ether agent mockups: Ledger</title>
+    <link rel="stylesheet" href="agents.css" />
+  </head>
+  <body>
+    <div class="controls">
+      <div class="grp">
+        <span class="lbl">View</span>
+        <span class="seg"><button data-set="view:ledger">Ledger</button><button data-set="view:baseline">Baseline (today)</button></span>
+      </div>
+      <div class="grp">
+        <span class="lbl">Scene</span>
+        <span class="seg"
+          ><button data-set="scene:live">Live turn</button><button data-set="scene:settled">Settled turn</button
+          ><button data-set="scene:approval">Approval</button><button data-set="scene:delegation">Delegation</button
+          ><button data-set="scene:linear">Linear context</button><button data-set="scene:stop">Stop states</button
+          ><button data-set="scene:away">Return after away</button></span
+        >
+      </div>
+      <div class="grp">
+        <span class="lbl">Provider</span>
+        <span class="seg"><button data-set="provider:claude">Claude</button><button data-set="provider:codex">Codex</button></span>
+      </div>
+      <div class="grp">
+        <span class="lbl">Theme</span>
+        <span class="seg"><button data-set="theme:dark">Dark</button><button data-set="theme:light">Light</button></span>
+      </div>
+      <div class="grp">
+        <span class="lbl">Chat width</span>
+        <span class="seg"
+          ><button data-set="chatW:480">480</button><button data-set="chatW:720">720</button
+          ><button data-set="chatW:1100">1100</button></span
+        >
+      </div>
+      <div class="grp">
+        <span class="lbl">Sidebar</span>
+        <span class="seg"
+          ><button data-set="sbW:220">220</button><button data-set="sbW:300">300</button><button data-set="sbW:380">380</button></span
+        >
+      </div>
+      <div class="row2">
+        <label class="chk"><input type="checkbox" data-check="highlight" /> Highlight Ether additions</label>
+        <label class="chk"><input type="checkbox" data-check="showSystem" /> System events</label>
+        <label class="chk"><input type="checkbox" data-check="inlineAllow" /> Allow from Needs you</label>
+        <label class="chk"><input type="checkbox" data-check="gray" /> Grayscale</label>
+        <label class="chk"><input type="checkbox" data-check="reduced" /> Reduced motion</label>
+      </div>
+      <div class="row2">
+        <span class="lbl">Simulate</span>
+        <button class="act" data-sim="ask-bash">Agent asks (command)</button>
+        <button class="act" data-sim="ask-edit">Agent asks (edit)</button>
+        <button class="act" data-sim="review:low">Auto-review: low</button>
+        <button class="act" data-sim="review:medium">Auto-review: medium</button>
+        <button class="act" data-sim="review:deny">Auto-review: blocks</button>
+        <button class="act" data-sim="review:unmatched">Auto-review: unmatched</button>
+        <button class="act" data-sim="spawn4">Spawn 4</button>
+        <button class="act" data-sim="spawn9">Spawn 9 (over limit)</button>
+        <button class="act" data-sim="plan">Plan advances</button>
+        <button class="act" data-sim="queue">Queue a message</button>
+        <button class="act" data-sim="stop-ok">Stop: confirmed</button>
+        <button class="act" data-sim="stop-stuck">Stop: no confirmation</button>
+        <button class="act" data-sim="ssh">SSH contact lost</button>
+        <button class="act" data-sim="frame">Unknown frame</button>
+        <button class="act" data-sim="edited">Issue edited after send</button>
+        <button class="act" data-sim="away">Return after away</button>
+        <button class="act" data-sim="capture">Capture (⌘⇧K)</button>
+        <button class="act" data-sim="reset">Reset</button>
+      </div>
+    </div>
+    <div class="stage"><div class="app" id="app"></div></div>
+    <div class="notes" id="notes"></div>
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
