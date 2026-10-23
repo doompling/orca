@@ -24,10 +24,11 @@ Ether and opening an older release folder. The build does not install or launch 
 replace the global `orca-dev` command.
 
 On first launch, Ether does not inherit development preferences. For normal agent
-approvals, uncheck **Yolo / Dangerously skip permissions** on the agent-selection
-step and click **Continue** before skipping optional setup. **Skip to project
-setup** alone does not save that checkbox change. If you already skipped, choose
-**Manual** under Settings → Agents before starting an agent. Review your telemetry
+approvals, turn off **Yolo mode** on the agent-selection step and click
+**Continue** before skipping optional setup. **Skip to project setup** alone does
+not save that change. If you already skipped, choose **Manual** under Settings →
+Agents before starting an agent. A fresh profile otherwise starts built-in chats
+with Full access; an upgraded profile keeps the choice its agent arguments implied. Review your telemetry
 choice under Settings → Privacy & Telemetry; this fork retains the upstream
 defaults rather than changing those policies. Local Projects do not require an
 Orca account, and optional integration prompts can be closed.

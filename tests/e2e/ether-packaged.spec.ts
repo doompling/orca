@@ -24,6 +24,7 @@ import { retryTransientMainEvaluate } from './helpers/electron-main-evaluate-ret
 import { cleanupE2EDaemons, closeElectronAppForE2E } from './helpers/electron-process-shutdown'
 import { appendToReadme, createProject, openRootReadme } from './helpers/local-project-controls'
 import { defaultEtherReleaseBundle } from './helpers/ether-release-bundle'
+import { closeFeatureTips } from './helpers/ether-feature-tips'
 
 function packagedExecutable(): string | null {
   const explicitBundle = process.env.ETHER_E2E_APP
@@ -137,7 +138,7 @@ test('packaged Ether starts from an empty profile, saves both directory contexts
     if (firstLaunch) {
       await expect(page.getByRole('heading', { name: 'Pick your default agent' })).toBeVisible()
       await page.screenshot({ path: testInfo.outputPath('ether-packaged-first-launch.png') })
-      await page.getByRole('checkbox', { name: 'Yolo / Dangerously skip permissions' }).uncheck()
+      await page.getByRole('switch', { name: /^Yolo mode/ }).uncheck()
       await page
         .locator('[data-onboarding-overlay] footer')
         .getByRole('button', { name: /^Continue/ })
@@ -218,17 +219,7 @@ test('packaged Ether starts from an empty profile, saves both directory contexts
     active.app = null
 
     const second = await launch()
-    const cliTip = second.page.getByRole('dialog', {
-      name: 'Let agents drive Orca with the Orca CLI',
-      exact: true
-    })
-    const tipVisible = await cliTip
-      .waitFor({ state: 'visible', timeout: 3000 })
-      .then(() => true)
-      .catch(() => false)
-    if (tipVisible) {
-      await cliTip.getByRole('button', { name: 'Close', exact: true }).click()
-    }
+    await closeFeatureTips(second.page, 3000)
     const project = second.page.getByRole('region', { name: 'Packaged Ether', exact: true })
     await expect(project).toBeVisible()
     await expect(project.locator('[data-worktree-id]').filter({ hasText: 'Main' })).toHaveAttribute(

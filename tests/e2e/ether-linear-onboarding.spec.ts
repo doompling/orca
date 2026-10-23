@@ -20,8 +20,10 @@ import {
   LOCAL_PROJECT_LINEAR_FIXTURE
 } from './helpers/local-project-linear-backend'
 import { defaultEtherReleaseBundle } from './helpers/ether-release-bundle'
+import { closeFeatureTips } from './helpers/ether-feature-tips'
 
 async function openTaskSources(page: Page): Promise<void> {
+  await closeFeatureTips(page)
   await page.getByRole('button', { name: 'Settings', exact: true }).click()
   await page.getByRole('button', { name: 'Task Sources', exact: true }).click()
   const expand = page.getByRole('button', { name: 'Show Linear setup steps', exact: true })
@@ -32,6 +34,7 @@ async function openTaskSources(page: Page): Promise<void> {
 }
 
 async function openTasks(page: Page): Promise<void> {
+  await closeFeatureTips(page)
   await page.getByRole('button', { name: 'Tasks', exact: true }).click()
   await expect(page.locator('[data-task-source="linear"]')).toBeVisible()
   await page.locator('[data-task-source="linear"]').click()
@@ -115,7 +118,7 @@ test('packaged Ether exposes Linear before connection and browses without an age
   try {
     const { app, page } = await launch()
     await expect(page.getByRole('heading', { name: 'Pick your default agent' })).toBeVisible()
-    await page.getByRole('checkbox', { name: 'Yolo / Dangerously skip permissions' }).uncheck()
+    await page.getByRole('switch', { name: /^Yolo mode/ }).uncheck()
     await page
       .locator('[data-onboarding-overlay] footer')
       .getByRole('button', { name: /^Continue/ })
@@ -125,10 +128,10 @@ test('packaged Ether exposes Linear before connection and browses without an age
       .getByRole('dialog', { name: 'New Project', exact: true })
       .getByRole('button', { name: 'Cancel', exact: true })
       .click()
-    await page.getByRole('button', { name: 'Tasks', exact: true }).hover()
-    await expect(page.getByRole('button', { name: 'Open Linear tasks', exact: true })).toBeVisible()
-    await page.getByRole('button', { name: 'Open Linear tasks', exact: true }).click()
+    // The local sidebar's Tasks button opens Tasks; Linear is listed there before it connects.
+    await page.getByRole('button', { name: 'Tasks', exact: true }).click()
     await expect(page.locator('[data-task-source="linear"]')).toBeVisible()
+    await page.locator('[data-task-source="linear"]').click()
     await expect(page.getByText('Connect your Linear account', { exact: true })).toBeVisible()
     await page.screenshot({ path: testInfo.outputPath('linear-before-connection.png') })
 
@@ -172,6 +175,7 @@ test('packaged Ether exposes Linear before connection and browses without an age
     await page.screenshot({ path: testInfo.outputPath('linear-ready-with-optional-skill.png') })
     await page.getByRole('button', { name: 'Hide Linear from Tasks', exact: true }).click()
     await page.getByRole('button', { name: 'Back to app', exact: true }).click()
+    await closeFeatureTips(page)
     await page.getByRole('button', { name: 'Tasks', exact: true }).click()
     await expect(page.locator('[data-task-source="linear"]')).toHaveCount(0)
     await openTaskSources(page)
