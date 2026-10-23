@@ -1,0 +1,475 @@
+{
+  "$comment": "Upstream files the Ether fork may touch. Run `pnpm check:ether-fork-surface`. Lower maxFiles when a touch is removed; raise it only with a note here. copiedUpstream maps fork-owned copies to the upstream component they replace; the drift report flags upstream changes to those originals.",
+  "upstreamRef": "upstream/main",
+  "ignoredPrefixes": ["docs", "plans"],
+  "maxFiles": 148,
+  "seams": {
+    "agent-launch": "Every agent started in a local Workspace gets all of its roots (fork-features §3, §4).",
+    "chat-history-import": "One-time import of pre-SQLite chat records and journals (Phase 4).",
+    "chat-scope": "Chat launches hold the local Workspace scope lock; records keep frozen roots (§3).",
+    "editor": "Per-root editor watches, labels, drafts and window-close draft backup (§3).",
+    "git": "Per-root Source Control through a localRoot argument (§3).",
+    "identity": "Packaged Ether app identity and profile (§1).",
+    "linear": "Linear issues per Workspace, optional agent skill, read deadlines (§5).",
+    "local-projects": "Local multi-root Projects and Workspaces replace the repo flow (§3).",
+    "packaging": "Ether packaging, signing and fork scripts (§2).",
+    "persistence": "localProjects in the profile store and its contracts (§3).",
+    "pty-spawn": "Local Workspace terminals start in the saved root under the spawn lock (§3).",
+    "sidebar": "Local Projects sidebar: marks, recency, archive (§6).",
+    "updater": "Packaged Ether never installs upstream Orca updates (§1)."
+  },
+  "copiedUpstream": {
+    "src/renderer/src/features/linear-optional-skill/LinearOptionalSkillTaskSourceSetup.tsx": "src/renderer/src/components/settings/TaskSourceLinearSetup.tsx",
+    "src/renderer/src/features/linear-optional-skill/LinearOptionalSkillGuide.tsx": "src/renderer/src/components/settings/LinearAgentSkillGuide.tsx"
+  },
+  "files": {
+    ".gitignore": {
+      "seam": "local-projects"
+    },
+    "config/oxlint-design-system.json": {
+      "seam": "linear",
+      "marker": false
+    },
+    "config/scripts/check-id-only-store-write-ratchet.mjs": {
+      "seam": "local-projects"
+    },
+    "config/scripts/install-dev-cli.mjs": {
+      "seam": "packaging"
+    },
+    "package.json": {
+      "seam": "packaging",
+      "marker": false
+    },
+    "src/main/claude/__fixtures__/claude-agent-sdk-scripted-cli.mjs": {
+      "seam": "local-projects"
+    },
+    "src/main/claude/claude-structured-launch-resolution.ts": {
+      "seam": "agent-launch"
+    },
+    "src/main/codex/codex-structured-launch-resolution.ts": {
+      "seam": "agent-launch"
+    },
+    "src/main/codex/codex-structured-session-state.ts": {
+      "seam": "agent-launch"
+    },
+    "src/main/codex/codex-structured-thread-open.ts": {
+      "seam": "agent-launch"
+    },
+    "src/main/ipc/app.ts": {
+      "seam": "identity"
+    },
+    "src/main/ipc/filesystem-allowed-roots.ts": {
+      "seam": "persistence"
+    },
+    "src/main/ipc/filesystem/filesystem-git-commit-handlers.ts": {
+      "seam": "git"
+    },
+    "src/main/ipc/filesystem/filesystem-git-index-handlers.ts": {
+      "seam": "git"
+    },
+    "src/main/ipc/filesystem/filesystem-git-status-handlers.ts": {
+      "seam": "git"
+    },
+    "src/main/ipc/pty/host-env/spawn-cwd.ts": {
+      "seam": "pty-spawn"
+    },
+    "src/main/ipc/pty/ipc/spawn-options.ts": {
+      "seam": "pty-spawn"
+    },
+    "src/main/ipc/pty/ipc/spawn-preflight.ts": {
+      "seam": "pty-spawn"
+    },
+    "src/main/ipc/pty/ipc/spawn-types.ts": {
+      "seam": "pty-spawn"
+    },
+    "src/main/ipc/pty/register-handlers.ts": {
+      "seam": "pty-spawn"
+    },
+    "src/main/ipc/pty/runtime/controller-deps.ts": {
+      "seam": "pty-spawn"
+    },
+    "src/main/ipc/pty/runtime/spawn-execute.ts": {
+      "seam": "pty-spawn"
+    },
+    "src/main/ipc/pty/runtime/spawn-preflight.ts": {
+      "seam": "pty-spawn"
+    },
+    "src/main/ipc/repos.ts": {
+      "seam": "local-projects"
+    },
+    "src/main/linear/linear-custom-view-queries.ts": {
+      "seam": "linear"
+    },
+    "src/main/linear/linear-issue-lookups.ts": {
+      "seam": "linear"
+    },
+    "src/main/linear/linear-project-collection-read.ts": {
+      "seam": "linear"
+    },
+    "src/main/linear/linear-project-queries.ts": {
+      "seam": "linear"
+    },
+    "src/main/native-chat/agent-session-wire/structured-agent-session-attach-orchestration.ts": {
+      "seam": "chat-scope"
+    },
+    "src/main/native-chat/agent-session-wire/structured-agent-session-attach.ts": {
+      "seam": "chat-scope"
+    },
+    "src/main/native-chat/agent-session-wire/structured-agent-session-conversation-open.ts": {
+      "seam": "chat-scope"
+    },
+    "src/main/persistence/loading-store/project-collection-operations.ts": {
+      "seam": "local-projects"
+    },
+    "src/main/persistence/loading-store/store-domain-composition.ts": {
+      "seam": "persistence"
+    },
+    "src/main/project-groups/folder-workspace-path-status.ts": {
+      "seam": "persistence"
+    },
+    "src/main/runtime/agent-session-launch-directory.ts": {
+      "seam": "agent-launch"
+    },
+    "src/main/runtime/agent-session-record-founding.ts": {
+      "seam": "chat-scope"
+    },
+    "src/main/runtime/agent-session-record-store.ts": {
+      "seam": "chat-scope"
+    },
+    "src/main/runtime/agent-session-reservation-admission.ts": {
+      "seam": "chat-scope"
+    },
+    "src/main/runtime/orca-runtime-create-agent-session.ts": {
+      "seam": "agent-launch"
+    },
+    "src/main/runtime/runtime-agent-launch-resolution.ts": {
+      "seam": "agent-launch"
+    },
+    "src/main/runtime/runtime-agent-terminal-startup.ts": {
+      "seam": "agent-launch"
+    },
+    "src/main/runtime/runtime-project-group-controller.ts": {
+      "seam": "local-projects"
+    },
+    "src/main/runtime/runtime-store-contract.ts": {
+      "seam": "persistence"
+    },
+    "src/main/runtime/session-graph/session-graph-authority.ts": {
+      "seam": "local-projects"
+    },
+    "src/main/runtime/session-tabs/structured-session-create-support.ts": {
+      "seam": "local-projects"
+    },
+    "src/main/runtime/structured-agent-session-create-adoption.ts": {
+      "seam": "agent-launch"
+    },
+    "src/main/runtime/structured-agent-session-journal-open.ts": {
+      "seam": "chat-history-import"
+    },
+    "src/main/runtime/terminal/stop/worktree-terminal-stop.ts": {
+      "seam": "chat-scope"
+    },
+    "src/main/runtime/workspaces/workspace-process-listing.ts": {
+      "seam": "local-projects"
+    },
+    "src/main/startup/configure-process.ts": {
+      "seam": "identity"
+    },
+    "src/main/startup/dev-instance-identity.ts": {
+      "seam": "identity"
+    },
+    "src/main/startup/main-process-preflight.ts": {
+      "seam": "identity"
+    },
+    "src/main/updater.ts": {
+      "seam": "updater"
+    },
+    "src/preload/api-types.ts": {
+      "seam": "local-projects"
+    },
+    "src/preload/api/git-bridge.ts": {
+      "seam": "git"
+    },
+    "src/preload/api/git-inspection-api.ts": {
+      "seam": "git"
+    },
+    "src/preload/api/git-operation-api.ts": {
+      "seam": "git"
+    },
+    "src/preload/index.ts": {
+      "seam": "local-projects"
+    },
+    "src/renderer/src/app-shell/AppRootSurfaces.tsx": {
+      "seam": "local-projects"
+    },
+    "src/renderer/src/app-shell/TitlebarLeftControls.tsx": {
+      "seam": "identity"
+    },
+    "src/renderer/src/app-shell/app-command-handlers.ts": {
+      "seam": "sidebar"
+    },
+    "src/renderer/src/components/Landing.tsx": {
+      "seam": "local-projects"
+    },
+    "src/renderer/src/components/LinearIssueWorkspace.tsx": {
+      "seam": "linear"
+    },
+    "src/renderer/src/components/QuickOpen.tsx": {
+      "seam": "local-projects"
+    },
+    "src/renderer/src/components/editor/EditorPanelHeaderPath.tsx": {
+      "seam": "editor"
+    },
+    "src/renderer/src/components/editor/useEditorPanelDiffContentLoader.ts": {
+      "seam": "git"
+    },
+    "src/renderer/src/components/linear-issue-workspace-header.tsx": {
+      "seam": "linear"
+    },
+    "src/renderer/src/components/linear-issue-workspace-sidebar.tsx": {
+      "seam": "linear"
+    },
+    "src/renderer/src/components/quick-open-file-list.ts": {
+      "seam": "local-projects"
+    },
+    "src/renderer/src/components/right-sidebar/FileExplorer.tsx": {
+      "seam": "local-projects"
+    },
+    "src/renderer/src/components/right-sidebar/SearchResultItems.tsx": {
+      "seam": "local-projects"
+    },
+    "src/renderer/src/components/right-sidebar/SearchResultsPane.tsx": {
+      "seam": "local-projects"
+    },
+    "src/renderer/src/components/right-sidebar/SourceControl.tsx": {
+      "seam": "local-projects"
+    },
+    "src/renderer/src/components/right-sidebar/right-sidebar-activity-visibility.ts": {
+      "seam": "local-projects"
+    },
+    "src/renderer/src/components/right-sidebar/use-right-sidebar-activity-items.ts": {
+      "seam": "local-projects"
+    },
+    "src/renderer/src/components/right-sidebar/useFileSearchRunner.ts": {
+      "seam": "local-projects"
+    },
+    "src/renderer/src/components/settings/LinearAgentSkillPane.test.tsx": {
+      "seam": "linear"
+    },
+    "src/renderer/src/components/settings/LinearAgentSkillPane.tsx": {
+      "seam": "linear"
+    },
+    "src/renderer/src/components/settings/TasksPane.test.tsx": {
+      "seam": "linear"
+    },
+    "src/renderer/src/components/settings/TasksPane.tsx": {
+      "seam": "linear"
+    },
+    "src/renderer/src/components/settings/settings-git-task-section-renderers.tsx": {
+      "seam": "linear"
+    },
+    "src/renderer/src/components/settings/tasks-search.ts": {
+      "seam": "linear"
+    },
+    "src/renderer/src/components/sidebar/ProjectGroupNameDialog.tsx": {
+      "seam": "local-projects"
+    },
+    "src/renderer/src/components/sidebar/SidebarHeader.tsx": {
+      "seam": "local-projects"
+    },
+    "src/renderer/src/components/sidebar/index.tsx": {
+      "seam": "sidebar"
+    },
+    "src/renderer/src/components/sidebar/sidebar-header-actions.tsx": {
+      "seam": "sidebar"
+    },
+    "src/renderer/src/components/sidebar/visible-worktrees.ts": {
+      "seam": "sidebar"
+    },
+    "src/renderer/src/components/tab-bar/EditorFileTab.tsx": {
+      "seam": "editor"
+    },
+    "src/renderer/src/components/task-page/linear/CustomViewList.tsx": {
+      "seam": "linear"
+    },
+    "src/renderer/src/components/task-page/linear/IssueBoardColumns.tsx": {
+      "seam": "linear"
+    },
+    "src/renderer/src/components/task-page/linear/IssueTable.tsx": {
+      "seam": "linear"
+    },
+    "src/renderer/src/components/task-page/linear/ProjectList.tsx": {
+      "seam": "linear"
+    },
+    "src/renderer/src/components/task-page/linear/task-page-linear-in-orca-issues.ts": {
+      "seam": "linear"
+    },
+    "src/renderer/src/components/terminal-pane/ipc-pty-spawn-request.ts": {
+      "seam": "agent-launch"
+    },
+    "src/renderer/src/components/terminal-pane/pty-connection/cold-restore-resume-startup.ts": {
+      "seam": "agent-launch"
+    },
+    "src/renderer/src/components/use-task-page-composer-actions.ts": {
+      "seam": "linear"
+    },
+    "src/renderer/src/components/use-task-page-linear-filter-selection.ts": {
+      "seam": "linear"
+    },
+    "src/renderer/src/components/use-task-page-linear-in-orca-effects.ts": {
+      "seam": "linear"
+    },
+    "src/renderer/src/components/use-task-page-store-bindings.ts": {
+      "seam": "linear"
+    },
+    "src/renderer/src/components/use-terminal-editor-close-foundation.ts": {
+      "seam": "editor"
+    },
+    "src/renderer/src/components/use-terminal-window-lifecycle.ts": {
+      "seam": "editor"
+    },
+    "src/renderer/src/components/use-worktree-jump-palette-project-targets.ts": {
+      "seam": "sidebar"
+    },
+    "src/renderer/src/components/use-worktree-jump-palette-store-state.ts": {
+      "seam": "local-projects"
+    },
+    "src/renderer/src/components/worktree-jump-palette-create-worktree.ts": {
+      "seam": "linear"
+    },
+    "src/renderer/src/hooks/editor-external-watch-disk-verification.ts": {
+      "seam": "editor"
+    },
+    "src/renderer/src/hooks/editor-external-watch-overflow.ts": {
+      "seam": "editor"
+    },
+    "src/renderer/src/hooks/editor-external-watch-targets.ts": {
+      "seam": "editor"
+    },
+    "src/renderer/src/hooks/ipc-events/project-catalog-ipc-bridge.ts": {
+      "seam": "local-projects"
+    },
+    "src/renderer/src/hooks/ipc-events/workspace-shortcut-ipc-bridge.ts": {
+      "seam": "sidebar"
+    },
+    "src/renderer/src/hooks/useIpcEvents-repos-changed-catalogs.test.ts": {
+      "seam": "local-projects"
+    },
+    "src/renderer/src/i18n/en-runtime-required.json": {
+      "seam": "local-projects",
+      "marker": false
+    },
+    "src/renderer/src/i18n/locales/en.json": {
+      "seam": "local-projects",
+      "marker": false
+    },
+    "src/renderer/src/lib/launch-agent-background-session.ts": {
+      "seam": "agent-launch"
+    },
+    "src/renderer/src/lib/launch-agent-in-new-tab.ts": {
+      "seam": "agent-launch"
+    },
+    "src/renderer/src/lib/launch-ai-vault-session.ts": {
+      "seam": "agent-launch"
+    },
+    "src/renderer/src/lib/sleeping-agent-session-launch.ts": {
+      "seam": "agent-launch"
+    },
+    "src/renderer/src/lib/worktree-activation.ts": {
+      "seam": "local-projects"
+    },
+    "src/renderer/src/lib/worktree-palette-document.ts": {
+      "seam": "linear"
+    },
+    "src/renderer/src/lib/worktree-palette-task-url-match.ts": {
+      "seam": "linear"
+    },
+    "src/renderer/src/runtime/runtime-git-client-context.ts": {
+      "seam": "git"
+    },
+    "src/renderer/src/runtime/runtime-git-diff-client.ts": {
+      "seam": "git"
+    },
+    "src/renderer/src/runtime/runtime-git-status-client.ts": {
+      "seam": "git"
+    },
+    "src/renderer/src/runtime/runtime-git-sync-client.ts": {
+      "seam": "git"
+    },
+    "src/renderer/src/runtime/runtime-git-working-tree-client.ts": {
+      "seam": "git"
+    },
+    "src/renderer/src/store/index.ts": {
+      "seam": "local-projects"
+    },
+    "src/renderer/src/store/slices/editor/actions/open-unstaged-diff.ts": {
+      "seam": "git"
+    },
+    "src/renderer/src/store/slices/editor/types/open-file.ts": {
+      "seam": "git"
+    },
+    "src/renderer/src/store/slices/store-test-helpers.ts": {
+      "seam": "local-projects"
+    },
+    "src/renderer/src/store/terminals/terminal-actions.ts": {
+      "seam": "local-projects"
+    },
+    "src/renderer/src/store/terminals/terminal-active-workspace-creation.ts": {
+      "seam": "local-projects"
+    },
+    "src/renderer/src/store/types.ts": {
+      "seam": "local-projects"
+    },
+    "src/shared/agent-resume-record-equivalence.ts": {
+      "seam": "agent-launch"
+    },
+    "src/shared/agent-resume-record-from-status.ts": {
+      "seam": "agent-launch"
+    },
+    "src/shared/agent-session-record.ts": {
+      "seam": "agent-launch"
+    },
+    "src/shared/agent-session-resume.ts": {
+      "seam": "agent-launch"
+    },
+    "src/shared/keybindings/definitions.ts": {
+      "seam": "sidebar"
+    },
+    "src/shared/keybindings/types.ts": {
+      "seam": "sidebar"
+    },
+    "src/shared/persisted-state-types.ts": {
+      "seam": "local-projects"
+    },
+    "src/shared/renderer-restart-preparation.ts": {
+      "seam": "editor"
+    },
+    "src/shared/sleeping-agent-launch-config.ts": {
+      "seam": "agent-launch"
+    },
+    "src/shared/task-providers.test.ts": {
+      "seam": "linear"
+    },
+    "src/shared/task-providers.ts": {
+      "seam": "linear"
+    },
+    "src/shared/tui-agent-launch-defaults.ts": {
+      "seam": "agent-launch"
+    },
+    "src/shared/tui-agent-resume-startup.ts": {
+      "seam": "agent-launch"
+    },
+    "src/shared/tui-agent-startup.ts": {
+      "seam": "agent-launch"
+    },
+    "src/shared/workspace-session-sleeping-agents.ts": {
+      "seam": "agent-launch"
+    },
+    "src/shared/wsl-move/wsl-move-dispositions.ts": {
+      "seam": "persistence"
+    },
+    "tests/e2e/fixtures/golden-stub-agent/golden-stub-agent.js": {
+      "seam": "local-projects"
+    }
+  }
+}
