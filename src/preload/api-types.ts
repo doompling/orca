@@ -69,6 +69,7 @@ import type { LocalhostWorktreeLabelsApi, WorkspacePortsApi } from './api/worksp
 import type { WorkspaceSessionApi } from './api/workspace-session-api'
 import type { FolderWorkspacesApi, SparsePresetsApi, WorktreeApi } from './api/worktree-api'
 import type { LocalProjectsApi } from '../shared/local-projects/types'
+import type { EtherChatApi } from '../shared/ether-chat-fork'
 
 // Flattens contracts that share one PreloadApi key: an intersection is not type-identical to the flat shape.
 type Merged<T> = { [K in keyof T]: T[K] }
@@ -84,6 +85,7 @@ export type PreloadApi = {
   folderWorkspaces: FolderWorkspacesApi
   // Ether seam: local-projects
   localProjects: LocalProjectsApi
+  etherChat: EtherChatApi
   sparsePresets: SparsePresetsApi
   worktrees: WorktreeApi
   workspaceCleanup: WorkspaceCleanupApi

@@ -2,7 +2,7 @@
   "$comment": "Upstream files the Ether fork may touch. Run `pnpm check:ether-fork-surface`. Lower maxFiles when a touch is removed; raise it only with a note here. copiedUpstream maps fork-owned copies to the upstream component they replace; the drift report flags upstream changes to those originals.",
   "upstreamRef": "upstream/main",
   "ignoredPrefixes": ["docs", "plans"],
-  "maxFiles": 151,
+  "maxFiles": 152,
   "seams": {
     "agent-launch": "Every agent started in a local Workspace gets all of its roots (fork-features §3, §4).",
     "chat-history-import": "One-time import of pre-SQLite chat records and journals (Phase 4).",
@@ -16,7 +16,8 @@
     "persistence": "localProjects in the profile store and its contracts (§3).",
     "pty-spawn": "Local Workspace terminals start in the saved root under the spawn lock (§3).",
     "sidebar": "Local Projects sidebar: marks, recency, archive (§6).",
-    "updater": "Packaged Ether never installs upstream Orca updates (§1)."
+    "updater": "Packaged Ether never installs upstream Orca updates (§1).",
+    "chat-fork": "Fork a built-in chat into a new chat from a copy of its conversation."
   },
   "copiedUpstream": {
     "src/renderer/src/features/linear-optional-skill/LinearOptionalSkillTaskSourceSetup.tsx": "src/renderer/src/components/settings/TaskSourceLinearSetup.tsx",
@@ -231,6 +232,9 @@
     },
     "src/renderer/src/components/linear-issue-workspace-sidebar.tsx": {
       "seam": "linear"
+    },
+    "src/renderer/src/components/native-chat/use-native-chat-context-menu.tsx": {
+      "seam": "chat-fork"
     },
     "src/renderer/src/components/new-workspace/use-smart-workspace-field-availability.ts": {
       "seam": "linear"

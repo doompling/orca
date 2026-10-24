@@ -21428,5 +21428,9 @@
     "sourceControl": {
       "commitHelp": "Commits staged changes in {{label}} only."
     }
+  },
+  "etherChatFork": {
+    "menuItem": "Fork Chat",
+    "failed": "Could not fork this chat."
   }
 }

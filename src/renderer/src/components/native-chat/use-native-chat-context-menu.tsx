@@ -28,6 +28,7 @@ import { canMoveTabToNewPaneColumn } from '@/components/tab-bar/tab-move-to-pane
 import { isEditableTarget } from '@/lib/editable-target'
 import { findEditablePrimarySelectionPasteTarget } from '@/lib/primary-selection-paste'
 import { NativeChatCopyOrcaSessionIdMenuItem } from './NativeChatCopyOrcaSessionIdMenuItem'
+import { ForkChatMenuItem } from '@/features/ether-chat-fork/ForkChatMenuItem'
 import { NativeChatSelectionQuote } from './NativeChatSelectionQuote'
 import { NativeChatPaneMenuItems } from './NativeChatPaneMenuItems'
 import type { NativeChatComposerHandle } from './native-chat-composer-types'
@@ -332,6 +333,8 @@ export function useNativeChatContextMenu({
               {hasEditItems || hasSessionItems || showWorkspaceLayout ? (
                 <DropdownMenuSeparator />
               ) : null}
+              {/* Ether seam: chat-fork */}
+              <ForkChatMenuItem unifiedTabId={workspaceLayout?.unifiedTabId} />
               <NativeChatCopyOrcaSessionIdMenuItem resolveOrcaSessionId={resolveOrcaSessionId} />
             </>
           ) : null}

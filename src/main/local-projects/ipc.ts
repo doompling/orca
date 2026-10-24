@@ -21,6 +21,7 @@ import {
   DetachLocalWorkspaceLinearIssueSchema
 } from '../../shared/local-projects/linear-issues'
 import { linkLocalWorkspaceLinearIssue } from './linear-issue-linking'
+import { registerEtherChatForkHandlers } from '../native-chat/ether-chat-fork/chat-fork-ipc'
 
 type LocalProjectIpcStore = Pick<
   Store,
@@ -63,6 +64,8 @@ export function registerLocalProjectHandlers(
     await store.whenLocalProjectsDurable()
     return value
   }
+  // Ether's other desktop handlers register here too, so upstream gains no extra hook.
+  registerEtherChatForkHandlers()
   ipcMain.handle('localProjects:getSnapshot', () => store.getLocalProjectsSnapshot())
   ipcMain.handle('localProjects:createProject', async (_event, input: unknown) => {
     const result = await store.createLocalProject(CreateLocalProjectSchema.parse(input))

@@ -14,6 +14,7 @@ import { projectsApi } from './api/projects-bridge'
 import { projectGroupsApi } from './api/project-groups-bridge'
 import { folderWorkspacesApi } from './api/folder-workspaces-bridge'
 import { localProjectsApi } from './api/local-projects-bridge'
+import { etherChatApi } from './api/ether-chat-bridge'
 import { sparsePresetsApi } from './api/sparse-presets-bridge'
 import { worktreesApi } from './api/worktrees-bridge'
 import { workspaceCleanupApi } from './api/workspace-cleanup-bridge'
@@ -114,6 +115,7 @@ const api = {
   folderWorkspaces: folderWorkspacesApi,
   // Ether seam: local-projects
   localProjects: localProjectsApi,
+  etherChat: etherChatApi,
   sparsePresets: sparsePresetsApi,
   worktrees: worktreesApi,
   workspaceCleanup: workspaceCleanupApi,
