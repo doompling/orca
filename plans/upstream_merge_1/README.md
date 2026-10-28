@@ -349,7 +349,7 @@ Each fork-features.md invariant and what proves it after the merge (all listed t
   - the downgrade procedure;
   - the stale plan links.
     Also delete the stray `visualize-test.html`.
-- [ ] **8.2 Land the branch.** `git switch ether && git merge --ff-only ether-merge-upstream-1`.
+- [x] **8.2 Land the branch.** `git switch ether && git merge --ff-only ether-merge-upstream-1`.
       Ask before pushing.
 - [ ] **8.3 Swap the app (user).** The user has a fresh backup (6.2), quits Ether, and opens the new
       release with the real profile. Check the same list as 6.2. Keep the previous release folder;
@@ -357,6 +357,18 @@ Each fork-features.md invariant and what proves it after the merge (all listed t
 - [ ] **8.4 Afterwards:** schedule the importer deletion and the remaining seam moves (3.6), then
       start plans/04 Phase 1 (Ledger). Ledger follows rule 7 from the start: its UI lives in
       `native-chat/ether-*` files reached through seams.
+
+## Still to verify
+
+The user called the merge a success and landed it (8.2); these checks are still open.
+
+- [ ] **Fork Chat** (`8ae8e7afc0`, release `2026-10-24-8ae8e7afc0`): right-click in a built-in chat
+      tab → Fork Chat. Try a real Claude chat and a real Codex chat; Codex `thread/fork` is only
+      tested against a stand-in. The copy should remember the conversation and keep every Workspace
+      root, and the original should be unchanged.
+- [ ] **Fork Chat in terminal panes:** a chat shown inside a terminal pane gets upstream's "Fork Agent
+      Session…" menu instead, without Fork Chat. Add it there if the user forks chats that way.
+- [ ] **6.2 copy test, 6.3 rollback check and 8.3 app swap** with the real profile, as written above.
 
 ## Cadence after this merge
 
@@ -422,3 +434,5 @@ Add a dated line per working session: what was done, what's next, and anything s
   by moving to upstream's scheduled save + flush barrier). 7.4–7.6 are covered by those rendered e2e
   specs and upstream's own suites; real Linear and real chats are in the user's manual test (6.2).
   Remaining with the user: 6.2 copy test, 6.3 rollback check, 8.2 land, 8.3 swap.
+- 2026-10-28: Added Fork Chat (built-in chat → new parallel chat with all roots). The user called the
+  merge a success; 8.2 landed. Open checks are under "Still to verify".
