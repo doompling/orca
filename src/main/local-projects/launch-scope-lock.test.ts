@@ -15,7 +15,22 @@ import {
 const state = vi.hoisted(() => ({ existing: false }))
 vi.mock('../native-chat/agent-session-wire/structured-agent-session-registry', () => ({
   getStructuredAgentSessionHost: () => ({
-    deps: { store: { getRecord: () => (state.existing ? {} : null) } }
+    deps: {
+      store: {
+        getRecord: (sessionId: string) =>
+          state.existing
+            ? {
+                sessionId,
+                location: {
+                  executionHostId: 'local',
+                  wslDistro: null,
+                  workspaceId: 'folder:workspace',
+                  workspaceKind: 'folder'
+                }
+              }
+            : null
+      }
+    }
   })
 }))
 beforeEach(() => {
@@ -126,6 +141,13 @@ describe('local Workspace launch versus scope edits', () => {
     const release = await acquireLocalWorkspaceStructuredLaunch(f.store, f.runtime, params)
     expect(f.lock.trackedKeyCount).toBe(1)
     release()
+    expect(f.lock.trackedKeyCount).toBe(0)
+    setSessionScopeFileForTests(
+      join(mkdtempSync(join(tmpdir(), 'ether-launch-scope-')), 'scopes.json')
+    )
+    await expect(acquireLocalWorkspaceStructuredLaunch(f.store, f.runtime, params)).rejects.toThrow(
+      'no longer has its saved Workspace roots'
+    )
     expect(f.lock.trackedKeyCount).toBe(0)
     setSessionScopeFileForTests(undefined)
   })

@@ -95,11 +95,14 @@ export async function acquireLocalWorkspaceStructuredLaunch(
     const existing = getStructuredAgentSessionHost()?.deps.store.getRecord(
       params.envelope.sessionId
     )
+    const scope = sessionScopeFor(
+      existing ?? { sessionId: params.envelope.sessionId, location: params.location }
+    )
     if (!existing) {
-      assertFreshScope(
-        resolveWorkspace(store, workspaceId),
-        sessionScopeFor({ sessionId: params.envelope.sessionId, location: params.location })
-      )
+      assertFreshScope(resolveWorkspace(store, workspaceId), scope)
+    } else if (!scope) {
+      // A chat in a local Workspace never runs with fewer roots than it was created with.
+      throw new Error('This chat no longer has its saved Workspace roots. Start a new chat.')
     }
     return release
   } catch (error) {
