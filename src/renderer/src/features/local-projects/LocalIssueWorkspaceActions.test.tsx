@@ -42,13 +42,14 @@ function renderActions(
   props: Partial<React.ComponentProps<typeof LocalIssueWorkspaceActions>> = {}
 ) {
   return render(
-    <LocalIssueWorkspaceActions
-      issue={localLinearIssue}
-      sourceContext={localLinearSource}
-      {...props}
-    >
+    <>
+      <LocalIssueWorkspaceActions
+        issue={localLinearIssue}
+        sourceContext={localLinearSource}
+        {...props}
+      />
       <button>Legacy action</button>
-    </LocalIssueWorkspaceActions>
+    </>
   )
 }
 function openPicker() {
@@ -58,9 +59,10 @@ function openPicker() {
 describe('Tasks local Workspace actions', () => {
   it('does not pick an arbitrary attachment and opens only the chosen Workspace', async () => {
     renderActions()
-    expect(screen.getByRole('button', { name: 'Workspaces for ENG-1' }).textContent).toContain(
-      'Workspaces (2)'
-    )
+    const trigger = screen.getByRole('button', { name: 'Workspaces for ENG-1' })
+    expect(trigger.textContent).toContain('Workspaces (2)')
+    expect(trigger.className).toContain('[&+*]:hidden!')
+    expect(trigger.nextElementSibling?.textContent).toBe('Legacy action')
     openPicker()
     expect(actions.activateLocalWorkspace).not.toHaveBeenCalled()
     expect(screen.getByRole('option', { name: 'Application / Main' })).toBeTruthy()
@@ -144,20 +146,16 @@ describe('Tasks local Workspace actions', () => {
   it('does not use remote account metadata or an unrelated local account', () => {
     statusKey = 'runtime:remote#0'
     const view = renderActions()
-    expect(screen.getByRole('button', { name: 'Legacy action' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Workspaces for ENG-1' })).toBeNull()
     view.unmount()
     statusKey = 'local#0'
     account = { ...localLinearAccount, id: 'another-account' }
     renderActions()
-    expect(screen.getByRole('button', { name: 'Legacy action' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Workspaces for ENG-1' })).toBeNull()
   })
 
   it('lists every linked Project / Workspace in issue details', async () => {
-    render(
-      <LocalIssueWorkspaceLinks issue={localLinearIssue} sourceContext={localLinearSource}>
-        None yet
-      </LocalIssueWorkspaceLinks>
-    )
+    render(<LocalIssueWorkspaceLinks issue={localLinearIssue} sourceContext={localLinearSource} />)
     expect(screen.getByRole('button', { name: 'Application / Main' })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Application / Investigate' }))
     await waitFor(() =>

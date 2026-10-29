@@ -2,7 +2,7 @@
   "$comment": "Upstream files the Ether fork may touch. Run `pnpm check:ether-fork-surface`. Each seam names the features (docs/ether-changes-technical.md) it serves. Lower maxFiles when a touch is removed; raise it only with a note here. copiedUpstream maps fork-owned copies to the upstream component they replace; the drift report flags upstream changes to those originals.",
   "upstreamRef": "upstream/main",
   "ignoredPrefixes": ["docs", "plans"],
-  "maxFiles": 152,
+  "maxFiles": 149,
   "seams": {
     "agent-launch": {
       "features": ["E4"],
@@ -257,9 +257,6 @@
     "src/renderer/src/components/Landing.tsx": {
       "seam": "local-projects"
     },
-    "src/renderer/src/components/LinearIssueWorkspace.tsx": {
-      "seam": "linear"
-    },
     "src/renderer/src/components/QuickOpen.tsx": {
       "seam": "local-projects"
     },
@@ -353,9 +350,6 @@
     "src/renderer/src/components/task-page/linear/ProjectList.tsx": {
       "seam": "linear"
     },
-    "src/renderer/src/components/task-page/linear/task-page-linear-in-orca-issues.ts": {
-      "seam": "linear"
-    },
     "src/renderer/src/components/terminal-pane/ipc-pty-spawn-request.ts": {
       "seam": "agent-launch"
     },
@@ -369,9 +363,6 @@
       "seam": "linear"
     },
     "src/renderer/src/components/use-task-page-linear-in-orca-effects.ts": {
-      "seam": "linear"
-    },
-    "src/renderer/src/components/use-task-page-store-bindings.ts": {
       "seam": "linear"
     },
     "src/renderer/src/components/use-terminal-editor-close-foundation.ts": {

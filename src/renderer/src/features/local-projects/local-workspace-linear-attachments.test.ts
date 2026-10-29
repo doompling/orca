@@ -1,14 +1,13 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
   localLinearIssueAccount,
   localLinearIssueAttachments,
   localLinearWorkspaceTargets
 } from './local-workspace-linear-attachments'
 import {
-  localWorkspaceLinearTaskRefs,
-  readLinkedLinearIssueRef
+  dropMismatchedLocalLinearIssues,
+  localWorkspaceLinearTaskRefs
 } from './local-workspace-linear-task-refs'
-import { linkedLinearIssueRefsSignature } from '@/components/task-page/linear/task-page-linear-in-orca-issues'
 import {
   localLinearAccount,
   localLinearCatalog,
@@ -66,13 +65,11 @@ describe('canonical local Linear Tasks attachments', () => {
     })
     expect(refs).toHaveLength(1)
     expect(refs[0]).toMatchObject({
+      identifier: 'issue',
       issueId: 'issue',
-      organizationId: 'organization',
       workspaceId: 'account',
       sourceContext: { hostId: 'local', providerIdentity: { workspaceId: 'account' } }
     })
-    const changed = [{ ...refs[0], issueId: 'another-uuid' }]
-    expect(linkedLinearIssueRefsSignature(refs)).not.toBe(linkedLinearIssueRefsSignature(changed))
   })
 
   it('does not route a saved link through another account, organization, host or archived Workspace', () => {
@@ -101,22 +98,23 @@ describe('canonical local Linear Tasks attachments', () => {
     expect(localWorkspaceLinearTaskRefs(args)).toEqual([])
   })
 
-  it('reads a renamed ticket by UUID and rejects a wrong-account or wrong-UUID response', async () => {
-    const [ref] = localWorkspaceLinearTaskRefs({
+  it('keeps a renamed ticket read by UUID and rejects a wrong-account or wrong-UUID response', () => {
+    const refs = localWorkspaceLinearTaskRefs({
       catalog: localLinearCatalog(),
       accounts: [localLinearAccount],
       sourceContext: localLinearSource
     })
-    const fetch = vi.fn().mockResolvedValue({ ...localLinearIssue, identifier: 'NEW-42' })
-    const refresh = vi.fn().mockResolvedValue(localLinearIssue)
-    const options = { fetch, refresh, forceRefresh: false, sourceContext: localLinearSource }
-    expect(await readLinkedLinearIssueRef(ref, options)).toMatchObject({ identifier: 'NEW-42' })
-    expect(fetch).toHaveBeenCalledWith('issue', 'account', { sourceContext: ref.sourceContext })
-    fetch.mockResolvedValueOnce({ ...localLinearIssue, workspaceId: 'wrong-account' })
-    expect(await readLinkedLinearIssueRef(ref, options)).toBeNull()
-    fetch.mockResolvedValueOnce({ ...localLinearIssue, id: 'wrong-uuid' })
-    expect(await readLinkedLinearIssueRef(ref, options)).toBeNull()
-    await readLinkedLinearIssueRef(ref, { ...options, forceRefresh: true })
-    expect(refresh).toHaveBeenCalledOnce()
+    const renamed = { ...localLinearIssue, identifier: 'NEW-42' }
+    expect(dropMismatchedLocalLinearIssues(refs, [renamed])).toEqual([renamed])
+    expect(
+      dropMismatchedLocalLinearIssues(refs, [{ ...localLinearIssue, workspaceId: 'wrong-account' }])
+    ).toEqual([null])
+    expect(
+      dropMismatchedLocalLinearIssues(refs, [{ ...localLinearIssue, id: 'wrong-uuid' }])
+    ).toEqual([null])
+    const worktreeIssue = { ...localLinearIssue, id: 'other' }
+    expect(
+      dropMismatchedLocalLinearIssues([{ identifier: 'ENG-9', workspaceId: null }], [worktreeIssue])
+    ).toEqual([worktreeIssue])
   })
 })

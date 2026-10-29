@@ -161,12 +161,11 @@ export function LinearIssueWorkspaceSidebar({
         sourceContext={sourceContext}
       />
       {/* Ether seam: linear */}
-      <LocalIssueWorkspaceLinks issue={issue} sourceContext={sourceContext}>
-        <LinearIssueWorkspaceAttachmentCard
-          label={attachedWorkspaceLabel}
-          onOpen={onOpenAttachedWorkspace}
-        />
-      </LocalIssueWorkspaceLinks>
+      <LocalIssueWorkspaceLinks issue={issue} sourceContext={sourceContext} />
+      <LinearIssueWorkspaceAttachmentCard
+        label={attachedWorkspaceLabel}
+        onOpen={onOpenAttachedWorkspace}
+      />
       <LinearIssueActionsCard issue={issue} comments={comments} />
     </aside>
   )

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useState } from 'react'
 import { FolderOpen } from 'lucide-react'
 import { useAppStore } from '@/store'
 import { Button } from '@/components/ui/button'
@@ -7,20 +7,19 @@ import type { TaskSourceContext } from '../../../../shared/task-source-context'
 import { useLocalLinearIssueWorkspaces } from './use-local-linear-issue-workspaces'
 import { translate } from '@/i18n/i18n'
 
+/** Replaces the issue details Workspace card when local Workspaces link the issue. */
 export function LocalIssueWorkspaceLinks({
   issue,
-  sourceContext,
-  children
+  sourceContext
 }: {
   issue: LinearIssue
   sourceContext?: TaskSourceContext | null
-  children: ReactNode
-}): React.JSX.Element {
+}): React.JSX.Element | null {
   const { account, attached } = useLocalLinearIssueWorkspaces(issue, sourceContext)
   const activate = useAppStore((state) => state.activateLocalWorkspace)
   const [error, setError] = useState<string | null>(null)
   if (!account || attached.length === 0) {
-    return <>{children}</>
+    return null
   }
   return (
     <section
@@ -28,7 +27,8 @@ export function LocalIssueWorkspaceLinks({
         'auto.features.local.projects.LocalIssueWorkspaceLinks.0c7d222f2e',
         'Linked Workspaces'
       )}
-      className="space-y-2"
+      // Why: rendered just before the upstream Workspace card it replaces, so upstream JSX stays untouched.
+      className="space-y-2 [&+*]:hidden!"
     >
       <h3 className="text-sm font-medium">
         {translate(

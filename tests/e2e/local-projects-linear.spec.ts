@@ -195,6 +195,16 @@ test('links multiple Linear issues without coupling Workspace tabs and restores 
       .click()
     await expect(linksPopover(page)).toHaveCount(0)
     await expect(page.getByText(MAIN_ISSUE.title, { exact: true }).first()).toBeVisible()
+    // Local links replace, not join, the single-workspace actions in issue details.
+    await expect(page.getByRole('region', { name: 'Linked Workspaces', exact: true })).toBeVisible()
+    await expect(
+      page
+        .getByRole('button', { name: `Workspaces for ${MAIN_ISSUE.identifier}`, exact: true })
+        .first()
+    ).toBeVisible()
+    await expect(
+      page.getByRole('button', { name: 'Start workspace from issue', exact: true })
+    ).toHaveCount(0)
     await workspaceRow(page, 'Main').click()
     expect(await editorSnapshot(page)).toEqual(main)
 

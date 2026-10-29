@@ -11,9 +11,6 @@ import { normalizeLinearIdentifier } from '../../../lib/linear-issue-workspace-a
 
 export type LinkedLinearIssueRef = {
   identifier: string
-  // Ether seam: linear — local Workspace links read by saved UUID and organization.
-  issueId?: string
-  organizationId?: string
   workspaceId: string | null
   organizationUrlKey?: string
   sourceContext?: TaskSourceContext | null
@@ -158,8 +155,7 @@ export function linkedLinearIssueRefsSignature(refs: readonly LinkedLinearIssueR
   return refs
     .map((ref) => {
       const sourceScope = ref.sourceContext ? getTaskSourceCacheScope(ref.sourceContext) : ''
-      // Ether seam: linear
-      return `${ref.issueId ?? ref.identifier.toUpperCase()}::${ref.organizationId ?? ''}::${ref.workspaceId ?? ''}::${ref.organizationUrlKey?.toLowerCase() ?? ''}::${sourceScope}`
+      return `${ref.identifier.toUpperCase()}::${ref.workspaceId ?? ''}::${ref.organizationUrlKey?.toLowerCase() ?? ''}::${sourceScope}`
     })
     .sort()
     .join('|')

@@ -84,10 +84,15 @@ test('creates one ticket-linked Workspace from Tasks and finds its second issue 
   await page.getByRole('button', { name: 'Tasks', exact: true }).click()
   await page.locator('[data-task-source="linear"]').click()
   await expect(page.getByRole('group', { name: 'Linear task mode', exact: true })).toBeVisible()
-  await page
+  const issueWorkspaces = page
     .getByRole('button', { name: `Workspaces for ${NEW_ISSUE.identifier}`, exact: true })
     .first()
-    .click()
+  await expect(issueWorkspaces).toBeVisible()
+  // The local action replaces, not joins, the row's Start button.
+  await expect(
+    page.getByRole('button', { name: `Start workspace from ${NEW_ISSUE.identifier}`, exact: true })
+  ).toHaveCount(0)
+  await issueWorkspaces.click()
   await page.getByRole('option', { name: 'New Workspace for issue', exact: true }).click()
   const dialog = await expectIssueComposer(page)
   await page.screenshot({

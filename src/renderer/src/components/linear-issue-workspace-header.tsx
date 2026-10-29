@@ -24,10 +24,9 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { translate } from '@/i18n/i18n'
 import type { LinearIssue } from '../../../shared/linear/issue-types'
-import type { TaskSourceContext } from '../../../shared/task-source-context'
 import { copyLinearIssueText } from './linear-issue-clipboard'
 // Ether seam: linear
-import { LocalIssueWorkspaceActions } from '@/features/local-projects/LocalIssueWorkspaceActions'
+import { LocalIssueWorkspaceHeaderActions } from '@/features/local-projects/LocalIssueWorkspaceActions'
 
 export function LinearIssueWorkspaceHeader({
   issue,
@@ -37,10 +36,7 @@ export function LinearIssueWorkspaceHeader({
   backLabel,
   onClose,
   onOpenOrUseIssue,
-  onUseIssue,
-  // Ether seam: linear
-  attachedWorkspaceLabel,
-  sourceContext
+  onUseIssue
 }: {
   issue: LinearIssue
   issueLoading: boolean
@@ -50,9 +46,6 @@ export function LinearIssueWorkspaceHeader({
   onClose: () => void
   onOpenOrUseIssue: () => void
   onUseIssue: () => void
-  // Ether seam: linear
-  attachedWorkspaceLabel?: string | null
-  sourceContext?: TaskSourceContext | null
 }): React.JSX.Element {
   return (
     <header className="flex h-[61px] flex-none items-center justify-between gap-4 border-b border-border/60 px-5">
@@ -124,72 +117,66 @@ export function LinearIssueWorkspaceHeader({
             {translate('auto.components.LinearIssueWorkspace.openOnLinear', 'Open on Linear')}
           </TooltipContent>
         </Tooltip>
-        {/* Ether seam: linear — local Workspace links wrap the workspace action. */}
-        <LocalIssueWorkspaceActions
+        {/* Ether seam: linear */}
+        <LocalIssueWorkspaceHeaderActions
           issue={issue}
-          sourceContext={sourceContext}
-          legacyWorkspaceLabel={attachedWorkspaceLabel}
           onOpenLegacyWorkspace={onOpenOrUseIssue}
           onCreateWorkspace={onUseIssue}
-        >
-          {attachedWorkspace ? (
-            <DropdownMenu modal={false}>
-              <ButtonGroup>
+        />
+        {attachedWorkspace ? (
+          <DropdownMenu modal={false}>
+            <ButtonGroup>
+              <Button
+                type="button"
+                size="sm"
+                onClick={onOpenOrUseIssue}
+                className="gap-1.5 whitespace-nowrap"
+                aria-label={translate(
+                  'auto.components.LinearIssueWorkspace.openAttachedWorkspace',
+                  'Open workspace attached to issue'
+                )}
+              >
+                <FolderOpen className="size-3.5" />
+                {translate('auto.components.LinearIssueWorkspace.openWorkspace', 'Open workspace')}
+              </Button>
+              <DropdownMenuTrigger asChild>
                 <Button
                   type="button"
-                  size="sm"
-                  onClick={onOpenOrUseIssue}
-                  className="gap-1.5 whitespace-nowrap"
+                  size="icon-sm"
                   aria-label={translate(
-                    'auto.components.LinearIssueWorkspace.openAttachedWorkspace',
-                    'Open workspace attached to issue'
+                    'auto.components.LinearIssueWorkspace.moreWorkspaceActions',
+                    'More issue workspace actions'
                   )}
                 >
-                  <FolderOpen className="size-3.5" />
-                  {translate(
-                    'auto.components.LinearIssueWorkspace.openWorkspace',
-                    'Open workspace'
-                  )}
+                  <ChevronDown className="size-3.5" />
                 </Button>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    type="button"
-                    size="icon-sm"
-                    aria-label={translate(
-                      'auto.components.LinearIssueWorkspace.moreWorkspaceActions',
-                      'More issue workspace actions'
-                    )}
-                  >
-                    <ChevronDown className="size-3.5" />
-                  </Button>
-                </DropdownMenuTrigger>
-              </ButtonGroup>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onSelect={onUseIssue}>
-                  <Plus className="size-4" />
-                  {translate(
-                    'auto.components.LinearIssueWorkspace.startNewWorkspace',
-                    'Start new workspace'
-                  )}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <Button
-              type="button"
-              size="sm"
-              onClick={onOpenOrUseIssue}
-              className="gap-1.5 whitespace-nowrap"
-              aria-label={translate(
-                'auto.components.LinearIssueWorkspace.30a7f56c0a',
-                'Start workspace from issue'
-              )}
-            >
-              {translate('auto.components.LinearIssueWorkspace.e1e0a9bca9', 'Start workspace')}
-              <ArrowRight className="size-3.5" />
-            </Button>
-          )}
-        </LocalIssueWorkspaceActions>
+              </DropdownMenuTrigger>
+            </ButtonGroup>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={onUseIssue}>
+                <Plus className="size-4" />
+                {translate(
+                  'auto.components.LinearIssueWorkspace.startNewWorkspace',
+                  'Start new workspace'
+                )}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <Button
+            type="button"
+            size="sm"
+            onClick={onOpenOrUseIssue}
+            className="gap-1.5 whitespace-nowrap"
+            aria-label={translate(
+              'auto.components.LinearIssueWorkspace.30a7f56c0a',
+              'Start workspace from issue'
+            )}
+          >
+            {translate('auto.components.LinearIssueWorkspace.e1e0a9bca9', 'Start workspace')}
+            <ArrowRight className="size-3.5" />
+          </Button>
+        )}
         {variant === 'sheet' ? (
           <Tooltip>
             <TooltipTrigger asChild>

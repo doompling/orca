@@ -1,6 +1,11 @@
-import { useState, type ReactNode } from 'react'
+import { useMemo, useState } from 'react'
 import { FolderOpen, Link, Plus } from 'lucide-react'
 import { useAppStore } from '@/store'
+import { useAllWorktrees } from '@/store/selectors'
+import { selectFolderWorkspaces } from '@/store/workspace-record-selectors'
+import { findLinearIssueWorkspaceAttachment } from '@/lib/linear-issue-workspace-attachment'
+import { getWorktreeAttachmentLabel } from '@/lib/worktree-attachment-label'
+import { folderWorkspaceToWorktree } from '../../../../shared/folder-workspace-worktree'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
@@ -16,21 +21,73 @@ import type { TaskSourceContext } from '../../../../shared/task-source-context'
 import { useLocalLinearIssueWorkspaces } from './use-local-linear-issue-workspaces'
 import { translate } from '@/i18n/i18n'
 
+/** Replaces a Tasks row's Start/Open action when the issue can link local Workspaces. */
+export function LocalIssueTaskRowActions({
+  issue,
+  model,
+  legacyWorkspaceLabel
+}: {
+  issue: LinearIssue
+  model: {
+    linearTaskSourceContext: TaskSourceContext | null
+    handleUseLinearItem: (issue: LinearIssue) => void
+    handleOpenOrUseLinearItem: (issue: LinearIssue) => void
+  }
+  legacyWorkspaceLabel: string | null
+}): React.JSX.Element | null {
+  return (
+    <LocalIssueWorkspaceActions
+      issue={issue}
+      sourceContext={model.linearTaskSourceContext}
+      legacyWorkspaceLabel={legacyWorkspaceLabel}
+      onOpenLegacyWorkspace={() => model.handleOpenOrUseLinearItem(issue)}
+      onCreateWorkspace={() => model.handleUseLinearItem(issue)}
+    />
+  )
+}
+
+/** Replaces the issue details workspace action when the issue can link local Workspaces. */
+export function LocalIssueWorkspaceHeaderActions({
+  issue,
+  onOpenLegacyWorkspace,
+  onCreateWorkspace
+}: {
+  issue: LinearIssue
+  onOpenLegacyWorkspace: () => void
+  onCreateWorkspace: () => void
+}): React.JSX.Element | null {
+  const allWorktrees = useAllWorktrees()
+  const folderWorkspaces = useAppStore((state) => selectFolderWorkspaces(state))
+  const legacyWorkspaceLabel = useMemo(() => {
+    const attached = findLinearIssueWorkspaceAttachment(
+      [...allWorktrees, ...folderWorkspaces.map(folderWorkspaceToWorktree)],
+      issue
+    )
+    return attached ? getWorktreeAttachmentLabel(attached) : null
+  }, [allWorktrees, folderWorkspaces, issue])
+  return (
+    <LocalIssueWorkspaceActions
+      issue={issue}
+      legacyWorkspaceLabel={legacyWorkspaceLabel}
+      onOpenLegacyWorkspace={onOpenLegacyWorkspace}
+      onCreateWorkspace={onCreateWorkspace}
+    />
+  )
+}
+
 export function LocalIssueWorkspaceActions({
   issue,
   sourceContext,
   legacyWorkspaceLabel,
   onOpenLegacyWorkspace,
-  onCreateWorkspace,
-  children
+  onCreateWorkspace
 }: {
   issue: LinearIssue
   sourceContext?: TaskSourceContext | null
   legacyWorkspaceLabel?: string | null
   onOpenLegacyWorkspace?: () => void
   onCreateWorkspace?: () => void
-  children: ReactNode
-}): React.JSX.Element {
+}): React.JSX.Element | null {
   const { account, targets, attached } = useLocalLinearIssueWorkspaces(issue, sourceContext)
   const attach = useAppStore((state) => state.attachLocalWorkspaceLinearIssue)
   const activate = useAppStore((state) => state.activateLocalWorkspace)
@@ -38,7 +95,7 @@ export function LocalIssueWorkspaceActions({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   if (!account || targets.length === 0) {
-    return <>{children}</>
+    return null
   }
   const attachedIds = new Set(attached.map(({ workspace }) => workspace.id))
   const run = async (action: () => Promise<void>) => {
@@ -62,6 +119,8 @@ export function LocalIssueWorkspaceActions({
         <Button
           variant="outline"
           size="xs"
+          // Why: callers render this just before the upstream action it replaces, so upstream JSX stays untouched.
+          className="[&+*]:hidden!"
           aria-label={translate(
             'auto.features.local.projects.LocalIssueWorkspaceActions.aec92e896e',
             'Workspaces for {{value0}}',

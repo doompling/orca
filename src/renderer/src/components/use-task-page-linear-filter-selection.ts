@@ -20,15 +20,11 @@ import {
   linkedLinearIssueRefsSignature
 } from '@/components/task-page/linear/task-page-linear-in-orca-issues'
 // Ether seam: linear
-import { localWorkspaceLinearTaskRefsForStatus } from '@/features/local-projects/local-workspace-linear-task-refs'
+import { useWithLocalWorkspaceLinearTaskRefs } from '@/features/local-projects/local-workspace-linear-task-refs'
 export function useTaskPageLinearFilterSelection(model: TaskPageLinearListSelectionPreludeModel) {
   const {
     allWorktrees,
     linearStatus,
-    linearStatusContextKey,
-    linearStatusChecked,
-    localProjects,
-    linearTaskSourceContext,
     folderWorkspaces,
     selectedLinearWorkspaceId,
     linearMode,
@@ -122,31 +118,18 @@ export function useTaskPageLinearFilterSelection(model: TaskPageLinearListSelect
     () => buildLinearIssueWorkspaceAttachmentIndex(linearAttachmentWorkspaces),
     [linearAttachmentWorkspaces]
   )
-  const inOrcaLinkedLinearRefs = useMemo(
-    () => [
-      ...collectLinkedLinearIssueRefsFromWorktrees(linearAttachmentWorkspaces, {
+  const worktreeLinkedLinearRefs = useMemo(
+    () =>
+      collectLinkedLinearIssueRefsFromWorktrees(linearAttachmentWorkspaces, {
         workspaceId: selectedLinearWorkspaceId,
         workspaces: linearStatus.workspaces ?? []
       }),
-      // Ether seam: linear
-      ...localWorkspaceLinearTaskRefsForStatus({
-        catalog: localProjects,
-        accounts: linearStatus.workspaces ?? [],
-        statusChecked: linearStatusChecked,
-        statusContextKey: linearStatusContextKey,
-        selectedAccountId: selectedLinearWorkspaceId,
-        sourceContext: linearTaskSourceContext
-      })
-    ],
-    [
-      linearAttachmentWorkspaces,
-      linearStatus.workspaces,
-      linearStatusContextKey,
-      linearStatusChecked,
-      localProjects,
-      linearTaskSourceContext,
-      selectedLinearWorkspaceId
-    ]
+    [linearAttachmentWorkspaces, linearStatus.workspaces, selectedLinearWorkspaceId]
+  )
+  // Ether seam: linear
+  const inOrcaLinkedLinearRefs = useWithLocalWorkspaceLinearTaskRefs(
+    worktreeLinkedLinearRefs,
+    model
   )
   const inOrcaLinkedLinearRefsSignature = useMemo(
     () => linkedLinearIssueRefsSignature(inOrcaLinkedLinearRefs),
