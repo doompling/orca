@@ -27,6 +27,7 @@ import {
 } from './helpers/local-project-controls'
 import {
   installLocalProjectScriptedChat,
+  readLocalWorkspaceChatRoots,
   readLocalProjectScriptedChatReport,
   SCRIPTED_CHAT_MESSAGE,
   SCRIPTED_CHAT_RESPONSE
@@ -287,7 +288,8 @@ test('cold native chat keeps its history and frozen roots, then continues in a n
     }
     const sessionId = tabId.slice('structured-agent-session-'.length)
     const before = readNativeRecord(session.userDataDir, sessionId)
-    expect(before.localWorkspaceScope?.roots.map((root) => root.path)).toEqual(directories)
+    const frozenRoots = readLocalWorkspaceChatRoots(session.userDataDir, sessionId)
+    expect(frozenRoots?.roots.map((root) => root.path)).toEqual(directories)
     if (!before.lease.ownerProcess) {
       throw new Error('The scripted native child did not acquire a process identity')
     }
@@ -322,7 +324,7 @@ test('cold native chat keeps its history and frozen roots, then continues in a n
       timeout: 20_000
     })
     const after = readNativeRecord(session.userDataDir, sessionId)
-    expect(after.localWorkspaceScope).toEqual(before.localWorkspaceScope)
+    expect(readLocalWorkspaceChatRoots(session.userDataDir, sessionId)).toEqual(frozenRoots)
     expect(after.location).toEqual(before.location)
     const beforeHandle = before.providerHandleChain.at(-1)?.handle
     const afterHandle = after.providerHandleChain.at(-1)?.handle
@@ -346,7 +348,7 @@ test('cold native chat keeps its history and frozen roots, then continues in a n
     )
     await testInfo.attach('native-cold-process-replacement.json', {
       body: JSON.stringify(
-        { sessionId, before: nativeProcess, after: replacement, scope: after.localWorkspaceScope },
+        { sessionId, before: nativeProcess, after: replacement, scope: frozenRoots },
         null,
         2
       ),

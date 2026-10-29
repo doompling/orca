@@ -139,3 +139,19 @@ export function normalizeScriptedChatArguments(args: string[]): string[] {
     return equal === -1 ? [arg] : [arg.slice(0, equal), arg.slice(equal + 1)]
   })
 }
+
+const SessionScopeFileSchema = z.object({
+  scopes: z.record(
+    z.string(),
+    z.object({ cwd: z.string(), roots: z.array(z.object({ path: z.string() })) })
+  )
+})
+
+/** The roots Ether froze for a chat, from its scope store beside the agent-session database. */
+export function readLocalWorkspaceChatRoots(
+  userDataDir: string,
+  sessionId: string
+): { cwd: string; roots: { path: string }[] } | undefined {
+  const file = path.join(userDataDir, 'ether-agent-session-scopes.json')
+  return SessionScopeFileSchema.parse(JSON.parse(readFileSync(file, 'utf8'))).scopes[sessionId]
+}

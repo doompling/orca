@@ -11,6 +11,7 @@ import { expect, test as base } from './helpers/orca-app'
 import { createProject } from './helpers/local-project-controls'
 import {
   installLocalProjectScriptedChat,
+  readLocalWorkspaceChatRoots,
   SCRIPTED_CHAT_MESSAGE,
   SCRIPTED_CHAT_RESPONSE
 } from './helpers/local-project-scripted-chat'
@@ -147,7 +148,8 @@ test('forks a built-in chat into a new chat with a copy of its conversation and 
     (record) => record.providerHandleChain[0]?.handle.nativeId !== sourceSession
   )
   expect(fork?.providerHandleChain[0]?.handle.nativeId).toBeTruthy()
-  expect(fork?.localWorkspaceScope?.roots.map((root) => root.path)).toEqual(directories)
+  const forkRoots = fork && readLocalWorkspaceChatRoots(userDataDir, fork.sessionId)
+  expect(forkRoots?.roots.map((root) => root.path)).toEqual(directories)
   await expect.poll(() => chatTabs.count()).toBe(tabsBefore + 1)
   const forked = page.locator('[data-native-chat-root="true"]:visible')
   await expect(forked.getByText(SCRIPTED_CHAT_RESPONSE, { exact: true }).first()).toBeVisible({
