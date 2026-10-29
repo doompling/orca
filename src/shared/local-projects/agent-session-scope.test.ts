@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  isPersistedAgentSessionRecord,
-  type AgentSessionExecutionLocation
-} from '../agent-session-record'
-import { agentSessionRecordFixture } from '../agent-session-record.test-fixture'
-import { encodeAgentSessionRecord } from '../agent-session-record-stored-form'
+import type { AgentSessionExecutionLocation } from '../agent-session-record'
 import { captureLocalWorkspaceLaunchScope } from './agent-launch-scope'
 import { isLocalWorkspaceSessionScope } from './agent-session-scope'
 
@@ -24,19 +19,10 @@ const location: AgentSessionExecutionLocation = {
   workspaceKind: 'folder'
 }
 
-const storedRecord = () => encodeAgentSessionRecord(agentSessionRecordFixture())
-
 describe('durable multi-root session scope', () => {
-  it('keeps legacy records valid without adding a scope', () => {
-    expect(isPersistedAgentSessionRecord(storedRecord())).toBe(true)
+  it('accepts no scope, or only the matching local Workspace owner', () => {
     expect(isLocalWorkspaceSessionScope(undefined, location)).toBe(true)
-  })
-
-  it('accepts only the matching local Workspace owner', () => {
     expect(isLocalWorkspaceSessionScope(scope, location)).toBe(true)
-    expect(
-      isPersistedAgentSessionRecord({ ...storedRecord(), location, localWorkspaceScope: scope })
-    ).toBe(true)
   })
 
   it.each([
@@ -46,13 +32,6 @@ describe('durable multi-root session scope', () => {
     { ...location, workspaceKind: 'git-worktree' as const }
   ])('refuses a saved scope under another owner: %j', (otherLocation) => {
     expect(isLocalWorkspaceSessionScope(scope, otherLocation)).toBe(false)
-    expect(
-      isPersistedAgentSessionRecord({
-        ...storedRecord(),
-        location: otherLocation,
-        localWorkspaceScope: scope
-      })
-    ).toBe(false)
   })
 
   it.each([

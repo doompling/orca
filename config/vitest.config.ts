@@ -97,7 +97,7 @@ const testOptions = {
   setupFiles: UNIT_SETUP_FILES.map((file) => resolve(file)),
   include: UNIT_INCLUDE,
   // Ether seam: local-projects
-  exclude: [...(balancedShards ? UNIT_EXCLUDE : defaultExclude), ...ETHER_REPLACED_UPSTREAM_TESTS],
+  exclude: balancedShards ? UNIT_EXCLUDE : [...defaultExclude, ...ETHER_REPLACED_UPSTREAM_TESTS],
   hookTimeout: 60_000,
   testTimeout: 30_000
 }
