@@ -93,7 +93,7 @@ beforeEach(() => {
 describe('desktop local Project IPC', () => {
   it('registers one validated route per typed API operation', async () => {
     const store = register()
-    expect(handlers.size).toBe(11)
+    expect(handlers.size).toBe(12)
     expect(call('localProjects:getSnapshot')).toEqual(store.getLocalProjectsSnapshot())
     const input = {
       name: 'Application',

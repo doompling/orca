@@ -123,7 +123,7 @@ docs/**
 !docs/bug-reproductions/**
 !docs/STYLEGUIDE.md
 # Ether seam: docs
-!docs/ether-maintenance.md
+!docs/ether-*.md
 !docs/reference/
 !docs/reference/cross-platform-support.md
 !docs/reference/git-workflow.md
