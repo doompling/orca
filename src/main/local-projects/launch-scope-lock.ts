@@ -10,7 +10,7 @@ import type { RuntimeStore } from '../runtime/runtime-store-contract'
 
 type Store = Pick<RuntimeStore, 'resolveLocalWorkspace'>
 type Runtime = Pick<OrcaRuntimeService, 'acquireWorktreeTerminalMutation'>
-type PtyLaunch = {
+export type PtyLaunch = {
   worktreeId?: string
   connectionId?: string | null
   cwd?: string
@@ -47,38 +47,30 @@ function assertFreshScope(
 }
 
 /**
- * Runs under upstream's worktree spawn lock, which the caller already holds (`release`): the launch
- * must still match its Workspace's current roots. Releases the lock before refusing.
+ * Runs under upstream's worktree spawn lock (`lockHeld`): the launch must still match its
+ * Workspace's current roots. Upstream's spawn operation releases the lock when this throws.
  */
 export function assertLocalWorkspacePtyLaunchUnderLock(
   store: Store | undefined,
   args: PtyLaunch,
-  release: (() => void) | undefined
+  lockHeld: boolean
 ): void {
   if (!resolveWorkspace(store, args.worktreeId)) {
     return
   }
-  try {
-    if (!release || !args.worktreeId || args.connectionId) {
-      throw new Error('Local Workspace execution owner is unavailable.')
+  if (!lockHeld || !args.worktreeId || args.connectionId) {
+    throw new Error('Local Workspace execution owner is unavailable.')
+  }
+  const current = resolveWorkspace(store, args.worktreeId)
+  if (!current) {
+    throw new Error('Local Workspace no longer exists.')
+  }
+  if (!args.sessionId && !args.resumeProviderSession) {
+    if (args.launchConfig?.localWorkspaceScope) {
+      assertFreshScope(current, args.launchConfig.localWorkspaceScope)
+    } else if (args.cwd && !current.roots.some((root) => isPathInsideOrEqual(root.path, args.cwd!))) {
+      throw new Error('The requested terminal directory is no longer inside this Workspace.')
     }
-    const current = resolveWorkspace(store, args.worktreeId)
-    if (!current) {
-      throw new Error('Local Workspace no longer exists.')
-    }
-    if (!args.sessionId && !args.resumeProviderSession) {
-      if (args.launchConfig?.localWorkspaceScope) {
-        assertFreshScope(current, args.launchConfig.localWorkspaceScope)
-      } else if (
-        args.cwd &&
-        !current.roots.some((root) => isPathInsideOrEqual(root.path, args.cwd!))
-      ) {
-        throw new Error('The requested terminal directory is no longer inside this Workspace.')
-      }
-    }
-  } catch (error) {
-    release?.()
-    throw error
   }
 }
 

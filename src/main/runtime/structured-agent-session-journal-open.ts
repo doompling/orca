@@ -1,5 +1,3 @@
-// Opening the chat journal database for the host install.
-
 import { JournalHostDatabase } from '../native-chat/agent-session-journal/journal-host-database'
 import { journalOpenRefusalError } from '../native-chat/agent-session-journal/journal-open-failure'
 import { recordStructuredAgentSessionHostInstallRefusal } from './structured-agent-session-host-refusal'
@@ -7,7 +5,7 @@ import type { StructuredAgentSessionLogger } from '../native-chat/agent-session-
 // Ether seam: chat-history-import
 import { importEtherLegacyChatHistory } from '../native-chat/ether-legacy-chat-import/legacy-chat-history-import'
 
-// Every chat request retries a failed open, so each distinct failure is logged once, with its stack.
+// Repeated requests retry journal open; log each distinct failure once, including its stack.
 let lastLoggedOpenFailure: string | null = null
 
 function logOpenFailureOnce(logger: StructuredAgentSessionLogger, error: unknown): void {
@@ -25,8 +23,7 @@ function logOpenFailureOnce(logger: StructuredAgentSessionLogger, error: unknown
   })
 }
 
-/** The journal database. A refusal is recorded for the gate and thrown to the caller; the next
- *  install tries again. */
+/** Record the journal refusal for the gate and throw; the next install retries. */
 export function openStructuredAgentSessionJournalDatabase(args: {
   stateDirectory: string
   logger: StructuredAgentSessionLogger
@@ -40,7 +37,7 @@ export function openStructuredAgentSessionJournalDatabase(args: {
     return opened
   } catch (error) {
     logOpenFailureOnce(args.logger, error)
-    // Nothing is renamed, deleted or rebuilt: the file is left exactly as it is.
+    // Refusal must leave the database file intact.
     const refusal = journalOpenRefusalError(error)
     recordStructuredAgentSessionHostInstallRefusal(refusal)
     throw refusal

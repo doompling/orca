@@ -2,20 +2,16 @@ import type { Store } from '../../persistence'
 import type { SleepingAgentLaunchConfig } from '../../../shared/agent-session-resume'
 import { parseWorkspaceKey } from '../../../shared/workspace-scope'
 import { resolveTerminalStartupCwd } from '../../../shared/terminal-startup-cwd'
-import { isWslShellName } from '../../../shared/local-windows-terminal-runtime'
 import { assertLocalWorkspaceLaunchScopeOwner } from '../../../shared/local-projects/agent-launch-scope'
 import { assertLegacyAgentEntrypointSupportsWorkspace } from '../../../shared/local-projects/agent-entrypoint'
 import {
   assertFolderWorkspacePathUsable,
   getFolderWorkspacePathStatusForPath
 } from '../../project-groups/folder-workspace-path-status'
+import { assertLocalWorkspacePtyLaunchUnderLock, type PtyLaunch } from '../launch-scope-lock'
 
-export type FolderWorkspacePtyLaunchContext = {
-  launchConfig?: SleepingAgentLaunchConfig
-  connectionId?: string | null
-  cwd?: string
+export type FolderWorkspacePtyLaunchContext = PtyLaunch & {
   launchAgent?: string
-  resumeProviderSession?: unknown
 }
 
 /**
@@ -79,13 +75,27 @@ export function localWorkspacePtyStartupCwd(
   return resolveTerminalStartupCwd(root.path, cwd?.trim() ? cwd : '.')
 }
 
-/** Multi-root agents run in a native shell: a WSL shell cannot see the Workspace's roots. */
-export function assertLocalWorkspacePtyShell(
-  launch: Pick<FolderWorkspacePtyLaunchContext, 'launchConfig'>,
-  shellOverride: string | undefined,
-  preAdopted: boolean
-): void {
-  if (!preAdopted && launch.launchConfig?.localWorkspaceScope && isWslShellName(shellOverride)) {
-    throw new Error('Multi-root Workspace agents require a native terminal shell, not WSL.')
+/**
+ * Every local Workspace check for a fresh PTY, run inside upstream's spawn operation after it took
+ * the worktree spawn lock. Throwing refuses the start; upstream's operation releases the lock.
+ */
+export async function assertLocalWorkspacePtyStart(
+  store: Store | undefined,
+  args: FolderWorkspacePtyLaunchContext,
+  start: {
+    launchConfig: SleepingAgentLaunchConfig | undefined
+    lockHeld: boolean
+    preAdopted: boolean
+    expectedWslDistro: string | null | undefined
   }
+): Promise<void> {
+  const launch = { ...args, launchConfig: start.launchConfig ?? args.launchConfig }
+  if (!start.preAdopted) {
+    // A WSL shell or path cannot see the Workspace's other roots.
+    if (launch.launchConfig?.localWorkspaceScope && start.expectedWslDistro) {
+      throw new Error('Multi-root Workspace agents require a native terminal shell, not WSL.')
+    }
+    await localWorkspacePtyPathCheck(store, launch.worktreeId, launch)
+  }
+  assertLocalWorkspacePtyLaunchUnderLock(store, launch, start.lockHeld)
 }

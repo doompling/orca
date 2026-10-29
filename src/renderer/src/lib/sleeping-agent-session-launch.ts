@@ -18,10 +18,7 @@ import { localWorkspaceResumeHasRoots } from '@/features/local-projects/seams/la
 
 export type ResumeSleepingAgentSessionsOptions = {
   suppressNavigation?: boolean
-  /** Provider-session claim keys already woken in place by mounted panes
-   *  (WAKE_HIBERNATED_AGENTS_WORKTREE_EVENT). Their sleeping records are
-   *  cleared only after the in-place spawn succeeds, so the generic resume
-   *  must neither launch nor clear them here. */
+  // Mounted in-place wakes own these claim keys until spawn succeeds; generic resume must neither launch nor clear their records.
   skipClaimKeys?: ReadonlySet<string>
   /** Called with the tab id of each freshly launched resume tab, so
    *  navigation-suppressed callers can background-mount exactly those tabs. */
@@ -48,8 +45,7 @@ function getResumeLaunchTarget(worktreeId: string): AgentResumeLaunchTarget {
   })
 }
 
-// Why: mobile-driven wake runs on the desktop host renderer, so it must create
-// the resume tab without stealing the desktop's active worktree/tab/view.
+// Mobile wake runs on the desktop host renderer; create recovery tabs without stealing desktop navigation.
 export function launchSleepingAgentSession(
   record: SleepingAgentSessionRecord,
   options?: ResumeSleepingAgentSessionsOptions
@@ -73,7 +69,8 @@ export function launchSleepingAgentSession(
     cmdOverrides: state.settings?.agentCmdOverrides ?? {},
     ...resolveResumeLaunchRecipe(launchConfig),
     platform: resumeTarget.platform,
-    shell: resumeTarget.shell
+    shell: resumeTarget.shell,
+    launchCwd: state.getKnownWorktreeById(record.worktreeId)?.path
   })
   if (!startupPlan) {
     toast.error(
@@ -96,8 +93,22 @@ export function launchSleepingAgentSession(
       ...(startupPlan.env ? { env: startupPlan.env } : {}),
       launchConfig: startupPlan.launchConfig,
       resumeProviderSession: record.providerSession,
+      resumeOrigin: 'saved',
+      resumeSource: {
+        cancelled: false,
+        record,
+        ...(state.agentStatusByPaneKey[record.paneKey]
+          ? {
+              expectedStatus: {
+                paneKey: record.paneKey,
+                receivedAt: state.agentStatusByPaneKey[record.paneKey].updatedAt,
+                stateStartedAt: state.agentStatusByPaneKey[record.paneKey].stateStartedAt
+              }
+            }
+          : {})
+      },
       launchAgent: record.agent,
-      ...(launchConfig ? { agentArgsOverride: launchConfig.agentArgs } : {}),
+      ...(launchConfig ? { agentArgsOverride: startupPlan.launchConfig.agentArgs } : {}),
       ...(startupPlan.startupCommandDelivery
         ? { startupCommandDelivery: startupPlan.startupCommandDelivery }
         : {}),

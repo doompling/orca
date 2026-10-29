@@ -4,7 +4,7 @@ import {
   type LocalWorkspaceLinearIssue
 } from '../../../shared/local-projects/linear-issues'
 import { parseLinearIssueUrlIntent, type LinearIssueUrlIntent } from '../../../shared/linear/links'
-import { composePaletteEvidence } from './palette-match/evidence-composer'
+import { composePaletteEvidence } from '../../../shared/palette-match/evidence-composer'
 
 // Renderer-only search evidence; the canonical catalog owns these links.
 type LocalWorkspacePaletteRow = Worktree & {

@@ -1,4 +1,3 @@
-import type { LocalWorkspaceLaunchScope } from '../../../../../shared/local-projects/agent-launch-scope'
 import { resolveTuiAgentLaunchArgs } from '../../../../../shared/tui-agent-launch-defaults'
 import type { TuiAgent } from '../../../../../shared/tui-agent'
 import type { AgentStartupShell } from '../../../../../shared/tui-agent-startup-shell'
@@ -24,9 +23,10 @@ type ExecutionContext = {
   queuedShell?: AgentStartupShell
 }
 type Prepared = ReturnType<typeof prepareLocalWorkspaceAgentLaunch>
+type PrepareInput = Parameters<typeof prepareLocalWorkspaceAgentLaunch>[0]
 
 // Why per args object: one launch call reads its prepared scope at several points.
-const preparedByArgs = new WeakMap<NewTabArgs, Prepared>()
+const preparedByArgs = new WeakMap<NewTabArgs, { input: PrepareInput; prepared: Prepared }>()
 
 /**
  * Prepares a new-tab agent launch into a local multi-root Workspace (all roots as `--add-dir`, the
@@ -38,43 +38,39 @@ function admitLocalWorkspaceNewTab(
   args: NewTabArgs,
   context: ExecutionContext
 ): boolean {
-  const prepared = prepareLocalWorkspaceAgentLaunch({
+  const input: PrepareInput = {
     localProjects: store.localProjects,
     worktreeId: args.worktreeId,
     agent: args.agent,
     agentArgs:
-      args.agentArgs !== undefined
-        ? args.agentArgs
-        : resolveTuiAgentLaunchArgs(args.agent, store.settings?.agentDefaultArgs),
+      args.agentArgs !== undefined ? args.agentArgs : resolveTuiAgentLaunchArgs(args.agent, store.settings),
     commandOverride: store.settings?.agentCmdOverrides?.[args.agent],
     initialCwd: args.initialCwd,
     prompt: args.prompt?.trim() ?? '',
     platform: context.resolvedLaunchPlatform,
     shell: context.queuedShell,
     isRemote: context.isRemote
-  })
-  preparedByArgs.set(args, prepared)
+  }
+  const prepared = prepareLocalWorkspaceAgentLaunch(input)
+  preparedByArgs.set(args, { input, prepared })
   return allowLocalWorkspaceAgentRoute(prepared, 'terminal-tui')
 }
 
 function localLaunch(args: NewTabArgs) {
-  const prepared = preparedByArgs.get(args)
+  const prepared = preparedByArgs.get(args)?.prepared
   return prepared?.kind === 'local' ? prepared : null
 }
 
-/** Startup-plan fields for the launch: the rooted arguments and frozen scope when local. */
-function localWorkspaceStartupArgs<T>(
-  args: NewTabArgs,
-  agentArgs: T
-): { agentArgs: T | string; localWorkspaceScope?: LocalWorkspaceLaunchScope } {
-  const local = localLaunch(args)
-  return local ? { agentArgs: local.agentArgs, localWorkspaceScope: local.scope } : { agentArgs }
+/** Re-prepares with upstream's effective arguments (permission and session options applied). */
+function rootedLaunch(args: NewTabArgs, agentArgs: string | null | undefined) {
+  const entry = preparedByArgs.get(args)
+  if (entry?.prepared.kind !== 'local') {
+    return null
+  }
+  const prepared = prepareLocalWorkspaceAgentLaunch({ ...entry.input, agentArgs })
+  return prepared.kind === 'local' ? prepared : null
 }
 
-/** The terminal startup prompt: the Workspace context comes first when local. */
-function localWorkspaceStartupPrompt(args: NewTabArgs, prompt: string): string {
-  return localLaunch(args)?.prompt ?? prompt
-}
 
 /** A local Workspace launch never takes the host-built prompt route: main would drop its roots. */
 function localWorkspaceHostRoute<T extends object>(
@@ -90,10 +86,14 @@ function planLocalWorkspaceStartupPrompt(
   args: NewTabArgs,
   input: Parameters<typeof planLaunchAgentStartupPrompt>[0]
 ): ReturnType<typeof planLaunchAgentStartupPrompt> {
+  const local = rootedLaunch(args, input.base.agentArgs)
+  if (!local) {
+    return planLaunchAgentStartupPrompt(input)
+  }
   return planLaunchAgentStartupPrompt({
     ...input,
-    base: { ...input.base, ...localWorkspaceStartupArgs(args, input.base.agentArgs) },
-    prompt: localWorkspaceStartupPrompt(args, input.prompt)
+    base: { ...input.base, agentArgs: local.agentArgs, localWorkspaceScope: local.scope },
+    prompt: local.prompt
   })
 }
 

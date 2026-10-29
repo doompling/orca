@@ -38,6 +38,7 @@ const store = {
   settings: {},
   repos: [],
   tabsByWorktree: {},
+  agentStatusByPaneKey: {},
   tabBarOrderByWorktree: {},
   openFiles: [],
   getKnownWorktreeById: () => undefined,

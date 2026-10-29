@@ -4,13 +4,13 @@ import { useAppStore } from '@/store'
 import type { Tab } from '../../../../shared/tab-types'
 import { adoptAgentSessionLaunchVerdict } from '@/lib/agent-session-launch-plan'
 import { newAgentLaunchRequestId } from '@/lib/agent-launch-request-id'
-import { beginStructuredAgentSessionProvisionalLaunch } from '@/lib/structured-agent-session-provisional-tab'
+import { beginStructuredAgentSessionProvisionalLaunch } from '@/lib/agent-session/structured-agent-session-provisional-tab'
 
 const FORKABLE_AGENTS = new Set(['claude', 'codex'])
 
 /** The chat tab a fork would copy, when the tab is a Claude or Codex built-in chat. */
 export function forkableChatTab(unifiedTabId: string | undefined): Tab | null {
-  if (!unifiedTabId || !window.api.etherChat) {
+  if (!unifiedTabId || !window.api?.etherChat) {
     return null
   }
   for (const tabs of Object.values(useAppStore.getState().unifiedTabsByWorktree)) {

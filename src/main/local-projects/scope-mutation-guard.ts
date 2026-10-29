@@ -25,7 +25,7 @@ function assertStructuredSessionsExited(worktreeIds: readonly string[]): void {
   if (host.deps.store.readOnly || host.deps.store.hasUnreadableRecords) {
     throw new Error('Agent session state is unverifiable; Workspace roots have not changed.')
   }
-  for (const record of host.deps.store.listRecords()) {
+  for (const record of host.deps.store.listConversations()) {
     if (
       record.location.executionHostId !== LOCAL_EXECUTION_HOST_ID ||
       !worktreeIds.includes(record.location.workspaceId)
@@ -33,8 +33,8 @@ function assertStructuredSessionsExited(worktreeIds: readonly string[]): void {
       continue
     }
     if (
-      record.lease.handoffStage !== null ||
-      record.lease.unreconciled ||
+      record.ownerObservation.handoffStage !== null ||
+      record.ownerObservation.unreconciled ||
       observeStructuredWorker({ sessionId: record.sessionId }).status !== 'exited'
     ) {
       throw new Error(

@@ -74,7 +74,8 @@ describe('local-root diff content routing', () => {
         connectionId: undefined,
         target: { kind: 'local' }
       }),
-      { filePath: 'same.txt', staged: true, compareAgainstHead: false }
+      { filePath: 'same.txt', staged: true, compareAgainstHead: false },
+      undefined
     )
     expect(connection).not.toHaveBeenCalled()
     expect(ownerTarget).not.toHaveBeenCalled()

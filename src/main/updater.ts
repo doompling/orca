@@ -16,7 +16,6 @@ import type { UpdaterSetupOptions } from './updater/updater-setup'
 import { createUpdaterSetup } from './updater/ether-manual-updater'
 import type { PreQuitCleanupFailureMode, UpdateInstallMode } from './updater/updater-state'
 
-// Keep one service instance so all public API calls share updater state and event listeners.
 const updater = createUpdaterSetup()
 
 export type { PreQuitCleanupFailureMode, UpdateInstallMode, UpdaterSetupOptions }

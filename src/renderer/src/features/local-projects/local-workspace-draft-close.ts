@@ -1,4 +1,10 @@
-import type { AppState } from '@/store'
+import { useAppStore, type AppState } from '@/store'
+import { showShutdownCheckpointFailureToast } from '@/lib/shutdown-checkpoint-failure-toast'
+import { requestEditorHotExitBackup } from '../../../../shared/renderer-restart-preparation'
+import {
+  formatShutdownCheckpointFailureReason,
+  publishShutdownCheckpointFailureReason
+} from '../../../../shared/renderer-shutdown-events'
 import type { OpenFile } from '@/store/slices/editor'
 import { shouldPersistWorkspaceSession } from '@/lib/workspace-session'
 import { flushPendingEditorBuffer } from '@/components/editor/editor-pending-flush'
@@ -51,4 +57,36 @@ export function dirtyFilesRequiringWindowCloseConfirmation(
   return state.openFiles.filter(
     (file) => file.isDirty && !canRestoreLocalWorkspaceDraftAfterClose(state, file)
   )
+}
+
+let backedUpForClose = false
+
+/**
+ * When every dirty file is a restorable local Workspace draft, flushes them through the restart
+ * backup and then calls `retry`; returns true while that backup owns the close. The retry passes
+ * straight through, so upstream's close runs once the drafts are safe.
+ */
+export function backUpLocalWorkspaceDraftsBeforeClose(retry: () => void): boolean {
+  if (backedUpForClose) {
+    backedUpForClose = false
+    return false
+  }
+  const state = useAppStore.getState()
+  const dirtyFiles = state.openFiles.filter((file) => file.isDirty)
+  if (
+    dirtyFiles.length === 0 ||
+    !dirtyFiles.every((file) => canRestoreLocalWorkspaceDraftAfterClose(state, file))
+  ) {
+    return false
+  }
+  void requestEditorHotExitBackup(window)
+    .then(() => {
+      backedUpForClose = true
+      retry()
+    })
+    .catch((error) => {
+      publishShutdownCheckpointFailureReason(formatShutdownCheckpointFailureReason(error))
+      showShutdownCheckpointFailureToast()
+    })
+  return true
 }

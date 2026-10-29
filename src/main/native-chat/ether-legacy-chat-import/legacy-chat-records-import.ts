@@ -91,10 +91,8 @@ export function isLegacyOpenCodeRecord(value: unknown): boolean {
 
 /** After a backup read the lost commit may have granted a fence the backup cannot show. */
 function withBackupFenceFloor(record: PersistedAgentSessionRecord): PersistedAgentSessionRecord {
-  const floor = Math.max(
-    record.lease.minimumNextFence ?? 0,
-    nextAgentSessionFence(record.lease) + 1
-  )
+  const lease = { ...record.lease, runtimeKind: 'native' as const, handoffStage: null }
+  const floor = Math.max(record.lease.minimumNextFence ?? 0, nextAgentSessionFence(lease) + 1)
   return { ...record, lease: { ...record.lease, minimumNextFence: floor } }
 }
 

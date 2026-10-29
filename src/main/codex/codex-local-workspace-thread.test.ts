@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 import { captureLocalWorkspaceLaunchScope } from '../../shared/local-projects/agent-launch-scope'
-import { CodexAppServerRequestError } from './codex-app-server-connection'
+import { CodexAppServerRequestError } from './app-server/codex-app-server-request-error'
 import { localWorkspaceCodexThreadOverrides } from './codex-local-workspace-thread'
 import { openCodexThread } from './codex-structured-thread-open'
-import { codexStructuredPermissionPolicy } from './codex-structured-permission-policy'
+import { codexStructuredPermissionPolicy } from '../../shared/codex-permission-policy'
 
 const scope = captureLocalWorkspaceLaunchScope({
   workspaceId: 'workspace-a',

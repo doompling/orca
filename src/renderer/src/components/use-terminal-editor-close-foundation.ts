@@ -7,14 +7,8 @@ import {
 import type { TerminalWorkspaceProjectionController } from './use-terminal-workspace-projection'
 import { runWithWindowCloseCheckpointScope } from './window-close-request-coordinator'
 import { showShutdownCheckpointFailureToast } from '@/lib/shutdown-checkpoint-failure-toast'
-import { useAppStore } from '../store'
 // Ether seam: editor
-import { canRestoreLocalWorkspaceDraftAfterClose } from '@/features/local-projects/local-workspace-draft-close'
-import { requestEditorHotExitBackup } from '../../../shared/renderer-restart-preparation'
-import {
-  formatShutdownCheckpointFailureReason,
-  publishShutdownCheckpointFailureReason
-} from '../../../shared/renderer-shutdown-events'
+import { backUpLocalWorkspaceDraftsBeforeClose } from '@/features/local-projects/local-workspace-draft-close'
 
 export function useTerminalEditorCloseFoundation(
   controller: TerminalWorkspaceProjectionController
@@ -38,41 +32,26 @@ export function useTerminalEditorCloseFoundation(
     closeDialogDebounceTimersRef.current.add(timer)
   }, [])
   const [windowCloseDialogOpen, setWindowCloseDialogOpen] = useState(false)
-  // Why: "running" and "could not reach the host" are different claims, and telling the user
-  // processes are running when the truth is that a host went quiet is the fabricated certainty
-  // docs/reference/ssh-execution-boundary.md forbids.
+  // Distinguish reported live work from unreachable hosts; loss of contact cannot prove running processes (ssh-execution-boundary.md).
   const [windowCloseDialogKind, setWindowCloseDialogKind] =
     useState<Exclude<WindowCloseRunningWork['kind'], 'none'>>('running')
   const windowCloseAfterDirtyRef = useRef<{ isQuitting: boolean } | null>(null)
 
   const confirmNativeWindowClose = useCallback(() => {
-    const confirm = (): void => {
-      // Capture only after every close guard has committed.
-      const accepted = runWithWindowCloseCheckpointScope(() =>
-        window.dispatchEvent(new Event('beforeunload', { cancelable: true }))
-      )
-      if (!accepted) {
-        showShutdownCheckpointFailureToast()
-        return
-      }
-      window.api.ui.confirmWindowClose()
-    }
-    const state = useAppStore.getState()
-    const dirtyFiles = state.openFiles.filter((file) => file.isDirty)
-    if (
-      dirtyFiles.length > 0 &&
-      dirtyFiles.every((file) => canRestoreLocalWorkspaceDraftAfterClose(state, file))
-    ) {
-      // Use the existing restart backup to flush pending drafts and quiesce saves.
-      void requestEditorHotExitBackup(window)
-        .then(confirm)
-        .catch((error) => {
-          publishShutdownCheckpointFailureReason(formatShutdownCheckpointFailureReason(error))
-          showShutdownCheckpointFailureToast()
-        })
+    // Ether seam: editor
+    if (backUpLocalWorkspaceDraftsBeforeClose(() => confirmNativeWindowClose())) {
       return
     }
-    confirm()
+    // Capture only after every close guard commits so canceled process prompts cannot consume App’s unload guard.
+    const accepted = runWithWindowCloseCheckpointScope(() =>
+      window.dispatchEvent(new Event('beforeunload', { cancelable: true }))
+    )
+    if (!accepted) {
+      // Report checkpoint-vetoed quits instead of silently trapping the window (#15352); dirty-file vetoes provide no reason.
+      showShutdownCheckpointFailureToast()
+      return
+    }
+    window.api.ui.confirmWindowClose()
   }, [])
 
   const proceedToNativeWindowClose = useCallback(
@@ -86,9 +65,7 @@ export function useTerminalEditorCloseFoundation(
           setWindowCloseDialogKind(runningWork.kind)
           setWindowCloseDialogOpen(true)
         })
-        // Why: the assessment must never be able to trap the window. A thrown store read is
-        // not evidence either way, and a close that silently does nothing is unrecoverable
-        // without SIGKILL, so fall through to the close the user actually asked for.
+        // Assessment exceptions prove neither live nor exited work; fall through so an unexpected store error cannot trap the window.
         .catch(() => {
           confirmNativeWindowClose()
         })

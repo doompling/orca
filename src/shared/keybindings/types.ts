@@ -86,6 +86,7 @@ export type KeybindingActionId =
   | 'browser.reload'
   | 'browser.hardReload'
   | 'browser.focusAddressBar'
+  | 'browser.showHistory'
   | 'browser.grabElement'
   | 'browser.annotateElement'
   | 'editor.find'
@@ -119,6 +120,7 @@ export type KeybindingActionId =
   | 'terminal.splitRight'
   | 'terminal.splitDown'
   | 'terminal.switchInputSource'
+  | 'terminal.toggleNativeChat'
   // Ether seam: sidebar
   | LocalWorkspaceKeybindingActionId
   | PluginKeybindingActionId
@@ -161,6 +163,8 @@ export type KeybindingDefinition = {
   allowBareKeybindings?: boolean
   allowShiftOnlyKeybindings?: boolean
   conflictGroup?: string
+  conflictGroups?: readonly KeybindingScope[]
+  implicitDefaultYields?: boolean
 }
 
 export type ModifierToken = 'Mod' | 'Cmd' | 'Ctrl' | 'Alt' | 'Shift'
@@ -206,4 +210,6 @@ export type KeybindingConflict = {
 export type FindKeybindingConflictOptions = {
   ignoredActionIds?: Iterable<KeybindingActionId>
   relevantActionIds?: Iterable<KeybindingActionId>
+  /** Settings-only diagnostic; the loader and writes keep the scope-only check so saved overrides still load. */
+  includeMainProcessInterception?: boolean
 }

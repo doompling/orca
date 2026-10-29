@@ -8,6 +8,7 @@ import { OrcaRuntimeService } from '../runtime/orca-runtime'
 import type { TerminalWorkspaceLaunchScope } from '../runtime/runtime-legacy-worker-terminal-recovery-types'
 import type { TerminalCreateOptions } from '../runtime/runtime-terminal-contracts'
 import { assertFolderWorkspacePtyPathUsable } from '../ipc/pty/host-env/spawn-cwd'
+import { localWorkspacePtyPathCheck } from './seams/pty-spawn-seam'
 import { assertRuntimeAgentEntrypointSupportsWorkspace } from './runtime-agent-entrypoint'
 
 vi.mock('electron', () => ({
@@ -105,7 +106,7 @@ describe('unadapted managed agent entrypoints', () => {
       { launchConfig: { agentArgs: '', agentEnv: {} } },
       { resumeProviderSession: { sessionId: 'saved' } }
     ]) {
-      expect(() => assertFolderWorkspacePtyPathUsable(store, scope.id, launch)).toThrow(
+      expect(() => localWorkspacePtyPathCheck(store, scope.id, launch)).toThrow(
         'all Workspace roots'
       )
     }

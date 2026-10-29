@@ -41,12 +41,14 @@ import { useFileExplorerNameFilter } from './use-file-explorer-name-filter'
 import { useFileExplorerTreePaneState } from './use-file-explorer-tree-pane-state'
 import { useWslHostUnavailableReason } from '../terminal-pane/use-wsl-host-unavailable-reason'
 import { translate } from '@/i18n/i18n'
+import { useUiLanguageRevision } from '@/i18n/use-ui-language-revision'
 // Ether seam: local-projects
 import type { LocalProjectRoot } from '../../../../shared/local-projects/types'
 import { LocalWorkspaceExplorerRoots } from '@/features/local-projects/seams/LocalWorkspaceExplorerRoots'
 
 /** Coordinates scoped navigation while retaining the actual worktree root for file operations and runtime routing. */
 function FileExplorerFiles({ root }: { root?: LocalProjectRoot }): React.JSX.Element {
+  useUiLanguageRevision()
   const explorerView = useAppStore((s) => s.rightSidebarExplorerView)
   const setRightSidebarExplorerView = useAppStore((s) => s.setRightSidebarExplorerView)
   const searchPanel = useFileSearchPanel(explorerView)
@@ -181,9 +183,7 @@ function FileExplorerFiles({ root }: { root?: LocalProjectRoot }): React.JSX.Ele
     },
     [setNameFilterCollapsedPaths]
   )
-  // Why: every explorer effect lives here, above the `!worktreePath` early
-  // return, so a transient null worktree cannot unmount the tree's reset guard
-  // and SSH generation refs and trigger a full cache-dropping reload on return.
+  // Keep effects above the null-path return so transient missing ownership cannot reset cache guards or SSH generations.
   const paneState = useFileExplorerTreePaneState({
     onRevealOutsideRoot: rootNavigation.revealOutsideRoot,
     activeWorktreeId,
@@ -311,8 +311,7 @@ function FileExplorerFiles({ root }: { root?: LocalProjectRoot }): React.JSX.Ele
             </div>
           </div>
         </FileExplorerQueryStrip>
-        {/* Why: the Files and Contents views share one body slot; layering them
-           avoids remounting heavy virtualized panes while preserving full height. */}
+        {/* Layer Files/Contents in one body slot to retain heavy virtualized panes at full height. */}
         <div className="relative min-h-0 flex-1 overflow-hidden">
           <FileExplorerFilesTreePane
             displayRootPath={displayRootPath}

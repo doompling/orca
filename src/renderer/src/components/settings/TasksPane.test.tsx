@@ -165,8 +165,7 @@ describe('TasksPane', () => {
   })
 
   it('does not warn on a fresh install where nothing is connected yet', () => {
-    // Settings ship with every provider visible, so untouched providers are the
-    // default state; the cards still say "Connect required" on their own.
+    // Untouched visible providers are defaults, not stalled setup; their cards already explain connection requirements.
     mocks.readiness.github = { connected: false, checking: false, visible: true }
     mocks.readiness.gitlab = { connected: false, checking: false, visible: true }
     mocks.readiness.linear = {
@@ -265,7 +264,6 @@ describe('TasksPane', () => {
 
     const markup = renderPane()
 
-    // GitLab is first in provider order, so Linear stays collapsed.
     expect(markup).toContain('Code host setup')
     expect(markup).not.toContain(LINEAR_SETUP_MARKER)
   })
@@ -283,7 +281,6 @@ describe('TasksPane', () => {
   })
 
   it('keeps Linear setup mounted while a skill recheck is in flight after auto-expand', async () => {
-    // Same component instance keeps the sticky auto-expand ref across rechecks.
     // Ether seam: linear — only an unconnected Linear is incomplete once the skill is optional.
     mocks.readiness.linear.connected = false
     await renderInteractivePane()
@@ -309,7 +306,7 @@ describe('TasksPane', () => {
     await renderInteractivePane()
     expect(container?.querySelector('[data-testid="linear-setup"]')).not.toBeNull()
 
-    // A later check must not steal the user's expanded provider.
+    // Hiding stalled Linear must not let an unrelated render transfer expansion to GitHub.
     mocks.readiness.linear = {
       connected: true,
       checking: false,
@@ -326,7 +323,6 @@ describe('TasksPane', () => {
   })
 
   it('keeps Linear expanded when the slower code-host preflight lands after it', async () => {
-    // Cold open: nothing has resolved, so no card auto-expands yet.
     mocks.readiness.github = { connected: false, checking: true, visible: true }
     mocks.readiness.gitlab = { connected: false, checking: true, visible: true }
     mocks.readiness.linear = {
@@ -350,8 +346,7 @@ describe('TasksPane', () => {
     await rerenderInteractivePane()
     expect(container?.querySelector('[data-testid="linear-setup"]')).not.toBeNull()
 
-    // gh/glab preflight lands last with gh unauthenticated: GitHub is now the
-    // first incomplete provider, but it must not steal Linear's expansion.
+    // Late code-host preflight cannot steal expansion from Linear, even if GitHub becomes first incomplete.
     mocks.readiness.github = { connected: false, checking: false, visible: true }
     mocks.readiness.gitlab = { connected: false, checking: false, visible: true }
     await rerenderInteractivePane()
@@ -400,6 +395,6 @@ describe('TasksPane', () => {
     await act(async () => {
       retry?.click()
     })
-    expect(mocks.refreshPreflightStatus).toHaveBeenCalledWith({ force: true })
+    expect(mocks.refreshPreflightStatus).toHaveBeenCalledWith({ force: true, wakeWslDistro: true })
   })
 })

@@ -9,9 +9,20 @@ import { callRuntimeRpc } from './runtime-rpc-client'
 import { localRootGitArgs } from '@/features/local-projects/seams/runtime-git-seam'
 import { toRuntimeWorktreeSelector } from './runtime-worktree-selector'
 
+/** Showing a diff tab or its Retry: a user act that may start a stopped WSL distro. Local only. */
+type GitDiffWakeOptions = { wakeWslDistro?: boolean }
+
+function localWakeArgs(
+  context: RuntimeGitContext,
+  options: GitDiffWakeOptions | undefined
+): { wakeWslDistro?: true } {
+  return options?.wakeWslDistro && !context.connectionId ? { wakeWslDistro: true } : {}
+}
+
 export async function getRuntimeGitDiff(
   context: RuntimeGitContext,
-  args: { filePath: string; staged: boolean; compareAgainstHead?: boolean }
+  args: { filePath: string; staged: boolean; compareAgainstHead?: boolean },
+  options?: GitDiffWakeOptions
 ): Promise<GitDiffResult> {
   // Ether seam: git
   const localRoot = localRootGitArgs(context)
@@ -23,7 +34,8 @@ export async function getRuntimeGitDiff(
       filePath: args.filePath,
       staged: args.staged,
       compareAgainstHead: args.compareAgainstHead,
-      connectionId: context.connectionId
+      connectionId: context.connectionId,
+      ...localWakeArgs(context, options)
     })
   }
   return callRuntimeRpc<GitDiffResult>(
@@ -86,7 +98,8 @@ export async function getRuntimeGitBranchDiff(
     compare: { baseRef: string; baseOid: string; headOid: string; mergeBase: string }
     filePath: string
     oldPath?: string
-  }
+  },
+  options?: GitDiffWakeOptions
 ): Promise<GitDiffResult> {
   const target = context.target
   if (target.kind === 'local' || !context.worktreeId) {
@@ -95,7 +108,8 @@ export async function getRuntimeGitBranchDiff(
       compare: args.compare,
       filePath: args.filePath,
       oldPath: args.oldPath,
-      connectionId: context.connectionId
+      connectionId: context.connectionId,
+      ...localWakeArgs(context, options)
     })
   }
   return callRuntimeRpc<GitDiffResult>(
@@ -113,7 +127,8 @@ export async function getRuntimeGitCommitDiff(
     parentOid?: string | null
     filePath: string
     oldPath?: string
-  }
+  },
+  options?: GitDiffWakeOptions
 ): Promise<GitDiffResult> {
   const target = context.target
   if (target.kind === 'local' || !context.worktreeId) {
@@ -123,7 +138,8 @@ export async function getRuntimeGitCommitDiff(
       parentOid: args.parentOid,
       filePath: args.filePath,
       oldPath: args.oldPath,
-      connectionId: context.connectionId
+      connectionId: context.connectionId,
+      ...localWakeArgs(context, options)
     })
   }
   return callRuntimeRpc<GitDiffResult>(

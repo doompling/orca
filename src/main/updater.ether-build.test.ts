@@ -27,7 +27,10 @@ describe('Ether manual-only updates', () => {
     const updater = await loadUpdaterModule()
     const send = vi.fn()
     // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: The refused setup only retains this window and sends updater status.
-    updater.setupAutoUpdater({ webContents: { send } } as never)
+    updater.setupAutoUpdater({
+      isDestroyed: () => false,
+      webContents: { send, isDestroyed: () => false }
+    } as never)
     updater.checkForUpdates()
     updater.checkForUpdatesFromMenu()
     updater.checkForUpdatesFromMenu({ channel: 'daily', targetTag: 'v1.2.3' })

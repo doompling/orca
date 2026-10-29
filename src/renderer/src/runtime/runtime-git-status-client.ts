@@ -21,6 +21,8 @@ export async function getRuntimeGitStatus(
     reuseLineStats?: boolean
     branchLineTotalMergeBase?: string
     signal?: AbortSignal
+    /** A user act that may start a stopped WSL distro; local status only. */
+    wakeWslDistro?: boolean
   }
 ): Promise<GitStatusResult> {
   // Ether seam: git
@@ -48,7 +50,8 @@ export async function getRuntimeGitStatus(
         ...includeLineStatsArgs,
         ...upstreamCacheBypassArgs,
         ...lineStatsReuseArgs,
-        ...branchLineTotalArgs
+        ...branchLineTotalArgs,
+        ...(options?.wakeWslDistro && !context.connectionId ? { wakeWslDistro: true } : {})
       },
       options?.signal
     )
@@ -173,14 +176,16 @@ export async function getRuntimeGitIgnoredPaths(
 
 export async function getRuntimeGitHistory(
   context: RuntimeGitContext,
-  options: GitHistoryOptions = {}
+  /** `wakeWslDistro`: Refresh, a user act that may start a stopped WSL distro. Local only. */
+  { wakeWslDistro, ...options }: GitHistoryOptions & { wakeWslDistro?: boolean } = {}
 ): Promise<GitHistoryResult> {
   const target = context.target
   if (target.kind === 'local' || !context.worktreeId) {
     return window.api.git.history({
       worktreePath: resolveLocalWorktreePath(context),
       connectionId: context.connectionId,
-      ...options
+      ...options,
+      ...(wakeWslDistro && !context.connectionId ? { wakeWslDistro: true } : {})
     })
   }
   return callRuntimeRpc<GitHistoryResult>(

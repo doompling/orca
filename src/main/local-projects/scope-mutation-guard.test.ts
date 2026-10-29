@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { agentSessionConversationView } from '../../shared/agent-session-conversation-view'
 import {
   agentSessionLeaseFixture,
   agentSessionRecordFixture
@@ -55,8 +56,8 @@ function installRecord(overrides: Parameters<typeof agentSessionLeaseFixture>[0]
     hasSession: () => true,
     deps: {
       store: {
-        listRecords: () => [record],
-        getRecord: () => record,
+        listConversations: () => [agentSessionConversationView(record)],
+        getConversation: () => agentSessionConversationView(record),
         readOnly: false,
         recoveredFromBackup: false,
         hasUnreadableRecords: false

@@ -7,8 +7,8 @@ import {
   localWorkspaceContextDescription,
   type LocalWorkspaceLaunchScope
 } from '../../shared/local-projects/agent-launch-scope'
-import type { CodexAppServerConnection } from './codex-app-server-connection'
-import type { CodexStructuredPermissionPolicy } from './codex-structured-permission-policy'
+import type { CodexAppServerConnection } from './app-server/codex-app-server-connection-types'
+import type { CodexStructuredPermissionPolicy } from '../../shared/codex-permission-policy'
 
 const configReply = z.object({
   config: z.object({

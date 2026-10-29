@@ -9,9 +9,9 @@ import type { LinearCollectionResult } from '../../../shared/linear/workspace-ty
 import type { TaskSourceContext } from '../../../shared/task-source-context'
 import { TaskPageLinearProjectList } from './task-page/linear/ProjectList'
 import { TaskPageLinearCustomViewList } from './task-page/linear/CustomViewList'
-import type { LinearMode } from './task-page-localized-options'
-import type { TaskPageComposerActionsModel } from './use-task-page-composer-actions'
-import { useTaskPageLinearCollectionEffects } from './use-task-page-linear-collection-effects'
+import type { LinearMode } from './task-page/task-page-localized-options'
+import type { TaskPageComposerActionsModel } from './task-page/use-task-page-composer-actions'
+import { useTaskPageLinearCollectionEffects } from './task-page/linear/use-task-page-linear-collection-effects'
 
 type Model = TaskPageComposerActionsModel
 

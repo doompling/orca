@@ -17,7 +17,7 @@ import {
   readSavedProfileDomain,
   refuseNextDurableWrite
 } from './local-projects-store.test-support'
-import { resolveAuthorizedPath } from '../ipc/filesystem-auth'
+import { resolveAuthorizedPath } from '../ipc/filesystem/filesystem-auth'
 import { gitExecFileSync } from '../git/runner'
 
 vi.mock('electron', () => ({

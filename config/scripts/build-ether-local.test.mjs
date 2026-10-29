@@ -47,7 +47,7 @@ describe('local Ether build', () => {
       CSC_LINK: 'private',
       CSC_KEY_PASSWORD: 'private'
     })
-    expect(plan.commands[3]).toContain('com.joelkorpela.ether')
+    expect(plan.commands[4]).toContain('com.joelkorpela.ether')
   })
 
   it('defaults to the persistent local certificate and builds into scratch, never a release', () => {

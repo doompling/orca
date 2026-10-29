@@ -83,6 +83,7 @@ export function createEtherBuildPlan({
       ['run', 'build:desktop'],
       ['run', 'build:computer-macos'],
       ['exec', 'node', 'config/scripts/build-keyboard-layout-macos.mjs', '--single-arch'],
+      ['exec', 'node', 'config/scripts/build-process-footprint-macos.mjs', '--single-arch'],
       [
         'exec',
         'node',

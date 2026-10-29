@@ -3,13 +3,15 @@ import { act, cleanup, render, waitFor } from '@testing-library/react'
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.api.js'
 import { afterEach, expect, it, vi } from 'vitest'
 import type { AppState } from '@/store/types'
-import { createTestStore, makeWorktree } from '@/store/slices/store-test-helpers'
+import { useStore } from 'zustand'
+import { createEditorStore } from '@/store/slices/editor-slice-test-harness'
+import { makeWorktree } from '@/store/slices/worktrees-slice-test-fixtures'
 import type { OpenFile } from '@/store/slices/editor'
-import { editorSelectionCache, scrollTopCache } from '@/lib/scroll-cache'
+import { editorSelectionCache, editorViewStateCache, scrollTopCache } from '@/lib/scroll-cache'
 import { getDefaultSettings } from '../../../../shared/constants'
 
 const testState = vi.hoisted(() => {
-  const state: { store: ReturnType<typeof createTestStore> | null } = { store: null }
+  const state: { store: ReturnType<typeof createEditorStore> | null } = { store: null }
   return state
 })
 
@@ -21,9 +23,12 @@ vi.mock('@/store', () => {
     return testState.store
   }
   return {
-    useAppStore: Object.assign((selector: (state: AppState) => unknown) => getStore()(selector), {
-      getState: () => getStore().getState()
-    })
+    useAppStore: Object.assign(
+      (selector: (state: AppState) => unknown) => useStore(getStore(), selector),
+      {
+        getState: () => getStore().getState()
+      }
+    )
   }
 })
 vi.mock('@/lib/monaco-setup', async () => {
@@ -54,6 +59,7 @@ afterEach(() => {
     model.dispose()
   }
   editorSelectionCache.clear()
+  editorViewStateCache.clear()
   scrollTopCache.clear()
   Reflect.set(HTMLCanvasElement.prototype, 'getContext', originalGetContext)
   testState.store = null
@@ -82,7 +88,7 @@ it('preserves a draft, selected range and scroll when the same tab gains a known
     }),
     putImageData: () => {}
   }))
-  const store = createTestStore()
+  const store = createEditorStore()
   testState.store = store
   const file: OpenFile = {
     id: 'restored-file',
@@ -95,6 +101,10 @@ it('preserves a draft, selected range and scroll when the same tab gains a known
   }
   store.setState({
     openFiles: [file],
+    activeWorktreeId: null,
+    activeWorkspaceExecutionHostId: null,
+    runtimeEnvironments: [],
+    editorFontZoomLevel: 0,
     editorDrafts: { [file.id]: 'unsaved draft' },
     repos: [],
     worktreesByRepo: {},

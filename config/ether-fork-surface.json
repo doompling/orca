@@ -1,8 +1,8 @@
 {
-  "$comment": "Upstream files the Ether fork may touch. Run `pnpm check:ether-fork-surface`. Each seam names the features (docs/ether-changes-technical.md) it serves. Lower maxFiles when a touch is removed; raise it only with a note here. copiedUpstream maps fork-owned copies to the upstream component they replace; the drift report flags upstream changes to those originals.",
+  "$comment": "Upstream files the Ether fork may touch. Run `pnpm check:ether-fork-surface`. Each seam names the features (docs/ether-changes-technical.md) it serves. Lower maxFiles when a touch is removed; raise it only with a note here. copiedUpstream maps fork-owned copies to the upstream component they replace; the drift report flags upstream changes to those originals. .oxlintrc.json gives upstream files at the line limit room for their seam hooks (Ether max-lines overrides at the end of overrides).",
   "upstreamRef": "upstream/main",
   "ignoredPrefixes": ["docs", "plans"],
-  "maxFiles": 149,
+  "maxFiles": 145,
   "seams": {
     "agent-launch": {
       "features": ["E4"],
@@ -69,6 +69,10 @@
     ".gitignore": {
       "seam": "local-projects"
     },
+    ".oxlintrc.json": {
+      "seam": "local-projects",
+      "marker": false
+    },
     "config/oxlint-design-system.json": {
       "seam": "linear",
       "marker": false
@@ -104,7 +108,7 @@
     "src/main/ipc/app.ts": {
       "seam": "identity"
     },
-    "src/main/ipc/filesystem-allowed-roots.ts": {
+    "src/main/ipc/filesystem/filesystem-allowed-roots.ts": {
       "seam": "persistence"
     },
     "src/main/ipc/filesystem/filesystem-git-commit-handlers.ts": {
@@ -119,25 +123,7 @@
     "src/main/ipc/pty/host-env/spawn-cwd.ts": {
       "seam": "pty-spawn"
     },
-    "src/main/ipc/pty/ipc/spawn-options.ts": {
-      "seam": "pty-spawn"
-    },
-    "src/main/ipc/pty/ipc/spawn-preflight.ts": {
-      "seam": "pty-spawn"
-    },
-    "src/main/ipc/pty/ipc/spawn-types.ts": {
-      "seam": "pty-spawn"
-    },
-    "src/main/ipc/pty/register-handlers.ts": {
-      "seam": "pty-spawn"
-    },
-    "src/main/ipc/pty/runtime/controller-deps.ts": {
-      "seam": "pty-spawn"
-    },
-    "src/main/ipc/pty/runtime/spawn-execute.ts": {
-      "seam": "pty-spawn"
-    },
-    "src/main/ipc/pty/runtime/spawn-preflight.ts": {
+    "src/main/ipc/pty/spawn-operation.ts": {
       "seam": "pty-spawn"
     },
     "src/main/ipc/repos.ts": {
@@ -182,7 +168,7 @@
     "src/main/runtime/agent-session-record-store.ts": {
       "seam": "chat-scope"
     },
-    "src/main/runtime/agent-session-reservation-admission.ts": {
+    "src/main/runtime/agent-session/ownership/agent-session-reservation-admission.ts": {
       "seam": "chat-scope"
     },
     "src/main/runtime/orca-runtime-create-agent-session.ts": {
@@ -314,6 +300,9 @@
     "src/renderer/src/components/settings/TasksPane.tsx": {
       "seam": "linear"
     },
+    "src/renderer/src/components/settings/keybinding-title-copy.ts": {
+      "seam": "sidebar"
+    },
     "src/renderer/src/components/settings/settings-git-task-section-renderers.tsx": {
       "seam": "linear"
     },
@@ -350,20 +339,20 @@
     "src/renderer/src/components/task-page/linear/ProjectList.tsx": {
       "seam": "linear"
     },
+    "src/renderer/src/components/task-page/linear/use-task-page-linear-filter-selection.ts": {
+      "seam": "linear"
+    },
+    "src/renderer/src/components/task-page/linear/use-task-page-linear-in-orca-effects.ts": {
+      "seam": "linear"
+    },
+    "src/renderer/src/components/task-page/use-task-page-composer-actions.ts": {
+      "seam": "linear"
+    },
     "src/renderer/src/components/terminal-pane/ipc-pty-spawn-request.ts": {
       "seam": "agent-launch"
     },
     "src/renderer/src/components/terminal-pane/pty-connection/cold-restore-resume-startup.ts": {
       "seam": "agent-launch"
-    },
-    "src/renderer/src/components/use-task-page-composer-actions.ts": {
-      "seam": "linear"
-    },
-    "src/renderer/src/components/use-task-page-linear-filter-selection.ts": {
-      "seam": "linear"
-    },
-    "src/renderer/src/components/use-task-page-linear-in-orca-effects.ts": {
-      "seam": "linear"
     },
     "src/renderer/src/components/use-terminal-editor-close-foundation.ts": {
       "seam": "editor"

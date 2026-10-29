@@ -9,7 +9,7 @@ import { DiffLineCounts } from '@/components/right-sidebar/source-control/listin
 import {
   canStageStatusEntry,
   canUnstageStatusEntry
-} from '@/components/right-sidebar/source-control/listing/entry-actions'
+} from '../../../../shared/source-control-entry-actions'
 import { STATUS_COLORS, STATUS_LABELS } from '@/components/right-sidebar/status-display'
 import type { GitStatusEntry } from '../../../../shared/git-status-types'
 import type { LocalProjectRoot } from '../../../../shared/local-projects/types'

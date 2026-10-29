@@ -15,8 +15,6 @@ import type { AdoptStablePaneArgs, AdoptStablePaneResult } from '../ipc/spawn-ty
 import type { finishPtyShutdown } from '../provider/liveness'
 import type { ResolvedPtyHost } from '../provider/registry'
 import type { PtySpawnCodexResumeDeps } from '../spawn-host-env'
-// Ether seam: pty-spawn
-import type { FolderWorkspacePtyLaunchContext } from '../host-env/spawn-cwd'
 
 export type PtyRuntimeControllerDeps = PtySpawnCodexResumeDeps & {
   runtime?: OrcaRuntimeService
@@ -27,8 +25,7 @@ export type PtyRuntimeControllerDeps = PtySpawnCodexResumeDeps & {
   assertWorkspaceAcceptsNewPty: (
     worktreeId: string | undefined,
     sessionId?: string,
-    // Ether seam: pty-spawn
-    launch?: FolderWorkspacePtyLaunchContext
+    cwd?: string
   ) => Promise<void> | void
   resolvePtySpawnStartupCwd: (
     worktreeId: string | undefined,

@@ -7,7 +7,7 @@ import { agentSessionPinnedLaunchDirectory } from './agent-session-record-launch
 import { isFloatingWorkspaceId } from '../../shared/floating-workspace-worktree'
 import { localWorkspaceLaunchDirectory } from '../local-projects/seams/agent-launch-seam'
 
-/** The floating folder a session ran in is gone; resuming anywhere else would be a different chat. */
+/** Resuming a missing floating launch directory elsewhere would change the conversation. */
 export function agentSessionLaunchFolderMissing(
   launchDirectory: string
 ): AgentSessionPreSpawnError {
@@ -35,14 +35,8 @@ async function isDirectory(path: string): Promise<boolean> {
   }
 }
 
-/**
- * The one answer to "which directory does this acquisition launch the provider in".
- *
- * The floating workspace id names a setting, not a place, so a floating session resumes in the
- * folder it was pinned to and refuses when that folder is gone. Worktree and folder ids name a
- * durable place and keep resolving by id. Old floating records without a pin are repaired on
- * launch; new floating records receive the directory in their founding reservation.
- */
+/** Floating workspace ids name mutable settings, so resume their pinned folder and refuse if it disappeared.
+ * Worktree/folder ids still resolve by id; legacy unpinned floating records are repaired on launch. */
 export async function resolveAgentSessionLaunchDirectory(
   deps: AgentSessionLaunchDirectoryDeps,
   record: AgentSessionRecord
@@ -64,7 +58,7 @@ export async function resolveAgentSessionLaunchDirectory(
     try {
       await deps.store.pinLaunchDirectory(record.sessionId, resolved)
     } catch (error) {
-      // Bookkeeping must not gate the launch; an unpinned record is pinned by its next launch.
+      // Pin failure cannot block launch; a later launch can retry.
       console.warn('[agent-session] launch directory pin failed', record.sessionId, error)
     }
   }

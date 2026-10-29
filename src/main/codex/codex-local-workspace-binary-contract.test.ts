@@ -4,13 +4,11 @@ import { isAbsolute, join } from 'node:path'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { runProcess } from '@orca/process-host'
 import { captureLocalWorkspaceLaunchScope } from '../../shared/local-projects/agent-launch-scope'
-import {
-  openCodexAppServerConnection,
-  type CodexAppServerConnection
-} from './codex-app-server-connection'
-import { CodexAppServerHandshakeExitUnprovenError } from './codex-app-server-handshake-exit-proof'
+import { openCodexAppServerConnection } from './codex-app-server-connection'
+import type { CodexAppServerConnection } from './app-server/codex-app-server-connection-types'
+import { CodexAppServerHandshakeExitUnprovenError } from './app-server/codex-app-server-handshake-exit-proof'
 import { openCodexThread } from './codex-structured-thread-open'
-import { codexStructuredPermissionPolicy } from './codex-structured-permission-policy'
+import { codexStructuredPermissionPolicy } from '../../shared/codex-permission-policy'
 
 const binary = process.env.ORCA_CODEX_CONTRACT_BINARY
 const expectedVersion = process.env.ORCA_CODEX_CONTRACT_VERSION

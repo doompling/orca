@@ -9,7 +9,7 @@ import {
   codexProviderHandle
 } from '../../shared/agent-session-provider-handle-encoding'
 import { captureLocalWorkspaceLaunchScope } from '../../shared/local-projects/agent-launch-scope'
-import { codexStructuredPermissionPolicy } from '../codex/codex-structured-permission-policy'
+import { codexStructuredPermissionPolicy } from '../../shared/codex-permission-policy'
 import {
   admitAttachOrRefuse,
   reserveRequestFor
@@ -18,7 +18,7 @@ import { attachParamsForRecord } from '../native-chat/agent-session-wire/structu
 import { closeTestJournalHostDatabases } from '../native-chat/agent-session-journal/journal-host-database-test-support'
 import type { AgentSessionRecordStore } from './agent-session-record-store'
 import { openTestAgentSessionRecordStore } from './agent-session-record-store-test-harness'
-import type { AgentSessionReserveRequest } from './agent-session-reservation-admission'
+import type { AgentSessionReserveRequest } from './agent-session/ownership/agent-session-reservation-admission'
 import {
   createClaudeStructuredLaunchResolver,
   createCodexStructuredLaunchResolver

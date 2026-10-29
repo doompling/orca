@@ -48,7 +48,12 @@ async function acquirePtyLaunch(
   args: Parameters<typeof assertLocalWorkspacePtyLaunchUnderLock>[1]
 ): Promise<() => void> {
   const release = await f.runtime.acquireWorktreeTerminalSpawn(args.worktreeId)
-  assertLocalWorkspacePtyLaunchUnderLock(f.store, args, release)
+  try {
+    assertLocalWorkspacePtyLaunchUnderLock(f.store, args, release !== undefined)
+  } catch (error) {
+    release?.()
+    throw error
+  }
   return release
 }
 describe('local Workspace launch versus scope edits', () => {
