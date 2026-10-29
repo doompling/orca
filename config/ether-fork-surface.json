@@ -1,23 +1,65 @@
 {
-  "$comment": "Upstream files the Ether fork may touch. Run `pnpm check:ether-fork-surface`. Lower maxFiles when a touch is removed; raise it only with a note here. copiedUpstream maps fork-owned copies to the upstream component they replace; the drift report flags upstream changes to those originals.",
+  "$comment": "Upstream files the Ether fork may touch. Run `pnpm check:ether-fork-surface`. Each seam names the features (docs/ether-changes-technical.md) it serves. Lower maxFiles when a touch is removed; raise it only with a note here. copiedUpstream maps fork-owned copies to the upstream component they replace; the drift report flags upstream changes to those originals.",
   "upstreamRef": "upstream/main",
   "ignoredPrefixes": ["docs", "plans"],
   "maxFiles": 152,
   "seams": {
-    "agent-launch": "Every agent started in a local Workspace gets all of its roots (fork-features §3, §4).",
-    "chat-history-import": "One-time import of pre-SQLite chat records and journals (Phase 4).",
-    "chat-scope": "Chat launches hold the local Workspace scope lock; records keep frozen roots (§3).",
-    "editor": "Per-root editor watches, labels, drafts and window-close draft backup (§3).",
-    "git": "Per-root Source Control through a localRoot argument (§3).",
-    "identity": "Packaged Ether app identity and profile (§1).",
-    "linear": "Linear issues per Workspace, optional agent skill, read deadlines (§5).",
-    "local-projects": "Local multi-root Projects and Workspaces replace the repo flow (§3).",
-    "packaging": "Ether packaging, signing and fork scripts (§2).",
-    "persistence": "localProjects in the profile store and its contracts (§3).",
-    "pty-spawn": "Local Workspace terminals start in the saved root under the spawn lock (§3).",
-    "sidebar": "Local Projects sidebar: marks, recency, archive (§6).",
-    "updater": "Packaged Ether never installs upstream Orca updates (§1).",
-    "chat-fork": "Fork a built-in chat into a new chat from a copy of its conversation."
+    "agent-launch": {
+      "features": ["E4"],
+      "summary": "Every agent started in a local Workspace gets all of its roots."
+    },
+    "chat-history-import": {
+      "features": ["E10"],
+      "summary": "One-time import of pre-SQLite chat records and journals."
+    },
+    "chat-scope": {
+      "features": ["E4"],
+      "summary": "Chat launches hold the local Workspace scope lock; records keep frozen roots."
+    },
+    "editor": {
+      "features": ["E5"],
+      "summary": "Per-root editor watches, labels, drafts and window-close draft backup."
+    },
+    "git": {
+      "features": ["E6"],
+      "summary": "Per-root Source Control through a localRoot argument."
+    },
+    "identity": {
+      "features": ["E1"],
+      "summary": "Packaged Ether app identity and profile."
+    },
+    "linear": {
+      "features": ["E7"],
+      "summary": "Linear issues per Workspace, optional agent skill, read deadlines."
+    },
+    "local-projects": {
+      "features": ["E3", "E5", "E6"],
+      "summary": "Local multi-root Projects and Workspaces replace the repo flow."
+    },
+    "packaging": {
+      "features": ["E2", "M1"],
+      "summary": "Ether packaging, signing and fork scripts."
+    },
+    "persistence": {
+      "features": ["E3"],
+      "summary": "localProjects in the profile store and its contracts."
+    },
+    "pty-spawn": {
+      "features": ["E3", "E4"],
+      "summary": "Local Workspace terminals start in the saved root under the spawn lock."
+    },
+    "sidebar": {
+      "features": ["E8"],
+      "summary": "Local Projects sidebar: marks, recency, archive."
+    },
+    "updater": {
+      "features": ["E1"],
+      "summary": "Packaged Ether never installs upstream Orca updates."
+    },
+    "chat-fork": {
+      "features": ["E9"],
+      "summary": "Fork a built-in chat into a new chat from a copy of its conversation."
+    }
   },
   "copiedUpstream": {
     "src/renderer/src/features/linear-optional-skill/LinearOptionalSkillTaskSourceSetup.tsx": "src/renderer/src/components/settings/TaskSourceLinearSetup.tsx",

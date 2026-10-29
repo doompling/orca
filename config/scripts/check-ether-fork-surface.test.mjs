@@ -5,7 +5,9 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { runProcess } from '@orca/process-host'
 import {
   findForkSurfaceViolations,
+  findSeamFeatureViolations,
   listTouchedUpstreamFiles,
+  parseFeatureIds,
   resolveUpstreamBase
 } from './check-ether-fork-surface.mjs'
 
@@ -128,5 +130,24 @@ describe('Ether fork surface check', () => {
     const repo = await fixtureRepo()
     write(repo, 'src/unmarked.ts', 'export const b = 2\n// Ether seam: test\n')
     expect((await check(repo, allowAll)).violations).toEqual([])
+  })
+
+  it('ties every seam to documented features', () => {
+    const featureIds = parseFeatureIds(
+      '# Ref\n\n## E3. Projects\n\n## M1. Tooling\n\n### E9. Not a feature\n'
+    )
+    expect(featureIds).toEqual(new Set(['E3', 'M1']))
+    const violations = findSeamFeatureViolations({
+      featureIds,
+      manifest: {
+        seams: { git: { features: ['E3', 'E6'] }, docs: { features: [] } },
+        files: { 'src/a.ts': { seam: 'git' }, 'src/b.ts': { seam: 'gone' } }
+      }
+    })
+    expect(violations).toEqual([
+      'src/b.ts: seam "gone" is not declared in config/ether-fork-surface.json',
+      'seam "git" names E6, which docs/ether-changes-technical.md does not document',
+      'seam "docs" names no feature'
+    ])
   })
 })

@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 // Fails when the fork touches an upstream file the manifest does not allow, or a touched source file
-// carries no `Ether seam:` marker, or the count of touched upstream files grows past its ceiling.
+// carries no `Ether seam:` marker, or the count of touched upstream files grows past its ceiling, or a
+// seam is not tied to a feature in the technical reference.
 import { readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { runProcess } from '@orca/process-host'
 
 const SEAM_MARKER = 'Ether seam:'
 const MANIFEST_PATH = 'config/ether-fork-surface.json'
+const FEATURE_REFERENCE_PATH = 'docs/ether-changes-technical.md'
 
 async function git(repoRoot, args) {
   const result = await runProcess({
@@ -79,6 +81,33 @@ export function findForkSurfaceViolations({ touched, manifest, readFile }) {
   return violations
 }
 
+/** Feature IDs (`E3`, `M1`) from the technical reference's `## E3. Title` headings. */
+export function parseFeatureIds(reference) {
+  return new Set([...reference.matchAll(/^## ([EM]\d+)\./gm)].map((match) => match[1]))
+}
+
+/** Every file names a declared seam, and every seam names features the reference documents. */
+export function findSeamFeatureViolations({ manifest, featureIds }) {
+  const violations = []
+  const seams = manifest.seams ?? {}
+  for (const [path, entry] of Object.entries(manifest.files ?? {})) {
+    if (!Object.hasOwn(seams, entry.seam)) {
+      violations.push(`${path}: seam "${entry.seam}" is not declared in ${MANIFEST_PATH}`)
+    }
+  }
+  for (const [seam, { features = [] }] of Object.entries(seams)) {
+    if (features.length === 0) {
+      violations.push(`seam "${seam}" names no feature`)
+    }
+    for (const id of features.filter((feature) => !featureIds.has(feature))) {
+      violations.push(
+        `seam "${seam}" names ${id}, which ${FEATURE_REFERENCE_PATH} does not document`
+      )
+    }
+  }
+  return violations
+}
+
 async function main() {
   const repoRoot = resolve(import.meta.dirname, '../..')
   const manifest = JSON.parse(readFileSync(join(repoRoot, MANIFEST_PATH), 'utf8'))
@@ -90,11 +119,17 @@ async function main() {
     base,
     ignoredPrefixes: manifest.ignoredPrefixes
   })
-  const violations = findForkSurfaceViolations({
-    touched,
-    manifest,
-    readFile: (path) => readFileSync(join(repoRoot, path), 'utf8')
-  })
+  const violations = [
+    ...findForkSurfaceViolations({
+      touched,
+      manifest,
+      readFile: (path) => readFileSync(join(repoRoot, path), 'utf8')
+    }),
+    ...findSeamFeatureViolations({
+      manifest,
+      featureIds: parseFeatureIds(readFileSync(join(repoRoot, FEATURE_REFERENCE_PATH), 'utf8'))
+    })
+  ]
   if (violations.length > 0) {
     console.error(`Ether fork surface check failed against ${base.slice(0, 10)}:`)
     for (const violation of violations) {
