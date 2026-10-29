@@ -49,8 +49,6 @@ import {
 } from '../../../../shared/agent-session-account-home'
 import { assertReservedTabUnheld } from '../agent-session-tab-table'
 export { assertReservedTabUnheld } from '../agent-session-tab-table'
-// Ether seam: chat-scope
-import * as chatScope from '../../../local-projects/seams/chat-scope-seam'
 
 export type AgentSessionReserveRequest = {
   /** Host-resolved floating directory committed with the first owner reservation. */
@@ -69,8 +67,6 @@ export type AgentSessionReserveRequest = {
   models?: AgentSessionAdmissionModels
   /** Reserved tab ids are checked before spawn and claimed only when the tab publishes. */
   surfaceTabId?: string
-  // Ether seam: chat-scope
-  localWorkspaceScope?: chatScope.LocalWorkspaceLaunchScope
   /** Seed an adopted handle to resume its conversation; absent means a fresh provider conversation. */
   adoptedHandleLink?: AgentSessionProviderHandleLink
   /** Null when the session does not exist yet; otherwise the fence the caller last observed. */
@@ -167,8 +163,6 @@ export function applyAgentSessionReservation(
   disposition: Exclude<AgentSessionReserveDisposition, 'replayed'>
 } {
   validateAgentSessionReservationInput(request)
-  // Ether seam: chat-scope
-  chatScope.assertReservationScope(request, state.records.get(request.sessionId))
   const reservation: AgentSessionReservation = {
     spawnToken:
       typeof request.spawnToken === 'function' ? request.spawnToken() : request.spawnToken,

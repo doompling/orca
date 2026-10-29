@@ -37,7 +37,6 @@ import {
 import type { AgentSessionRecordStore } from '../../runtime/agent-session-record-store'
 import type { AgentSessionJournal } from '../agent-session-journal/journal-store'
 import { structuredAgentSessionRefusalMessage } from './structured-agent-session-refusal-message'
-import type { LocalWorkspaceLaunchScope } from '../../../shared/local-projects/agent-launch-scope'
 
 /** Clients cannot assert spawn tokens, claim keys or owner death; only host observations grant authority. */
 export type AgentSessionAttachParams = {
@@ -53,8 +52,6 @@ export type AgentSessionAttachParams = {
   /** Exclude tab placement from conversation identity/fingerprints. */
   surfaceTabId?: string
   launchArgs?: string[]
-  // Ether seam: chat-scope — host-captured roots; never accepted from the remote attach schema.
-  localWorkspaceScope?: LocalWorkspaceLaunchScope
   /** Omit only for create intent; fingerprint the client wire form before adapter proof. */
   providerHandle?: AgentSessionWireProviderHandle
   /** Host-only adoption seeds resume/import. Ordinary ensure handles must not imply adoption. */
@@ -87,7 +84,6 @@ export function attachFingerprintFields(params: AgentSessionAttachParams): Recor
     providerHandle: params.providerHandle,
     // Adoption changes identity; transcript location is transient and excluded.
     adoptedProviderHandle: params.adopt?.providerHandle,
-    ...(params.localWorkspaceScope ? { localWorkspaceScope: params.localWorkspaceScope } : {}),
     expectedRuntimeFence: params.envelope.expectedRuntimeFence
   }
 }
@@ -211,7 +207,6 @@ export function reserveRequestFor(input: {
     ...(params.envelope.expectedRuntimeFence === null && params.surfaceTabId
       ? { surfaceTabId: params.surfaceTabId }
       : {}),
-    ...(params.localWorkspaceScope ? { localWorkspaceScope: params.localWorkspaceScope } : {}),
     ...(authority.launchArgs ? { launchArgs: authority.launchArgs } : {}),
     ...(authority.launchEnv ? { launchEnv: authority.launchEnv } : {}),
     ...(authority.launchDirectory ? { launchDirectory: authority.launchDirectory } : {}),

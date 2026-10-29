@@ -1,13 +1,4 @@
 import type { AgentSessionAttachParams } from '../../native-chat/agent-session-wire/structured-agent-session-attach'
-import type { AgentSessionRecord } from '../../../shared/agent-session-record'
-import { agentSessionRefusalError } from '../../../shared/agent-session-wire-refusals'
-import {
-  localWorkspaceLaunchScopesEqual,
-  type LocalWorkspaceLaunchScope
-} from '../../../shared/local-projects/agent-launch-scope'
-import { isLocalWorkspaceSessionScope } from '../../../shared/local-projects/agent-session-scope'
-
-export type { LocalWorkspaceLaunchScope }
 
 export type AcquireWorkspaceScope = (params: AgentSessionAttachParams) => Promise<() => void>
 
@@ -36,23 +27,5 @@ export async function withLocalWorkspaceScopeLock<T>(
     return await run()
   } finally {
     release?.()
-  }
-}
-
-/** A reservation's frozen roots must belong to its own location and may not rebind an existing
- *  chat to a different checkout; a request without roots keeps the record's. */
-export function assertReservationScope(
-  request: Pick<AgentSessionAttachParams, 'location' | 'localWorkspaceScope'>,
-  existing: Pick<AgentSessionRecord, 'localWorkspaceScope'> | undefined
-): void {
-  if (!isLocalWorkspaceSessionScope(request.localWorkspaceScope, request.location)) {
-    throw new Error('agent_session_operation_invalid')
-  }
-  if (
-    existing &&
-    request.localWorkspaceScope &&
-    !localWorkspaceLaunchScopesEqual(existing.localWorkspaceScope, request.localWorkspaceScope)
-  ) {
-    throw agentSessionRefusalError('agent_session_conflict', { reason: 'identityMismatch' })
   }
 }

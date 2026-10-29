@@ -190,7 +190,7 @@ describe('pre-merge Ether chat history import', () => {
         .map((record) => record.sessionId)
         .sort()
     ).toEqual([MULTI_ROOT, PLAIN])
-    expect(store.getRecord(MULTI_ROOT)?.localWorkspaceScope).toEqual(scope)
+    expect(Reflect.get(store.getRecord(MULTI_ROOT) ?? {}, 'localWorkspaceScope')).toEqual(scope)
     expect(store.isSessionUnreadable(MULTI_ROOT)).toBe(false)
     for (const sessionId of [MULTI_ROOT, PLAIN]) {
       const load = replayJournal(database.db, sessionId)

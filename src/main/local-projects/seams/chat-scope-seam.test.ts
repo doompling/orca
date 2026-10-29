@@ -1,9 +1,13 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { mkdtempSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ResolvedLocalWorkspace } from '../../../shared/local-projects/types'
 import { captureLocalWorkspaceLaunchScope } from '../../../shared/local-projects/agent-launch-scope'
 import { WorktreeTerminalMutationLock } from '../../runtime/worktree-terminal-mutation-lock'
 import { hostTestAttachParams } from '../../native-chat/agent-session-wire/structured-agent-session-host-test-data'
 import { acquireLocalWorkspaceStructuredLaunch } from '../launch-scope-lock'
+import { rememberSessionScope, setSessionScopeFileForTests } from '../session-scope-store'
 import { installLocalWorkspaceScopeAcquirer, withLocalWorkspaceScopeLock } from './chat-scope-seam'
 
 vi.mock('../../native-chat/agent-session-wire/structured-agent-session-registry', () => ({
@@ -31,16 +35,27 @@ function fixture() {
       wslDistro: null,
       workspaceId: workspaceKey,
       workspaceKind: 'folder'
-    },
-    localWorkspaceScope: captureLocalWorkspaceLaunchScope(workspace)
+    }
   })
+  rememberSessionScope(
+    { sessionId: params.envelope.sessionId, location: params.location },
+    captureLocalWorkspaceLaunchScope(workspace),
+    true
+  )
   installLocalWorkspaceScopeAcquirer((attach) =>
     acquireLocalWorkspaceStructuredLaunch(store, runtime, attach)
   )
   return { lock, params }
 }
 
-afterEach(() => installLocalWorkspaceScopeAcquirer(undefined))
+beforeEach(() => {
+  setSessionScopeFileForTests(join(mkdtempSync(join(tmpdir(), 'ether-chat-scope-')), 'scopes.json'))
+})
+
+afterEach(() => {
+  installLocalWorkspaceScopeAcquirer(undefined)
+  setSessionScopeFileForTests(undefined)
+})
 
 function deferred(): { promise: Promise<void>; resolve: () => void } {
   let resolve!: () => void

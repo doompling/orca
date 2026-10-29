@@ -6,9 +6,27 @@ import type { AgentSessionExecutionLocation } from '../../shared/agent-session-r
 import { captureLocalWorkspaceLaunchScope } from '../../shared/local-projects/agent-launch-scope'
 import type { ResolvedLocalWorkspace } from '../../shared/local-projects/types'
 import {
-  captureStructuredLocalWorkspaceScope,
-  readStructuredLocalWorkspaceScope
+  readStructuredLocalWorkspaceScope,
+  rememberStructuredLocalWorkspaceScope
 } from './structured-agent-scope'
+import { sessionScopeFor, setSessionScopeFileForTests } from './session-scope-store'
+
+const sessionId = 'session-a'
+
+/** Captures through the host path and reads the frozen copy back. */
+function captureStructuredLocalWorkspaceScope(
+  store: Parameters<typeof rememberStructuredLocalWorkspaceScope>[0],
+  at: AgentSessionExecutionLocation
+) {
+  rememberStructuredLocalWorkspaceScope(store, sessionId, at)
+  return sessionScopeFor({ sessionId, location: at })
+}
+
+/** A record written before the scope store, carrying its roots itself. */
+function legacyRecord(at: AgentSessionExecutionLocation, localWorkspaceScope: unknown) {
+  const record = { sessionId, location: at, localWorkspaceScope }
+  return record
+}
 
 const location: AgentSessionExecutionLocation = {
   executionHostId: 'local',
@@ -31,9 +49,11 @@ beforeEach(async () => {
     ]
   }
   await Promise.all(workspace.roots.map((root) => mkdir(root.path)))
+  setSessionScopeFileForTests(join(directory, 'scopes.json'))
 })
 
 afterEach(async () => {
+  setSessionScopeFileForTests(undefined)
   await rm(directory, { recursive: true, force: true })
 })
 
@@ -62,12 +82,16 @@ describe('host-owned structured agent roots', () => {
 
   it('leaves existing folder workspaces without a fork record unchanged', async () => {
     expect(captureStructuredLocalWorkspaceScope({}, location)).toBeUndefined()
-    await expect(readStructuredLocalWorkspaceScope({ location })).resolves.toBeUndefined()
+    await expect(
+      readStructuredLocalWorkspaceScope({ sessionId, location })
+    ).resolves.toBeUndefined()
   })
 
   it('returns an independent snapshot after validating every saved directory', async () => {
     const localWorkspaceScope = captureLocalWorkspaceLaunchScope(workspace)
-    const read = await readStructuredLocalWorkspaceScope({ location, localWorkspaceScope })
+    const read = await readStructuredLocalWorkspaceScope(
+      legacyRecord(location, localWorkspaceScope)
+    )
     expect(read).toEqual(localWorkspaceScope)
     expect(read?.roots).not.toBe(localWorkspaceScope.roots)
   })
@@ -76,7 +100,7 @@ describe('host-owned structured agent roots', () => {
     const localWorkspaceScope = captureLocalWorkspaceLaunchScope(workspace)
     localWorkspaceScope.roots[0].path = join(directory, 'missing')
     await expect(
-      readStructuredLocalWorkspaceScope({ location, localWorkspaceScope })
+      readStructuredLocalWorkspaceScope(legacyRecord(location, localWorkspaceScope))
     ).rejects.toThrow('folder_workspace_path_missing')
   })
 
@@ -86,16 +110,16 @@ describe('host-owned structured agent roots', () => {
     await writeFile(file, 'not a folder')
     localWorkspaceScope.roots[0].path = file
     await expect(
-      readStructuredLocalWorkspaceScope({ location, localWorkspaceScope })
+      readStructuredLocalWorkspaceScope(legacyRecord(location, localWorkspaceScope))
     ).rejects.toThrow('folder_workspace_path_not_directory')
   })
 
-  it('refuses a valid saved scope attached to another execution host', async () => {
+  it('ignores a saved scope attached to another execution host', async () => {
+    const remote = { ...location, executionHostId: 'ssh:another-host' as const }
     await expect(
-      readStructuredLocalWorkspaceScope({
-        location: { ...location, executionHostId: 'ssh:another-host' },
-        localWorkspaceScope: captureLocalWorkspaceLaunchScope(workspace)
-      })
-    ).rejects.toThrow('another execution host')
+      readStructuredLocalWorkspaceScope(
+        legacyRecord(remote, captureLocalWorkspaceLaunchScope(workspace))
+      )
+    ).resolves.toBeUndefined()
   })
 })

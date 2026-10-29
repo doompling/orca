@@ -1,5 +1,3 @@
-// Ether seam: chat-scope
-import type { AgentSessionRecord } from '../../../shared/agent-session-record'
 // Open and settle the crash boundary before any reader, command or child: damaged journals fail;
 // handed-over sends remain permanently unknown. Unhanded personal text becomes a paused card,
 // other unhanded sends are rejected (journal-unsent-send-hold.ts / queued-message-pause.ts).
@@ -162,8 +160,7 @@ async function settleGoneGeneration(
 }
 
 export function attachParamsForRecord(
-  record: Pick<AgentSessionConversationView, 'sessionId' | 'location' | 'provider' | 'accountHome'> &
-    Partial<Pick<AgentSessionRecord, 'localWorkspaceScope'>>,
+  record: Pick<AgentSessionConversationView, 'sessionId' | 'location' | 'provider' | 'accountHome'>,
   input: {
     clientOperationId: string
     expectedRuntimeFence: number
@@ -180,8 +177,6 @@ export function attachParamsForRecord(
     provider: record.provider,
     agent: record.provider,
     accountHome: record.accountHome,
-    // Ether seam: chat-scope
-    ...(record.localWorkspaceScope ? { localWorkspaceScope: record.localWorkspaceScope } : {}),
     runtimeKind: 'native'
   }
   return {

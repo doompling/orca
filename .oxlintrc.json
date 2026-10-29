@@ -213,8 +213,7 @@
         "src/main/ipc/filesystem/filesystem-git-status-handlers.ts",
         "src/main/runtime/agent-session-record-store.ts",
         "src/main/runtime/workspaces/workspace-process-listing.ts",
-        "src/renderer/src/lib/worktree-activation.ts",
-        "src/shared/agent-session-record.ts"
+        "src/renderer/src/lib/worktree-activation.ts"
       ],
       "rules": {
         "max-lines": ["error", { "max": 320, "skipBlankLines": true, "skipComments": true }]

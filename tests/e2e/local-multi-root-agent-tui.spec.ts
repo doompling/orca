@@ -108,6 +108,8 @@ for (const { id, menuItemName } of GOLDEN_STUB_AGENTS) {
         await store.getState().updateSettings({
           agentCmdOverrides: { codex, claude },
           agentDefaultArgs: { codex: '--golden-capture-launch', claude: '--golden-capture-launch' },
+          // Upstream defaults to full access; 'own' proves the Workspace launch adds no permission flag.
+          agentPermissionDefault: 'own',
           experimentalNativeChat: false,
           ...(windows ? { terminalWindowsShell: 'cmd.exe' } : {})
         })

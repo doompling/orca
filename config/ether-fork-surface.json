@@ -2,7 +2,7 @@
   "$comment": "Upstream files the Ether fork may touch. Run `pnpm check:ether-fork-surface`. Each seam names the features (docs/ether-changes-technical.md) it serves. Lower maxFiles when a touch is removed; raise it only with a note here. copiedUpstream maps fork-owned copies to the upstream component they replace; the drift report flags upstream changes to those originals. .oxlintrc.json gives upstream files at the line limit room for their seam hooks (Ether max-lines overrides at the end of overrides).",
   "upstreamRef": "upstream/main",
   "ignoredPrefixes": ["docs", "plans"],
-  "maxFiles": 145,
+  "maxFiles": 139,
   "seams": {
     "agent-launch": {
       "features": ["E4"],
@@ -144,12 +144,6 @@
     "src/main/native-chat/agent-session-wire/structured-agent-session-attach-orchestration.ts": {
       "seam": "chat-scope"
     },
-    "src/main/native-chat/agent-session-wire/structured-agent-session-attach.ts": {
-      "seam": "chat-scope"
-    },
-    "src/main/native-chat/agent-session-wire/structured-agent-session-conversation-open.ts": {
-      "seam": "chat-scope"
-    },
     "src/main/persistence/loading-store/project-collection-operations.ts": {
       "seam": "local-projects"
     },
@@ -162,13 +156,7 @@
     "src/main/runtime/agent-session-launch-directory.ts": {
       "seam": "agent-launch"
     },
-    "src/main/runtime/agent-session-record-founding.ts": {
-      "seam": "chat-scope"
-    },
     "src/main/runtime/agent-session-record-store.ts": {
-      "seam": "chat-scope"
-    },
-    "src/main/runtime/agent-session/ownership/agent-session-reservation-admission.ts": {
       "seam": "chat-scope"
     },
     "src/main/runtime/orca-runtime-create-agent-session.ts": {
@@ -191,9 +179,6 @@
     },
     "src/main/runtime/session-tabs/structured-session-create-support.ts": {
       "seam": "local-projects"
-    },
-    "src/main/runtime/structured-agent-session-create-adoption.ts": {
-      "seam": "agent-launch"
     },
     "src/main/runtime/structured-agent-session-journal-open.ts": {
       "seam": "chat-history-import"
@@ -456,9 +441,6 @@
       "seam": "agent-launch"
     },
     "src/shared/agent-resume-record-from-status.ts": {
-      "seam": "agent-launch"
-    },
-    "src/shared/agent-session-record.ts": {
       "seam": "agent-launch"
     },
     "src/shared/agent-session-resume.ts": {

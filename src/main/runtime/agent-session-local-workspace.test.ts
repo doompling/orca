@@ -11,10 +11,10 @@ import {
 import { captureLocalWorkspaceLaunchScope } from '../../shared/local-projects/agent-launch-scope'
 import { codexStructuredPermissionPolicy } from '../../shared/codex-permission-policy'
 import {
-  admitAttachOrRefuse,
-  reserveRequestFor
-} from '../native-chat/agent-session-wire/structured-agent-session-attach'
-import { attachParamsForRecord } from '../native-chat/agent-session-wire/structured-agent-session-conversation-open'
+  rememberSessionScope,
+  sessionScopeFor,
+  setSessionScopeFileForTests
+} from '../local-projects/session-scope-store'
 import { closeTestJournalHostDatabases } from '../native-chat/agent-session-journal/journal-host-database-test-support'
 import type { AgentSessionRecordStore } from './agent-session-record-store'
 import { openTestAgentSessionRecordStore } from './agent-session-record-store-test-harness'
@@ -61,7 +61,6 @@ function request(
       variable: provider === 'codex' ? 'CODEX_HOME' : 'CLAUDE_CONFIG_DIR',
       path: join(directory, 'account')
     },
-    localWorkspaceScope: frozenScope(),
     expectedFence: null,
     spawnToken: 'test-spawn',
     claimKeyId: 'test-key',
@@ -90,8 +89,9 @@ function resumedLink(provider: 'codex' | 'claude'): AgentSessionProviderHandleLi
   }
 }
 
-/** A record as the store keeps it, read back for a launch. */
+/** A record as the store keeps it, read back for a launch, with its roots frozen. */
 function scopedRecord(provider: 'codex' | 'claude', resuming: boolean): AgentSessionRecord {
+  rememberSessionScope({ sessionId: `session-${provider}`, location }, frozenScope(), true)
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: launch resolution reads only these record fields.
   return {
     sessionId: `session-${provider}`,
@@ -101,7 +101,6 @@ function scopedRecord(provider: 'codex' | 'claude', resuming: boolean): AgentSes
       variable: provider === 'codex' ? 'CODEX_HOME' : 'CLAUDE_CONFIG_DIR',
       path: join(directory, 'account')
     },
-    localWorkspaceScope: frozenScope(),
     providerHandleChain: resuming ? [resumedLink(provider)] : []
   } as AgentSessionRecord
 }
@@ -124,88 +123,51 @@ beforeEach(async () => {
   nextOperation = 0
   await Promise.all(frozenScope().roots.map((root) => mkdir(root.path)))
   store = await openTestAgentSessionRecordStore(join(directory, 'state'), { hostId: 'local' })
+  setSessionScopeFileForTests(join(directory, 'scopes.json'))
 })
 
 afterEach(async () => {
+  setSessionScopeFileForTests(undefined)
   closeTestJournalHostDatabases()
   await rm(directory, { recursive: true, force: true })
 })
 
-describe('multi-root chat durable record', () => {
-  it('copies the first roots into the record store and restores them after reopen', async () => {
+describe('multi-root chat frozen roots', () => {
+  const session = { sessionId: 'session-codex', location }
+
+  it('copies the first roots into the scope store and restores them after reopen', async () => {
     const original = frozenScope()
-    const saved = await store.reserveOwner(request('codex', { localWorkspaceScope: original }))
+    rememberSessionScope(session, original, true)
     original.roots[0].path = join(directory, 'changed-after-launch')
-    expect(saved.record.localWorkspaceScope).toEqual(frozenScope())
-    closeTestJournalHostDatabases()
-    const restored = await openTestAgentSessionRecordStore(join(directory, 'state'), {
-      hostId: 'local'
-    })
-    expect(restored.getRecord('session-codex')?.localWorkspaceScope).toEqual(frozenScope())
-    expect(restored.isSessionUnreadable('session-codex')).toBe(false)
+    expect(sessionScopeFor(session)).toEqual(frozenScope())
+    setSessionScopeFileForTests(join(directory, 'scopes.json'))
+    expect(sessionScopeFor(session)).toEqual(frozenScope())
   })
 
-  it('keeps roots on ordinary reacquisition even when no new scope is supplied', async () => {
-    const saved = await store.reserveOwner(request())
-    const reacquired = await store.reserveOwner(
-      request('codex', {
-        expectedFence: saved.record.lease.runtimeFence,
-        localWorkspaceScope: undefined
-      })
-    )
-    expect(reacquired.record.localWorkspaceScope).toEqual(frozenScope())
-  })
-
-  it('keeps the frozen roots through reopened attach identity and reservation translation', async () => {
-    const { record } = await store.reserveOwner(request())
-    const params = attachParamsForRecord(record, {
-      clientOperationId: `${NOW}-${'2'.repeat(32)}`,
-      expectedRuntimeFence: record.lease.runtimeFence
-    })
-    expect(params.localWorkspaceScope).toEqual(frozenScope())
-    const admitted = admitAttachOrRefuse(params)
-    expect(admitted.ok).toBe(true)
-    if (!admitted.ok) {
-      throw new Error(admitted.refusal.message)
-    }
-    const translated = reserveRequestFor({
-      params,
-      sessionId: record.sessionId,
-      callerKey: 'test-client',
-      fingerprint: admitted.fingerprint,
-      now: NOW,
-      authority: {
-        spawnToken: 'next-spawn',
-        claimKeyId: 'test-key',
-        handoffOperationId: null,
-        probe: { outcome: 'reservation-unused' }
-      }
-    })
-    expect(translated.localWorkspaceScope).toEqual(frozenScope())
-  })
-
-  it('refuses rebinding an existing session to a changed checkout', async () => {
-    const saved = await store.reserveOwner(request())
+  it('refuses rebinding a recorded session to a changed checkout', () => {
+    rememberSessionScope(session, frozenScope(), true)
     const changed = frozenScope()
     changed.roots[0].path = join(directory, 'another-checkout')
-    await expect(
-      store.reserveOwner(
-        request('codex', {
-          expectedFence: saved.record.lease.runtimeFence,
-          localWorkspaceScope: changed
-        })
-      )
-    ).rejects.toThrow('agent_session_conflict')
-    expect(store.getRecord('session-codex')?.localWorkspaceScope).toEqual(frozenScope())
+    expect(() => rememberSessionScope(session, changed, false)).toThrow('agent_session_conflict')
+    expect(sessionScopeFor(session)).toEqual(frozenScope())
+    rememberSessionScope(session, changed, true)
+    expect(sessionScopeFor(session)).toEqual(changed)
   })
 
-  it('refuses a scope attached to the wrong Workspace before persistence', async () => {
+  it('refuses a scope attached to the wrong Workspace before persistence', () => {
     const wrongOwner = frozenScope()
     wrongOwner.workspaceId = 'another-workspace'
-    await expect(
-      store.reserveOwner(request('codex', { localWorkspaceScope: wrongOwner }))
-    ).rejects.toThrow('agent_session_operation_invalid')
-    expect(store.listRecords()).toEqual([])
+    expect(() => rememberSessionScope(session, wrongOwner, true)).toThrow(
+      'agent_session_operation_invalid'
+    )
+    expect(sessionScopeFor(session)).toBeUndefined()
+  })
+
+  it('reads roots a pre-store record carried, then keeps them in the store', async () => {
+    const saved = await store.reserveOwner(request())
+    const legacy = { ...saved.record, localWorkspaceScope: frozenScope() }
+    expect(sessionScopeFor(legacy)).toEqual(frozenScope())
+    expect(sessionScopeFor(saved.record)).toEqual(frozenScope())
   })
 })
 
@@ -226,7 +188,6 @@ describe('providers use the saved roots instead of current catalog defaults', ()
       resumeThreadId: resuming ? 'original-thread' : null,
       permissionPolicy: codexStructuredPermissionPolicy('ask')
     })
-    expect(launch.localWorkspaceScope).not.toBe(record.localWorkspaceScope)
     expect(resolveWorkspacePath).not.toHaveBeenCalled()
   })
 

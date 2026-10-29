@@ -3,7 +3,6 @@ import {
   agentSessionNeverStarted
 } from '../../shared/agent-session-conversation-view'
 import { AGENT_CHAT_PERMISSION_MODE_OPTION_ID } from '../../shared/agent-chat-permission-mode'
-import { copyLocalWorkspaceLaunchScope } from '../../shared/local-projects/agent-launch-scope'
 import {
   AGENT_SESSION_RECORD_SCHEMA_VERSION,
   type AgentSessionRecord
@@ -18,8 +17,6 @@ export type AgentSessionRecordIdentity = Pick<
   | 'options'
   | 'launchArgs'
   | 'launchDirectory'
-  // Ether seam: chat-scope
-  | 'localWorkspaceScope'
 >
 
 export function agentSessionRecordIdentityFields(
@@ -40,10 +37,6 @@ export function agentSessionRecordIdentityFields(
     ...(identity.launchArgs ? { launchArgs: [...identity.launchArgs] } : {}),
     // /clear retains its tab and launch directory.
     ...(identity.launchDirectory ? { launchDirectory: identity.launchDirectory } : {}),
-    // Ether seam: chat-scope — the roots captured at launch stay frozen on the record.
-    ...(identity.localWorkspaceScope
-      ? { localWorkspaceScope: copyLocalWorkspaceLaunchScope(identity.localWorkspaceScope) }
-      : {}),
     createdAt: now,
     updatedAt: now
   }

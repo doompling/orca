@@ -1,4 +1,8 @@
+import { mkdtempSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { rememberSessionScope, setSessionScopeFileForTests } from './session-scope-store'
 import type { ResolvedLocalWorkspace } from '../../shared/local-projects/types'
 import { captureLocalWorkspaceLaunchScope } from '../../shared/local-projects/agent-launch-scope'
 import { WorktreeTerminalMutationLock } from '../runtime/worktree-terminal-mutation-lock'
@@ -104,9 +108,16 @@ describe('local Workspace launch versus scope edits', () => {
         wslDistro: null,
         workspaceId: 'folder:workspace',
         workspaceKind: 'folder'
-      },
-      localWorkspaceScope: captureLocalWorkspaceLaunchScope(f.original)
+      }
     })
+    setSessionScopeFileForTests(
+      join(mkdtempSync(join(tmpdir(), 'ether-launch-scope-')), 'scopes.json')
+    )
+    rememberSessionScope(
+      { sessionId: params.envelope.sessionId, location: params.location },
+      captureLocalWorkspaceLaunchScope(f.original),
+      true
+    )
     f.change()
     await expect(acquireLocalWorkspaceStructuredLaunch(f.store, f.runtime, params)).rejects.toThrow(
       'roots changed before launch'
@@ -116,5 +127,6 @@ describe('local Workspace launch versus scope edits', () => {
     expect(f.lock.trackedKeyCount).toBe(1)
     release()
     expect(f.lock.trackedKeyCount).toBe(0)
+    setSessionScopeFileForTests(undefined)
   })
 })

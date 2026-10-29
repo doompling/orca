@@ -8,9 +8,6 @@ import {
   type PersistedAgentSessionObservationRecord,
   type PersistedAgentSessionRecord
 } from './agent-session-legacy-handoff-lease'
-// Ether seam: agent-launch
-import type { LocalWorkspaceLaunchScope } from './local-projects/agent-launch-scope'
-import { isLocalWorkspaceSessionScope } from './local-projects/agent-session-scope'
 /** Identity pins location, provider and account home independently of terminal tabs; the lease separately grants one process writer authority. */
 
 import type { ExecutionHostId } from './execution-host'
@@ -144,8 +141,6 @@ export type AgentSessionRecord = {
   /** When the user's Sleep stopped this chat; the next admitted send clears it. */
   sleptAt?: number
   launchArgs?: AgentSessionLaunchArgs
-  // Ether seam: agent-launch — roots frozen when the chat was created.
-  localWorkspaceScope?: LocalWorkspaceLaunchScope
   lease: AgentSessionLease
   createdAt: number
   updatedAt: number
@@ -335,8 +330,6 @@ export function isPersistedAgentSessionObservationRecord(
         isAgentSessionConversationName(record.conversationName)) &&
       (record.conversationNameSource === undefined || record.conversationNameSource === 'user') &&
       (record.launchArgs === undefined || isAgentSessionLaunchArgs(record.launchArgs)) &&
-      // Ether seam: agent-launch
-      isLocalWorkspaceSessionScope(record.localWorkspaceScope, record.location) &&
       !Object.hasOwn(record, 'launchEnv') &&
       isPersistedAgentSessionObservationLease(record.lease) &&
       record.lease.sessionId === record.sessionId &&

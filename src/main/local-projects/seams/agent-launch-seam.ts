@@ -5,7 +5,7 @@ import {
 } from '../../../shared/local-projects/agent-launch-scope'
 import { readStructuredLocalWorkspaceScope } from '../structured-agent-scope'
 
-type ScopedRecord = Pick<AgentSessionRecord, 'location' | 'localWorkspaceScope'>
+type ScopedRecord = Pick<AgentSessionRecord, 'sessionId' | 'location'>
 
 /** The cwd a local Workspace chat launches in; undefined for any other session. */
 export async function localWorkspaceLaunchDirectory(

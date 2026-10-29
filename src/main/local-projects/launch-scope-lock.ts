@@ -3,6 +3,7 @@ import { isPathInsideOrEqual } from '../../shared/cross-platform-path'
 import { parseWorkspaceKey } from '../../shared/workspace-scope'
 import type { ResolvedLocalWorkspace } from '../../shared/local-projects/types'
 import { localProjectRootScopeChangesExecution } from '../../shared/local-projects/scope-update'
+import { sessionScopeFor } from './session-scope-store'
 import type { AgentSessionAttachParams } from '../native-chat/agent-session-wire/structured-agent-session-attach'
 import { getStructuredAgentSessionHost } from '../native-chat/agent-session-wire/structured-agent-session-registry'
 import type { OrcaRuntimeService } from '../runtime/orca-runtime'
@@ -68,7 +69,10 @@ export function assertLocalWorkspacePtyLaunchUnderLock(
   if (!args.sessionId && !args.resumeProviderSession) {
     if (args.launchConfig?.localWorkspaceScope) {
       assertFreshScope(current, args.launchConfig.localWorkspaceScope)
-    } else if (args.cwd && !current.roots.some((root) => isPathInsideOrEqual(root.path, args.cwd!))) {
+    } else if (
+      args.cwd &&
+      !current.roots.some((root) => isPathInsideOrEqual(root.path, args.cwd!))
+    ) {
       throw new Error('The requested terminal directory is no longer inside this Workspace.')
     }
   }
@@ -92,7 +96,10 @@ export async function acquireLocalWorkspaceStructuredLaunch(
       params.envelope.sessionId
     )
     if (!existing) {
-      assertFreshScope(resolveWorkspace(store, workspaceId), params.localWorkspaceScope)
+      assertFreshScope(
+        resolveWorkspace(store, workspaceId),
+        sessionScopeFor({ sessionId: params.envelope.sessionId, location: params.location })
+      )
     }
     return release
   } catch (error) {
