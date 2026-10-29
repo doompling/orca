@@ -196,9 +196,7 @@ describe('repo catalog refresh on repos:changed', () => {
       fetchRepos,
       fetchProjectGroups,
       fetchHostWorkspaceStatuses: vi.fn(),
-      fetchFolderWorkspaces,
-      // Ether seam: local-projects — the bridge also refreshes local Projects on repos:changed.
-      fetchLocalProjects: vi.fn(() => Promise.resolve())
+      fetchFolderWorkspaces
     }
 
     vi.doMock('react', async () => {

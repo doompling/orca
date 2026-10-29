@@ -4,7 +4,7 @@ import { useAppStore } from '../../store'
 import { adoptFromEndpoint } from '../../store/adopt-from-endpoint'
 import { selectWorktreesByRepo } from '@/store/workspace-record-selectors'
 // Ether seam: local-projects
-import { hasLocalProjectsApi } from '@/features/local-projects/local-projects-availability'
+import { refreshLocalProjectsCatalog } from '@/features/local-projects/local-projects-catalog-refresh'
 
 export function registerProjectCatalogIpcBridge(
   unsubs: (() => void)[],
@@ -15,9 +15,8 @@ export function registerProjectCatalogIpcBridge(
   unsubs.push(
     window.api.repos.onChanged(() => {
       const state = useAppStore.getState()
-      if (hasLocalProjectsApi()) {
-        void state.fetchLocalProjects().catch(() => undefined)
-      }
+      // Ether seam: local-projects
+      refreshLocalProjectsCatalog(state)
       if (isRuntimeEnvironmentActive()) {
         // Why: the all-host sidebar shows local repos even under a runtime; refresh the local slice, keep runtime slices.
         void (async () => {

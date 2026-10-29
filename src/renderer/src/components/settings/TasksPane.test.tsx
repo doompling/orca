@@ -32,9 +32,8 @@ vi.mock('./use-integration-provider-status-refresh', () => ({
   useIntegrationProviderStatusRefresh: vi.fn()
 }))
 
-// Ether seam: linear — TasksPane renders the fork's optional-skill Linear setup.
-vi.mock('@/features/linear-optional-skill/LinearOptionalSkillTaskSourceSetup', () => ({
-  LinearOptionalSkillTaskSourceSetup: (props: {
+vi.mock('./TaskSourceLinearSetup', () => ({
+  TaskSourceLinearSetup: (props: {
     connected: boolean
     checking: boolean
     onOpenIntegrations: () => void
@@ -130,7 +129,6 @@ describe('TasksPane', () => {
     mocks.readiness = {
       github: { connected: true, checking: false, visible: true },
       gitlab: { connected: true, checking: false, visible: true },
-      // Ether seam: linear — browsing is ready even though the optional skill is absent.
       linear: {
         connected: true,
         checking: false,
@@ -153,15 +151,15 @@ describe('TasksPane', () => {
     container = null
   })
 
-  // Ether seam: linear
-  it('treats the Linear agent skill as optional without a setup warning', () => {
+  it('frames Task Sources as a guided setup hub, not visibility-only toggles', () => {
     const markup = renderPane()
 
     expect(markup).toContain('Task management setup')
-    expect(markup).toContain('Linear browsing and Workspace links do not require an agent skill')
-    expect(markup).not.toContain(INCOMPLETE_BANNER)
-    expect(markup).not.toContain(LINEAR_SETUP_MARKER)
-    expect(markup).not.toContain('Skill required')
+    expect(markup).toContain('Linear also needs the agent skill')
+    expect(markup).toContain(INCOMPLETE_BANNER)
+    expect(markup).toContain('Linear setup steps')
+    expect(markup).toContain('Hide providers you do not use')
+    expect(markup).toContain('API access, the agent skill, and Show in Tasks')
   })
 
   it('does not warn on a fresh install where nothing is connected yet', () => {
@@ -213,21 +211,15 @@ describe('TasksPane', () => {
   })
 
   it('passes context-safe readiness into the expanded Linear setup', () => {
-    // Ether seam: linear — only an unconnected Linear is incomplete once the skill is optional.
-    mocks.readiness.linear.connected = false
     renderPane()
 
     expect(mocks.linearSetupProps).toEqual([
-      expect.objectContaining({ connected: false, checking: false })
+      expect.objectContaining({ connected: true, checking: false })
     ])
   })
 
   it('deep-links connected Linear credential management to its integration card', async () => {
     await renderInteractivePane()
-    // Ether seam: linear — ready Linear no longer auto-expands, so open it.
-    await act(async () => {
-      container?.querySelector<HTMLButtonElement>('[aria-label="Show Linear setup steps"]')?.click()
-    })
 
     mocks.linearSetupProps.at(-1)?.onOpenIntegrations()
 
@@ -281,11 +273,9 @@ describe('TasksPane', () => {
   })
 
   it('keeps Linear setup mounted while a skill recheck is in flight after auto-expand', async () => {
-    // Ether seam: linear — only an unconnected Linear is incomplete once the skill is optional.
-    mocks.readiness.linear.connected = false
     await renderInteractivePane()
     expect(container?.querySelector('[data-testid="linear-setup"]')).not.toBeNull()
-    expect(container?.textContent).not.toContain(INCOMPLETE_BANNER)
+    expect(container?.textContent).toContain(INCOMPLETE_BANNER)
 
     mocks.readiness.linear = {
       connected: true,
@@ -301,8 +291,6 @@ describe('TasksPane', () => {
   })
 
   it('keeps the auto-expanded card open after hiding it instead of popping another open', async () => {
-    // Ether seam: linear — only an unconnected Linear is incomplete once the skill is optional.
-    mocks.readiness.linear.connected = false
     await renderInteractivePane()
     expect(container?.querySelector('[data-testid="linear-setup"]')).not.toBeNull()
 
@@ -335,9 +323,8 @@ describe('TasksPane', () => {
     await renderInteractivePane()
     expect(container?.querySelector('[data-testid="linear-setup"]')).toBeNull()
 
-    // Ether seam: linear — Linear resolves as unconnected first, so its setup auto-expands.
     mocks.readiness.linear = {
-      connected: false,
+      connected: true,
       checking: false,
       skillInstalled: false,
       skillChecking: false,

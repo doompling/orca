@@ -93,8 +93,7 @@ describe('task providers', () => {
 
   it('falls back to GitHub when every preferred provider is unavailable', () => {
     expect(
-      // Ether seam: linear — disconnected Linear stays available (task-providers.linear-setup.test.ts).
-      filterAvailableTaskProviders(['gitlab'], {
+      filterAvailableTaskProviders(['gitlab', 'linear'], {
         gitlabInstalled: false,
         linearConnected: false
       })

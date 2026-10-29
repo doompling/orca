@@ -2,7 +2,7 @@
   "$comment": "Upstream files the Ether fork may touch. Run `pnpm check:ether-fork-surface`. Each seam names the features (docs/ether-changes-technical.md) it serves. Lower maxFiles when a touch is removed; raise it only with a note here. copiedUpstream maps fork-owned copies to the upstream component they replace; the drift report flags upstream changes to those originals. .oxlintrc.json gives upstream files at the line limit room for their seam hooks (Ether max-lines overrides at the end of overrides).",
   "upstreamRef": "upstream/main",
   "ignoredPrefixes": ["docs", "plans"],
-  "maxFiles": 139,
+  "maxFiles": 136,
   "seams": {
     "agent-launch": {
       "features": ["E4"],
@@ -85,6 +85,9 @@
     },
     "config/scripts/macos-terminal-host-bundle.cjs": {
       "seam": "packaging"
+    },
+    "config/vitest.config.ts": {
+      "seam": "local-projects"
     },
     "package.json": {
       "seam": "packaging",
@@ -273,13 +276,7 @@
     "src/renderer/src/components/right-sidebar/useFileSearchRunner.ts": {
       "seam": "local-projects"
     },
-    "src/renderer/src/components/settings/LinearAgentSkillPane.test.tsx": {
-      "seam": "linear"
-    },
     "src/renderer/src/components/settings/LinearAgentSkillPane.tsx": {
-      "seam": "linear"
-    },
-    "src/renderer/src/components/settings/TasksPane.test.tsx": {
       "seam": "linear"
     },
     "src/renderer/src/components/settings/TasksPane.tsx": {
@@ -369,9 +366,6 @@
     "src/renderer/src/hooks/ipc-events/workspace-shortcut-ipc-bridge.ts": {
       "seam": "sidebar"
     },
-    "src/renderer/src/hooks/useIpcEvents-repos-changed-catalogs.test.ts": {
-      "seam": "local-projects"
-    },
     "src/renderer/src/i18n/en-runtime-required.json": {
       "seam": "local-projects",
       "marker": false
@@ -460,9 +454,6 @@
     },
     "src/shared/sleeping-agent-launch-config.ts": {
       "seam": "agent-launch"
-    },
-    "src/shared/task-providers.test.ts": {
-      "seam": "linear"
     },
     "src/shared/task-providers.ts": {
       "seam": "linear"
