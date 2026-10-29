@@ -162,9 +162,10 @@ test('packaged Ether starts from an empty profile, saves both directory contexts
     expect(
       await page.evaluate(async () => {
         const settings = await window.api.settings.get()
+        // Upstream keeps permissions in agentPermissionDefault; Ether adds no default flags.
         return {
-          claude: settings.agentDefaultArgs?.claude,
-          codex: settings.agentDefaultArgs?.codex
+          claude: settings.agentDefaultArgs?.claude ?? '',
+          codex: settings.agentDefaultArgs?.codex ?? ''
         }
       })
     ).toEqual({ claude: '', codex: '' })
