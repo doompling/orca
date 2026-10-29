@@ -21,8 +21,9 @@ node -e "const m=require('./config/ether-fork-surface.json');for(const[f,v]of Ob
   files the fork added, `config/scripts/*ether*`, and `tests/e2e/{local-,ether-}*.spec.ts`.
 - **Seams.** An upstream file gets at most an import plus one call or element into a fork-owned
   module, marked `// Ether seam: <name>`. Seam modules sit in `src/main/local-projects/seams/` and
-  `src/renderer/src/features/local-projects/seams/`. Several upstream files sit at the 300-line
-  lint limit, so a hook there must not add net lines.
+  `src/renderer/src/features/local-projects/seams/`. Upstream files at the lint line limit that
+  need a hook are listed in the Ether `max-lines` overrides at the end of `.oxlintrc.json`, which
+  allow 20 extra lines; add a file there rather than contorting its hook.
 - **The manifest** (`config/ether-fork-surface.json`) lists every touched upstream file with its
   seam; each seam names the feature IDs below. `pnpm check:ether-fork-surface` fails on an
   unlisted file, a missing marker, a stale entry, a count above `maxFiles`, or a seam whose
@@ -36,7 +37,9 @@ node -e "const m=require('./config/ether-fork-surface.json');for(const[f,v]of Ob
   in an object type; upstream usually appends at the end of imports and unions.
 - Add a fork element beside upstream JSX instead of wrapping it; a wrapper re-indents upstream
   lines and conflicts with every upstream edit to them.
-- Never add assertions to an upstream test file. Put fork expectations in a fork-owned test.
+- Never edit an upstream test file. When Ether changes what an upstream test asserts, copy it to a
+  fork-owned `*.ether.test.*` file with Ether's expectations and list the original in
+  `config/ether-replaced-upstream-tests.mjs`, which the unit test config excludes.
 - Don't copy an upstream component unless it has to diverge. A copy goes under `copiedUpstream`
   in the manifest so the drift report flags upstream changes to the original.
 - Strings: add fork keys to `src/renderer/src/i18n/locales/en.json` (upstream's lint reads only
@@ -51,8 +54,12 @@ node -e "const m=require('./config/ether-fork-surface.json');for(const[f,v]of Ob
    re-applying the seam hook at upstream's new owner. Never restore a file upstream deleted.
 3. Fix fork imports of modules upstream moved, then run `pnpm tc`, `pnpm check:ether-fork-surface`,
    the fork tests, and the fork e2e specs (below). Unit tests alone are not enough: in merge 1 they
-   passed while every local Projects write failed in the live app.
-4. Update this document where a seam moved, lower `maxFiles`, and record the merge in
+   passed while every local Projects write failed in the live app. For the full `pnpm test`, compare
+   failures against a scratch worktree of the upstream target: about 40 files (cross-version wire,
+   orcad, some `config/scripts`) fail on a plain upstream checkout here too.
+4. Commit the merge with `--no-verify` (lint-staged would re-lint every upstream file in it) after
+   running `oxlint` on the fork-changed files; later commits keep the hooks.
+5. Update this document where a seam moved, lower `maxFiles`, and record the merge in
    `plans/upstream_merge_N/`.
 
 ### Fork test set
@@ -156,7 +163,10 @@ guard, Git target, root worktree creation), `src/renderer/src/features/local-pro
 
 **Seams:** `local-projects` (UI shell switches, store slice, IPC registration, folder-workspace
 projection), `persistence` (profile store, allowed filesystem roots, folder path status),
-`pty-spawn` (terminal cwd and the launch lock).
+`pty-spawn` (terminal cwd and the launch lock). Terminal starts attach at two points: the default
+root in `resolvePtySpawnStartupCwd` (`host-env/spawn-cwd.ts`), and one `assertLocalWorkspacePtyStart`
+call inside upstream's `runPtySpawn` (`spawn-operation.ts`), after it takes the worktree spawn lock
+and before the start runs; upstream's operation releases the lock when the check throws.
 
 **Check:** unit tests in the three `local-projects` directories; e2e
 `local-multi-root-{workspaces,navigation,restart,cold-restart,recovery,copy-layout,worktree-create}.spec.ts`.
@@ -179,6 +189,12 @@ check independent drafts and an agent editing both roots; quit and reopen.
 - Codex counts a root as granted when it is inside the reported cwd or a writable root; the chat
   still refuses when a root is genuinely missing or Codex doesn't confirm the cwd. Manual
   permissions and sandbox settings are never loosened.
+- Where the frozen roots live: a chat's in `ether-agent-session-scopes.json` beside
+  `agent-session-journal.db`, keyed by session ID and written before the chat is reserved
+  (`session-scope-store.ts`; records from before the store carried them on the record and are
+  read once from there); a terminal agent's as `localWorkspaceScope` on its saved launch config.
+  Upstream's schemas strip unknown fields on load, which is why the terminal field stays typed.
+  A chat whose roots are missing refuses to attach.
 - The roots captured at launch are frozen with the session and survive resume, restart and Fork
   Chat. A resumed session is never rebound to the currently selected Workspace.
 - Scope is captured by the local host only. It is never accepted from a remote attach;
@@ -264,7 +280,10 @@ of two upstream settings components, listed under `copiedUpstream`),
 `tests/e2e/helpers/local-project-linear-backend.ts`.
 
 **Seams:** `linear` (Tasks rows and issue details, the "Has Workspace" filter, read deadlines,
-optional-skill readiness, jump search).
+optional-skill readiness, jump search). The read deadline wraps each whole read, queue wait
+included, so it stays on the four read modules: upstream's `createLinearClient` only retries brief
+network failures, and a deadline there would also cut off writes. Tasks rows and issue details
+render a fork element just before the upstream action and hide that sibling in local mode.
 
 **Check:** `src/main/local-projects/linear-*.test.ts`, `src/main/linear/linear-{read-deadline,issue-search}.test.ts`,
 the Linear tests in `features/`; e2e `local-projects-linear{,-entry}.spec.ts` and the packaged

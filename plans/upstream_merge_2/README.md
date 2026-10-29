@@ -23,28 +23,44 @@ fork imports of modules upstream deleted or moved; 152 touched upstream files.
 
 - [x] Readable change list and technical reference; the fork-surface check ties every seam to a
       documented feature.
-- [ ] Linear (E7): render fork actions beside upstream JSX, one filter hook, fork assertions out of
-      upstream tests, drop low-value touches.
+- [x] Linear (E7): fork actions render beside upstream JSX and hide the upstream sibling in local
+      mode; one filter hook; three files back to upstream (152 -> 149). The settings test edits
+      and the workspace-creation hooks stayed (see Phase C for the tests).
 
-## Phase B: the merge
+## Phase B: the merge (`7df8c5a516`, target `f640517132`, 1,690 commits)
 
-- [ ] Take upstream for the terminal-start files and re-attach `pty-spawn` at `spawn-cwd.ts` and
-      `spawn-operation.ts` (`runPtySpawn`, after the lock and `adapter.facts()`).
-- [ ] Agent launch and chat scope: take upstream, keep the typed scope field for now, re-point
-      moved imports.
-- [ ] i18n: take upstream's catalogues, then `pnpm sync:localization-catalog` and
-      `pnpm sync:localization-runtime-catalog`.
-- [ ] Trivial conflicts, then `pnpm install`, `pnpm tc`, the check, fork tests and fork e2e.
+- [x] Terminal starts: upstream's version of all eight files (accepting the deletion of
+      `runtime/spawn-execute.ts`), re-attached at `spawn-cwd.ts` and `spawn-operation.ts`.
+- [x] Agent launch and chat scope: upstream's side plus the scope lines; moved imports re-pointed.
+- [x] i18n: upstream's catalogues, then both sync scripts.
+- [x] Fork Chat follows upstream's new chat-pane menu; the window-close draft backup became one
+      guarded call; fork tests follow upstream's profile-database close and conversation view.
+- [x] `pnpm tc` clean; full `pnpm test`: every failure that is not also a failure on a plain
+      upstream checkout fixed (about 40 files fail on both here); fork e2e 16/18, the two failures
+      were upstream's new full-access default in a test expectation (fixed after).
+- Upstream files touched after the merge: 145.
 
 ## Phase C: after the merge
 
-- [ ] E4: move the frozen session scope out of upstream's record types (fork store for chats,
-      saved agent environment for terminals) with a one-time migration; one hook per provider at
-      upstream's launch builders.
-- [ ] E4: check upstream's new launch paths refuse or carry every root (folder composer first).
-- [ ] E6: fork-owned Git channels; E8: the sidebar as one slot; E5: the window-close draft flow
-      behind one call.
-- [ ] E7: the 30-second read limit once in `createLinearClient`.
-- [ ] Docs, manifest count, `pnpm build:ether`, packaged specs.
+- [x] E4: chat roots moved to `ether-agent-session-scopes.json` (`session-scope-store.ts`), read
+      from pre-store records once; a chat without its roots refuses (145 -> 139). Terminal agents
+      keep the typed field: upstream's schemas strip unknown fields on load, so moving it would
+      strand existing sleeping agents.
+- [x] E4: upstream's new launch paths either go through the new-tab admit check or set
+      `launchAgent`, which the main-process PTY check refuses without roots; chats capture roots in
+      main whatever the entry point. The folder composer creates upstream folder workspaces, not
+      local Workspaces.
+- [x] Upstream tests Ether changes are replaced, not edited (`config/ether-replaced-upstream-tests.mjs`
+      and `*.ether.test.*` copies); the repo-catalog bridge refresh became a best-effort fork call
+      (139 -> 136).
+- [x] E5: the window-close draft flow is one guarded call (done in the merge).
+- [ ] Not done, on purpose: E6 fork-owned Git channels (six files saved for duplicating upstream's
+      status, diff, staging and commit handlers); E8 sidebar header slot (would copy upstream's
+      whole `SidebarHeader`); E7 deadline in `createLinearClient` (would also cut off writes and miss
+      queue waits). Revisit Git if its handlers keep conflicting.
+- [x] Docs and manifest (136).
+- [ ] `pnpm build:ether` and the packaged specs.
 
 ## Log
+
+- 2026-10-28: dry run 48 conflicts; Phase A; merge; Phase C to 136 touched upstream files.

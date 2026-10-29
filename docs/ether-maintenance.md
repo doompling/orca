@@ -1,7 +1,7 @@
 # Ether: build, recovery, and maintenance
 
 This is the local Apple Silicon handoff, not an upstream Orca release guide.
-The [multi-root plan](../plans/02_local-multi-root-workspaces.md) records which user
+The [multi-root plan](../plans/02_local-multi-root-workspaces-plan.md) records which user
 journeys actually passed and any remaining limitations.
 
 ## App and data boundaries
@@ -117,7 +117,7 @@ DST="$HOME/Library/Application Support/Ether-try"
 mkdir -p "$DST/profiles/local-default"
 cp -p "$SRC"/profiles/local-default/{orca-data.json,profile-state.db} "$DST/profiles/local-default/" 2>/dev/null
 cp -Rp "$SRC/agent-sessions" "$SRC/agent-session-journal" "$DST/" 2>/dev/null
-cp -p "$SRC/agent-session-journal.db" "$DST/" 2>/dev/null
+cp -p "$SRC"/{agent-session-journal.db,ether-agent-session-scopes.json} "$DST/" 2>/dev/null
 ```
 
 Each copy is optional: copy whichever files exist (`profile-state.db` and `agent-session-journal.db`
@@ -230,7 +230,8 @@ Existing automatic recovery is narrower than that full backup:
   `Ether.app/Contents/Resources/bin/orca profile state exports`, then
   `… rollback --repair` or `… rollback --backup <id>`.
 - `agent-session-journal.db` (SQLite, in the app-data root) holds native-chat records
-  and history. `terminal-history/` contains terminal recovery data. Browser/profile
+  and history. `ether-agent-session-scopes.json` beside it holds the Workspace roots each
+  local Workspace chat started with; copy the two together, or those chats refuse to continue. `terminal-history/` contains terminal recovery data. Browser/profile
   metadata and other state also live elsewhere under the app-data folder.
 - Releases before 2026-10-23 used `profiles/local-default/orca-data.json` (with
   `.bak.0`–`.bak.4`), `agent-sessions/agent-sessions.json` and per-chat
